@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-comment-dots me-2"></i>
+                تقديم بلاغ أو استفسار
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('pilgrimage_index') }}">تجربة الحجاج 360°</a></li>
+                    <li class="breadcrumb-item active">تقديم بلاغ</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-edit me-2"></i>بيانات البلاغ
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="report-form">
+                        <!-- Report Type -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="report_type" class="form-label">نوع البلاغ *</label>
+                                    <select class="form-select" id="report_type" name="report_type" required>
+                                        <option value="">اختر نوع البلاغ</option>
+                                        <option value="crowding">ازدحام</option>
+                                        <option value="cleanliness">نظافة</option>
+                                        <option value="accessibility">إمكانية الوصول</option>
+                                        <option value="emergency">حالة طوارئ</option>
+                                        <option value="lost_person">شخص مفقود</option>
+                                        <option value="service_issue">مشكلة في الخدمة</option>
+                                        <option value="inquiry">استفسار عام</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="urgency" class="form-label">درجة الأهمية *</label>
+                                    <select class="form-select" id="urgency" name="urgency" required>
+                                        <option value="">اختر درجة الأهمية</option>
+                                        <option value="low">منخفضة</option>
+                                        <option value="medium">متوسطة</option>
+                                        <option value="high">عالية</option>
+                                        <option value="emergency">طوارئ</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="location_id" class="form-label">الموقع</label>
+                                    <select class="form-select" id="location_id" name="location_id">
+                                        <option value="">اختر الموقع (اختياري)</option>
+                                        {% for location in locations %}
+                                        <option value="{{ location.id }}">{{ location.location_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="coordinates" class="form-label">الإحداثيات</label>
+                                    <input type="text" class="form-control" id="coordinates" name="coordinates" placeholder="سيتم تحديدها من الخريطة" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">وصف البلاغ *</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required placeholder="اكتب وصفاً مفصلاً للمشكلة أو الاستفسار"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description_en" class="form-label">الوصف بالإنجليزية (اختياري)</label>
+                            <textarea class="form-control" id="description_en" name="description_en" rows="3" placeholder="Description in English (optional)"></textarea>
+                        </div>
+
+                        <!-- Personal Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="reported_by_name" class="form-label">الاسم *</label>
+                                    <input type="text" class="form-control" id="reported_by_name" name="reported_by_name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="reported_by_nationality" class="form-label">الجنسية</label>
+                                    <input type="text" class="form-control" id="reported_by_nationality" name="reported_by_nationality">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="contact_info" class="form-label">معلومات الاتصال *</label>
+                                    <input type="text" class="form-control" id="contact_info" name="contact_info" required placeholder="رقم الهاتف أو البريد الإلكتروني">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="preferred_language" class="form-label">اللغة المفضلة</label>
+                                    <select class="form-select" id="preferred_language" name="preferred_language">
+                                        <option value="ar">العربية</option>
+                                        <option value="en">English</option>
+                                        <option value="ur">اردو</option>
+                                        <option value="fr">Français</option>
+                                        <option value="id">Bahasa Indonesia</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('pilgrimage_index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>إرسال البلاغ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map and Info -->
+        <div class="col-lg-4">
+            <!-- Map -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>تحديد الموقع
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="location-map" style="height: 300px;"></div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            انقر على الخريطة لتحديد موقع البلاغ
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Info -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-question-circle me-2"></i>كيفية تقديم البلاغ
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>اختر نوع البلاغ</strong> المناسب
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>حدد درجة الأهمية</strong> بدقة
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>اكتب وصفاً مفصلاً</strong> للمشكلة
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>حدد الموقع</strong> على الخريطة
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>أدخل معلومات الاتصال</strong> الصحيحة
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<script>
+// Initialize map
+let map = L.map('location-map').setView([21.4225, 39.8262], 12);
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Current marker
+let currentMarker = null;
+
+// Click event for setting location
+map.on('click', function(e) {
+    // Remove existing marker
+    if (currentMarker) {
+        map.removeLayer(currentMarker);
+    }
+    
+    // Add new marker
+    currentMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map)
+        .bindPopup('موقع البلاغ')
+        .openPopup();
+    
+    // Update coordinates field
+    document.getElementById('coordinates').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+});
+
+// Form validation
+document.getElementById('report-form').addEventListener('submit', function(e) {
+    let reportType = document.getElementById('report_type').value;
+    let urgency = document.getElementById('urgency').value;
+    let description = document.getElementById('description').value;
+    let name = document.getElementById('reported_by_name').value;
+    let contact = document.getElementById('contact_info').value;
+    
+    if (!reportType || !urgency || !description || !name || !contact) {
+        e.preventDefault();
+        alert('يرجى ملء جميع الحقول المطلوبة');
+        return false;
+    }
+    
+    // Validate contact info (basic email or phone validation)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{7,}$/;
+    
+    if (!emailRegex.test(contact) && !phoneRegex.test(contact)) {
+        e.preventDefault();
+        alert('يرجى إدخال بريد إلكتروني أو رقم هاتف صحيح');
+        return false;
+    }
+});
+
+// Auto-set urgency based on report type
+document.getElementById('report_type').addEventListener('change', function() {
+    const urgencyField = document.getElementById('urgency');
+    
+    switch(this.value) {
+        case 'emergency':
+        case 'lost_person':
+            urgencyField.value = 'emergency';
+            break;
+        case 'crowding':
+        case 'accessibility':
+            urgencyField.value = 'high';
+            break;
+        case 'cleanliness':
+        case 'service_issue':
+            urgencyField.value = 'medium';
+            break;
+        case 'inquiry':
+            urgencyField.value = 'low';
+            break;
+    }
+});
+</script>
+{% endblock %}

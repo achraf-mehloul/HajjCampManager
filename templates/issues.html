@@ -1,0 +1,1225 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم البلاغات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-exclamation-triangle me-2 icon-primary"></i>
+        {{ translate('إدارة البلاغات', get_setting('language', 'ar')) }}
+    </h2>
+
+    <div class="row">
+        <!-- إحصائيات البلاغات -->
+        <div class="col-md-12 mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="dashboard-card primary">
+                        <div class="title">{{ translate('إجمالي البلاغات', get_setting('language', 'ar')) }}</div>
+                        <div class="number">{{ total_issues }}</div>
+                        <div><i class="fas fa-clipboard-list fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card secondary">
+                        <div class="title">بلاغات مفتوحة</div>
+                        <div class="number">{{ open_issues }}</div>
+                        <div><i class="fas fa-folder-open fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card" style="background-color: #FFF3CD; color: #856404;">
+                        <div class="title">قيد المعالجة</div>
+                        <div class="number">{{ in_progress_issues }}</div>
+                        <div><i class="fas fa-tools fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card" style="background-color: #D4EDDA; color: #155724;">
+                        <div class="title">بلاغات مغلقة</div>
+                        <div class="number">{{ closed_issues }}</div>
+                        <div><i class="fas fa-check-circle fa-2x"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- إضافة بلاغ جديد -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة بلاغ جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_issue') }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="panel_search" class="form-label">البحث عن اللوحة</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="panel_search"
+                                    placeholder="ابحث برقم اللوحة أو رقم ماكسيمو...">
+                                <button class="btn btn-outline-secondary" type="button" id="search_panel_button">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" id="clear_panel_search">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn btn-outline-info" type="button" id="toggle_panel_dropdown"
+                                    title="إظهار/إخفاء القائمة المنسدلة">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">يمكنك البحث مباشرة أو استخدام القائمة المنسدلة أدناه</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="panel_id" class="form-label">اللوحة (يمكن اختيار أكثر من لوحة)</label>
+                            <select class="form-select" id="panel_id" name="panel_id" multiple size="5">
+                                <option value="">اختياري - لا توجد لوحة محددة</option>
+                                {% for panel in panels %}
+                                <option value="{{ panel.id }}" data-mdb="{{ panel.mdb }}"
+                                    data-maximo="{{ panel.maximo_tag }}" {% if panel.id|string in
+                                    request.args.getlist('panel_id') %}selected{% endif %}>
+                                    {{ panel.mdb }} ({{ panel.maximo_tag }}) - {{ panel.area_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اضغط Ctrl لتحديد أكثر من لوحة. هذا الحقل اختياري.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="issue_type" class="form-label">نوع المشكلة (اختياري)</label>
+                            <select class="form-select" id="issue_type" name="issue_type">
+                                <option value="">اختياري - لا يوجد نوع محدد</option>
+                                {% if issue_types %}
+                                {% for issue_type in issue_types %}
+                                <option value="{{ issue_type.value }}">{{ issue_type.display_text }}</option>
+                                {% endfor %}
+                                {% else %}
+                                <option value="عطل كهربائي">عطل كهربائي</option>
+                                <option value="تلف في المعدات">تلف في المعدات</option>
+                                <option value="مشكلة في التوصيلات">مشكلة في التوصيلات</option>
+                                <option value="تسرب مياه">تسرب مياه</option>
+                                <option value="مشكلة في التبريد">مشكلة في التبريد</option>
+                                <option value="أخرى">أخرى</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">وصف المشكلة (اختياري)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                placeholder="وصف مفصل للمشكلة (اختياري)"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">الأولوية (اختياري)</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="منخفض">منخفض</option>
+                                <option value="متوسط" selected>متوسط</option>
+                                <option value="عالي">عالي</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="contractor_id" class="form-label">المقاول المسؤول</label>
+                            <select class="form-select" id="contractor_id" name="contractor_id">
+                                <option value="">اختر المقاول</option>
+                                {% for contractor in contractors %}
+                                <option value="{{ contractor.id }}">{{ contractor.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="responsible_person" class="form-label">الشخص المسؤول</label>
+                            <select class="form-select" id="responsible_person" name="responsible_person">
+                                <option value="">اختر الشخص المسؤول</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" data-user-name="{{ user.name }}">{{ user.name }} ({{
+                                    user.role }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="assigned_group" class="form-label">المجموعة المسؤولة (اختياري)</label>
+                            <select class="form-select" id="assigned_group" name="assigned_group">
+                                <option value="">اختر المجموعة</option>
+                                {% for group in user_groups %}
+                                <option value="{{ group.id }}">{{ group.name }} (عدد الأعضاء: {{
+                                    group.memberships|length }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة البلاغ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة البلاغات -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-list me-2"></i>
+                        قائمة البلاغات
+                    </div>
+                    <div>
+                        <form id="issues-filter-form" class="d-flex flex-wrap">
+                            <div class="input-group input-group-sm me-2 mb-2" style="width: 200px;">
+                                <input type="text" class="form-control" id="search_issues" name="search"
+                                    placeholder="ابحث في البلاغات..." value="{{ request.args.get('search', '') }}">
+                                <button class="btn btn-outline-secondary" type="button" id="clear_issues_search">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <select class="form-select form-select-sm me-2 mb-2" id="status-filter" name="status"
+                                style="width: 120px;">
+                                <option value="all">جميع الحالات</option>
+                                <option value="مفتوح" {% if request.args.get('status')=='مفتوح' %}selected{% endif %}>
+                                    مفتوح</option>
+                                <option value="قيد المعالجة" {% if request.args.get('status')=='قيد المعالجة'
+                                    %}selected{% endif %}>قيد المعالجة</option>
+                                <option value="مغلق" {% if request.args.get('status')=='مغلق' %}selected{% endif %}>مغلق
+                                </option>
+                            </select>
+                            <select class="form-select form-select-sm me-2 mb-2" id="country-filter" name="country"
+                                style="width: 150px;">
+                                <option value="all">جميع الدول</option>
+                                {% for country in countries %}
+                                <option value="{{ country.id }}" {% if request.args.get('country')==country.id|string
+                                    %}selected{% endif %}>
+                                    {{ country.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <select class="form-select form-select-sm me-2 mb-2" id="company-filter" name="company"
+                                style="width: 150px;">
+                                <option value="all">جميع الشركات</option>
+                                {% for company in companies %}
+                                <option value="{{ company.id }}" {% if request.args.get('company')==company.id|string
+                                    %}selected{% endif %}>
+                                    {{ company.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-secondary mb-2">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                        </form>
+                        <!-- أزرار التصدير -->
+                        <div class="dropdown ms-2">
+                            <button class="btn btn-sm btn-success dropdown-toggle" type="button"
+                                data-bs-toggle="dropdown">
+                                <i class="fas fa-download me-1"></i>تصدير
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <button class="dropdown-item" onclick="exportIssues('excel')">
+                                        <i class="fas fa-file-excel me-2"></i>Excel
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" onclick="exportIssues('pdf')">
+                                        <i class="fas fa-file-pdf me-2"></i>PDF
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم البلاغ</th>
+                                    <th>اللوحة</th>
+                                    <th>الدولة</th>
+                                    <th>الشركة</th>
+                                    <th>نوع المشكلة</th>
+                                    <th>الأولوية</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>وقت المعالجة (دقيقة)</th>
+                                    <th>وقت الإقفال (دقيقة)</th>
+                                    <th>المقاول</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if issues %}
+                                {% for issue in issues %}
+                                <tr>
+                                    <td>{{ issue.id }}</td>
+                                    <td>
+                                        {% if issue.panel %}
+                                        <a href="{{ url_for('panel_details', panel_id=issue.panel.id) }}"
+                                            class="text-primary">
+                                            {{ issue.panel.mdb }}
+                                        </a>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-panorama"></i> بلاغ من البانوراما
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if issue.panel and issue.panel.country %}
+                                        <span class="badge bg-primary">{{ issue.panel.country.name }}</span>
+                                        {% else %}
+                                        <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if issue.panel and issue.panel.company %}
+                                        <small>{{ issue.panel.company.name }}</small>
+                                        {% if issue.panel.company.contact_person %}
+                                        <br><small class="text-muted">
+                                            <i class="fas fa-user"></i> {{ issue.panel.company.contact_person }}
+                                        </small>
+                                        {% endif %}
+                                        {% if issue.panel.company.phone %}
+                                        <br><small class="text-muted">
+                                            <i class="fas fa-phone"></i> {{ issue.panel.company.phone }}
+                                        </small>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ issue.issue_type }}</td>
+                                    <td>
+                                        <span
+                                            class="badge {% if issue.priority == 'عالي' %}bg-danger{% elif issue.priority == 'متوسط' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                                            {{ issue.priority }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="badge {% if issue.status == 'مفتوح' %}bg-primary{% elif issue.status == 'قيد المعالجة' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                            {{ issue.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ issue.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        {% if issue.processing_time %}
+                                        {{ issue.processing_time }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if issue.closure_time %}
+                                        {{ issue.closure_time }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ issue.contractor.name if issue.contractor else 'غير محدد' }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('view_issue', issue_id=issue.id) }}"
+                                                class="btn btn-info" title="عرض التفاصيل">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if issue.panel %}
+                                            <a href="{{ url_for('readings.add_manual_reading_view', panel_id=issue.panel.id) }}"
+                                                class="btn btn-primary" title="إضافة قراءة يدوية">
+                                                <i class="fas fa-plus-circle"></i>
+                                            </a>
+                                            {% endif %}
+                                            <a href="{{ url_for('update_issue_status', issue_id=issue.id, status='قيد المعالجة') }}"
+                                                class="btn btn-warning {% if issue.status == 'مغلق' %}disabled{% endif %}"
+                                                title="بدء المعالجة">
+                                                <i class="fas fa-tools"></i>
+                                            </a>
+                                            <a href="{{ url_for('update_issue_status', issue_id=issue.id, status='مغلق') }}"
+                                                class="btn btn-success {% if issue.status == 'مغلق' %}disabled{% endif %}"
+                                                title="إغلاق البلاغ">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="12" class="text-center">لا توجد بلاغات متاحة</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم إحصائيات البلاغات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-chart-pie me-2 icon-secondary"></i>
+        إحصائيات البلاغات
+    </h2>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    المناطق الأكثر بلاغات
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="areas-issues-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-hard-hat me-2"></i>
+                    المقاولين والبلاغات
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="contractors-issues-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات الدول والشركات -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-flag me-2"></i>
+                    البلاغات حسب الدول
+                    {% if country_filter %}
+                    <span class="badge bg-primary ms-2">مفلتر: {{ countries|selectattr('id', 'equalto',
+                        country_filter|int)|map(attribute='name')|first }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="countries-issues-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-building me-2"></i>
+                    البلاغات حسب الشركات
+                    {% if company_filter %}
+                    <span class="badge bg-primary ms-2">مفلتر: {{ companies|selectattr('id', 'equalto',
+                        company_filter|int)|map(attribute='name')|first }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="companies-issues-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    /* ─── AI Assistant Panel ─── */
+    .ai-issues-fab {
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .ai-fab-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a237e, #5c6bc0);
+        color: #fff;
+        border: none;
+        font-size: 1.4rem;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(26, 35, 126, .5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: .2s;
+    }
+
+    .ai-fab-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 28px rgba(26, 35, 126, .6);
+    }
+
+    .ai-chat-panel {
+        width: 340px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, .18);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        display: none;
+        max-height: 500px;
+    }
+
+    .ai-chat-panel.open {
+        display: flex;
+    }
+
+    .ai-panel-hdr {
+        background: linear-gradient(135deg, #1a237e, #5c6bc0);
+        color: #fff;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+
+    .ai-panel-title {
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+    .ai-panel-close {
+        background: none;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .ai-quick-questions {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f0f2f5;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .ai-q-chip {
+        background: #e8eaf6;
+        border: 1px solid #c5cae9;
+        border-radius: 16px;
+        padding: 4px 10px;
+        font-size: .78rem;
+        color: #3949ab;
+        cursor: pointer;
+        transition: .15s;
+    }
+
+    .ai-q-chip:hover {
+        background: #c5cae9;
+    }
+
+    .ai-msgs {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 120px;
+        scrollbar-width: thin;
+    }
+
+    .ai-msg-bot,
+    .ai-msg-user {
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: .88rem;
+        line-height: 1.6;
+        max-width: 90%;
+    }
+
+    .ai-msg-bot {
+        background: #e8eaf6;
+        color: #1a237e;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+
+    .ai-msg-user {
+        background: #1a237e;
+        color: #fff;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+        text-align: right;
+    }
+
+    .ai-typing-dots span {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #5c6bc0;
+        margin: 0 2px;
+        animation: dot 1.2s infinite;
+    }
+
+    .ai-typing-dots span:nth-child(2) {
+        animation-delay: .2s;
+    }
+
+    .ai-typing-dots span:nth-child(3) {
+        animation-delay: .4s;
+    }
+
+    @keyframes dot {
+
+        0%,
+        80%,
+        100% {
+            transform: scale(.7);
+            opacity: .5
+        }
+
+        40% {
+            transform: scale(1);
+            opacity: 1
+        }
+    }
+
+    .ai-input-row {
+        display: flex;
+        gap: 6px;
+        padding: 10px 12px;
+        border-top: 1px solid #f0f2f5;
+        flex-shrink: 0;
+    }
+
+    .ai-text-input {
+        flex: 1;
+        border: 1px solid #c5cae9;
+        border-radius: 20px;
+        padding: 8px 14px;
+        font-size: .88rem;
+        outline: none;
+        direction: rtl;
+        font-family: inherit;
+    }
+
+    .ai-text-input:focus {
+        border-color: #3949ab;
+    }
+
+    .ai-send-btn,
+    .ai-mic-btn {
+        width: 34px;
+        height: 34px;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .9rem;
+        flex-shrink: 0;
+    }
+
+    .ai-send-btn {
+        background: #1a237e;
+        color: #fff;
+    }
+
+    .ai-send-btn:hover {
+        background: #283593;
+    }
+
+    .ai-mic-btn {
+        background: #e8eaf6;
+        color: #3949ab;
+    }
+
+    .ai-mic-btn.recording {
+        background: #ffcdd2;
+        color: #c62828;
+    }
+</style>
+
+<!-- AI Assistant Widget -->
+<div class="ai-issues-fab">
+    <div class="ai-chat-panel" id="ai-issues-panel">
+        <div class="ai-panel-hdr">
+            <span class="ai-panel-title"><i class="fas fa-robot me-2"></i>مساعد بيانات البلاغات</span>
+            <button class="ai-panel-close" onclick="toggleAIPanel()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="ai-quick-questions">
+            <span class="ai-q-chip" onclick="askAI('ما أكثر نوع بلاغ متكرر؟')">أكثر الأنواع</span>
+            <span class="ai-q-chip" onclick="askAI('ما عدد البلاغات المفتوحة؟')">المفتوحة</span>
+            <span class="ai-q-chip" onclick="askAI('من أكثر مقاول بلاغات؟')">المقاولين</span>
+            <span class="ai-q-chip" onclick="askAI('أعطني ملخصاً شاملاً لحالة البلاغات')">ملخص شامل</span>
+            <span class="ai-q-chip" onclick="askAI('ما البلاغات عالية الأولوية؟')">عالي الأولوية</span>
+        </div>
+        <div class="ai-msgs" id="ai-issues-msgs">
+            <div class="ai-msg-bot">
+                <i class="fas fa-robot me-1"></i>مرحباً! اسألني أي شيء عن البلاغات وسأحللها لك فوراً.
+            </div>
+        </div>
+        <div class="ai-input-row">
+            <button class="ai-mic-btn" id="ai-issues-mic" onclick="toggleIssuesMic()" title="صوت">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" class="ai-text-input" id="ai-issues-input" placeholder="اسأل عن البلاغات..." dir="rtl">
+            <button class="ai-send-btn" onclick="askAI()" title="إرسال">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+    <button class="ai-fab-btn" onclick="toggleAIPanel()" title="مساعد AI للبلاغات" id="ai-fab">
+        <i class="fas fa-robot"></i>
+    </button>
+</div>
+
+<script>
+    function toggleAIPanel() {
+        const panel = document.getElementById('ai-issues-panel');
+        panel.classList.toggle('open');
+    }
+
+    function askAI(question) {
+        const input = document.getElementById('ai-issues-input');
+        const q = question || (input.value || '').trim();
+        if (!q) return;
+        input.value = '';
+
+        const msgs = document.getElementById('ai-issues-msgs');
+        msgs.innerHTML += `<div class="ai-msg-user">${q}</div>`;
+        msgs.innerHTML += `<div class="ai-msg-bot ai-typing-dots" id="ai-typing"><span></span><span></span><span></span></div>`;
+        msgs.scrollTop = msgs.scrollHeight;
+
+        fetch('/api/issues/ai-query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: q })
+        })
+            .then(r => r.json())
+            .then(data => {
+                const typing = document.getElementById('ai-typing');
+                if (typing) typing.remove();
+                const answer = data.answer || data.error || 'لم أتمكن من الإجابة.';
+                msgs.innerHTML += `<div class="ai-msg-bot"><i class="fas fa-robot me-1"></i>${answer.replace(/\n/g, '<br>')}</div>`;
+                msgs.scrollTop = msgs.scrollHeight;
+                // TTS
+                if (window.speechSynthesis) {
+                    const u = new SpeechSynthesisUtterance(answer.slice(0, 250));
+                    u.lang = 'ar-SA'; u.rate = 0.92;
+                    const voices = speechSynthesis.getVoices();
+                    const arV = voices.find(v => v.lang.startsWith('ar'));
+                    if (arV) u.voice = arV;
+                    speechSynthesis.cancel();
+                    speechSynthesis.speak(u);
+                }
+            })
+            .catch(() => {
+                const typing = document.getElementById('ai-typing');
+                if (typing) typing.remove();
+                msgs.innerHTML += `<div class="ai-msg-bot">⚠️ فشل الاتصال</div>`;
+            });
+    }
+
+    let issuesMicRec = null;
+    function toggleIssuesMic() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const btn = document.getElementById('ai-issues-mic');
+        if (!SR) { alert('المتصفح لا يدعم الصوت. جرّب Chrome'); return; }
+        if (issuesMicRec) { issuesMicRec.stop(); issuesMicRec = null; btn.classList.remove('recording'); return; }
+        issuesMicRec = new SR();
+        issuesMicRec.lang = 'ar-SA'; issuesMicRec.continuous = false;
+        issuesMicRec.onresult = e => {
+            const t = (e.results[0][0].transcript || '').trim();
+            if (t) { document.getElementById('ai-issues-input').value = t; askAI(); }
+        };
+        issuesMicRec.onend = () => { issuesMicRec = null; btn.classList.remove('recording'); };
+        issuesMicRec.start();
+        btn.classList.add('recording');
+    }
+
+    document.getElementById('ai-issues-input').addEventListener('keydown', e => { if (e.key === 'Enter') askAI(); });
+    if (window.speechSynthesis) speechSynthesis.getVoices();
+</script>
+
+<script>
+    // بيانات الرسوم البيانية
+    const areasIssuesLabels = [
+        {% for area in areas_issues %}
+    "{{ area[0] }}",
+        {% endfor %}
+    ];
+
+    const areasIssuesData = [
+        {% for area in areas_issues %}
+    { { area[1] } },
+    {% endfor %}
+    ];
+
+    const contractorsIssuesLabels = [
+        {% for contractor in contractors_issues %}
+    "{{ contractor[0] }}",
+        {% endfor %}
+    ];
+
+    const contractorsIssuesData = [
+        {% for contractor in contractors_issues %}
+    { { contractor[1] } },
+    {% endfor %}
+    ];
+
+    // بيانات الدول والشركات
+    const countriesIssuesLabels = [
+        {% for country in countries_issues %}
+    "{{ country[0] }}",
+        {% endfor %}
+    ];
+
+    const countriesIssuesData = [
+        {% for country in countries_issues %}
+    { { country[1] } },
+    {% endfor %}
+    ];
+
+    const companiesIssuesLabels = [
+        {% for company in companies_issues %}
+    "{{ company[0][:30] }}{% if company[0]|length > 30 %}...{% endif %}",
+        {% endfor %}
+    ];
+
+    const companiesIssuesData = [
+        {% for company in companies_issues %}
+    { { company[1] } },
+    {% endfor %}
+    ];
+
+    // تهيئة الرسوم البيانية عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function () {
+        // فحص إذا كان هناك طلب لفتح نموذج إضافة بلاغ للوحة محددة
+        const urlParams = new URLSearchParams(window.location.search);
+        const panelId = urlParams.get('panel_id');
+        const action = urlParams.get('action');
+
+        if (panelId && action === 'new') {
+            // تحديد اللوحة في النموذج
+            const panelSelect = document.getElementById('panel_id');
+            if (panelSelect) {
+                panelSelect.value = panelId;
+            }
+
+            // فتح نموذج إضافة بلاغ
+            const addIssueModal = new bootstrap.Modal(document.getElementById('addIssueModal'));
+            addIssueModal.show();
+
+            // إزالة المعاملات من URL
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+
+        // رسم بياني للمناطق
+        const areasIssuesCtx = document.getElementById('areas-issues-chart');
+        if (areasIssuesCtx) {
+            new Chart(areasIssuesCtx, {
+                type: 'bar',
+                data: {
+                    labels: areasIssuesLabels,
+                    datasets: [{
+                        label: 'عدد البلاغات',
+                        data: areasIssuesData,
+                        backgroundColor: 'rgba(184, 153, 102, 0.7)',
+                        borderColor: 'rgba(184, 153, 102, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'المناطق الأكثر بلاغات',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // رسم بياني للمقاولين
+        const contractorsIssuesCtx = document.getElementById('contractors-issues-chart');
+        if (contractorsIssuesCtx) {
+            new Chart(contractorsIssuesCtx, {
+                type: 'pie',
+                data: {
+                    labels: contractorsIssuesLabels,
+                    datasets: [{
+                        data: contractorsIssuesData,
+                        backgroundColor: [
+                            'rgba(148, 188, 203, 0.7)',
+                            'rgba(184, 153, 102, 0.7)',
+                            'rgba(106, 138, 152, 0.7)',
+                            'rgba(140, 115, 73, 0.7)',
+                            'rgba(197, 220, 229, 0.7)',
+                            'rgba(217, 201, 168, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(148, 188, 203, 1)',
+                            'rgba(184, 153, 102, 1)',
+                            'rgba(106, 138, 152, 1)',
+                            'rgba(140, 115, 73, 1)',
+                            'rgba(197, 220, 229, 1)',
+                            'rgba(217, 201, 168, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'المقاولين والبلاغات',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // رسم بياني للدول
+        const countriesIssuesCtx = document.getElementById('countries-issues-chart');
+        if (countriesIssuesCtx) {
+            new Chart(countriesIssuesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: countriesIssuesLabels,
+                    datasets: [{
+                        data: countriesIssuesData,
+                        backgroundColor: [
+                            'rgba(184, 153, 102, 0.7)',
+                            'rgba(148, 188, 203, 0.7)',
+                            'rgba(106, 138, 152, 0.7)',
+                            'rgba(140, 115, 73, 0.7)',
+                            'rgba(197, 220, 229, 0.7)',
+                            'rgba(217, 201, 168, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(255, 205, 86, 0.7)',
+                            'rgba(54, 162, 235, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(184, 153, 102, 1)',
+                            'rgba(148, 188, 203, 1)',
+                            'rgba(106, 138, 152, 1)',
+                            'rgba(140, 115, 73, 1)',
+                            'rgba(197, 220, 229, 1)',
+                            'rgba(217, 201, 168, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 205, 86, 1)',
+                            'rgba(54, 162, 235, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'البلاغات حسب الدول',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // رسم بياني للشركات
+        const companiesIssuesCtx = document.getElementById('companies-issues-chart');
+        if (companiesIssuesCtx) {
+            new Chart(companiesIssuesCtx, {
+                type: 'bar',
+                data: {
+                    labels: companiesIssuesLabels,
+                    datasets: [{
+                        label: 'عدد البلاغات',
+                        data: companiesIssuesData,
+                        backgroundColor: 'rgba(148, 188, 203, 0.7)',
+                        borderColor: 'rgba(148, 188, 203, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // رسم أفقي
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'البلاغات حسب الشركات',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // تفعيل البحث في اللوحات
+        var panelSearchMode = 'dropdown'; // dropdown أو direct
+
+        // تبديل وضع بحث اللوحة
+        $('#toggle_panel_dropdown').on('click', function () {
+            var panelSelect = $('#panel_id');
+            var dropdownContainer = panelSelect.closest('.mb-3');
+
+            if (panelSearchMode === 'dropdown') {
+                dropdownContainer.hide();
+                panelSearchMode = 'direct';
+                $(this).find('i').removeClass('fas fa-list').addClass('fas fa-search');
+                $(this).attr('title', 'التبديل إلى القائمة المنسدلة');
+                $('#panel_search').attr('placeholder', 'ابحث برقم اللوحة أو رقم ماكسيمو واضغط Enter...');
+            } else {
+                dropdownContainer.show();
+                panelSearchMode = 'dropdown';
+                $(this).find('i').removeClass('fas fa-search').addClass('fas fa-list');
+                $(this).attr('title', 'إظهار/إخفاء القائمة المنسدلة');
+                $('#panel_search').attr('placeholder', 'ابحث برقم اللوحة أو رقم ماكسيمو...');
+            }
+        });
+
+        // البحث في قائمة اللوحات المنسدلة
+        $('#panel_search').on('input', function () {
+            if (panelSearchMode === 'dropdown') {
+                var searchTerm = $(this).val().toLowerCase();
+                var panelSelect = $('#panel_id');
+                var options = panelSelect.find('option');
+
+                options.each(function () {
+                    var option = $(this);
+                    if (option.val() === '') return; // تجاهل خيار "اختر اللوحة"
+
+                    var mdb = option.data('mdb') ? option.data('mdb').toString().toLowerCase() : '';
+                    var maximo = option.data('maximo') ? option.data('maximo').toString().toLowerCase() : '';
+                    var text = option.text().toLowerCase();
+
+                    if (searchTerm === '' || mdb.includes(searchTerm) || maximo.includes(searchTerm) || text.includes(searchTerm)) {
+                        option.show();
+                    } else {
+                        option.hide();
+                    }
+                });
+            }
+        });
+
+        // البحث المباشر في اللوحة
+        $('#panel_search').on('keypress', function (e) {
+            if (e.which === 13 && panelSearchMode === 'direct') {
+                performPanelDirectSearch();
+            }
+        });
+
+        $('#search_panel_button').on('click', function () {
+            if (panelSearchMode === 'direct') {
+                performPanelDirectSearch();
+            }
+        });
+
+        function performPanelDirectSearch() {
+            var searchTerm = $('#panel_search').val().trim();
+            if (searchTerm.length < 2) {
+                alert('يرجى إدخال على الأقل حرفين للبحث');
+                return;
+            }
+
+            // البحث في اللوحات باستخدام API
+            $.get('/api/search-panels', { q: searchTerm })
+                .done(function (data) {
+                    var panelSelect = $('#panel_id');
+                    panelSelect.empty();
+                    panelSelect.append('<option value="">اختر اللوحة</option>');
+
+                    if (data.panels && data.panels.length > 0) {
+                        data.panels.forEach(function (panel) {
+                            panelSelect.append(
+                                '<option value="' + panel.id + '" data-mdb="' + panel.mdb + '" data-maximo="' + panel.maximo_tag + '">' +
+                                panel.mdb + ' (' + panel.maximo_tag + ') - ' + panel.area_name +
+                                '</option>'
+                            );
+                        });
+                        panelSelect.closest('.mb-3').show();
+                    } else {
+                        alert('لم يتم العثور على لوحات مطابقة');
+                    }
+                })
+                .fail(function () {
+                    alert('حدث خطأ في البحث');
+                });
+        }
+
+        // مسح بحث اللوحة
+        $('#clear_panel_search').on('click', function () {
+            $('#panel_search').val('');
+            if (panelSearchMode === 'dropdown') {
+                $('#panel_id option').show();
+            } else {
+                // إعادة تحميل جميع اللوحات
+                location.reload();
+            }
+        });
+
+        // إعادة تعيين البحث عند تغيير الاختيار
+        $('#panel_id').on('change', function () {
+            if ($(this).val()) {
+                $('#panel_search').val('');
+                $('#panel_id option').show();
+            }
+        });
+
+        // بحث في قائمة البلاغات
+        $('#search_issues').on('keypress', function (e) {
+            if (e.which === 13) {
+                $('#issues-filter-form').submit();
+            }
+        });
+
+        $('#clear_issues_search').on('click', function () {
+            $('#search_issues').val('');
+            $('#issues-filter-form').submit();
+        });
+    });
+
+    // تصدير البلاغات
+    function exportIssues(format) {
+        // إنشاء نموذج مخفي للتصدير
+        var form = $('<form>', {
+            'method': 'POST',
+            'action': '/issues/export'
+        });
+
+        // إضافة CSRF token
+        var csrfToken = $('meta[name="csrf-token"]').attr('content');
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'csrf_token',
+            'value': csrfToken
+        }));
+
+        // إضافة الفلاتر الحالية
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'status',
+            'value': $('#status-filter').val() || 'all'
+        }));
+
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'search',
+            'value': $('#search_issues').val() || ''
+        }));
+
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'export_format',
+            'value': format
+        }));
+
+        // إضافة CSRF token
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'csrf_token',
+            'value': $('meta[name=csrf-token]').attr('content')
+        }));
+
+        // إرسال النموذج
+        $('body').append(form);
+        form.submit();
+        form.remove();
+    }
+</script>
+{% endblock %}

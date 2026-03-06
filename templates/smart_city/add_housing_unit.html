@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-plus me-2"></i>
+                إضافة وحدة سكنية جديدة
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('smart_city.housing_dashboard') }}">إدارة الإسكان</a></li>
+                    <li class="breadcrumb-item active">إضافة وحدة سكنية</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-home me-2"></i>بيانات الوحدة السكنية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="housing-form">
+                        <!-- Basic Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="unit_number" class="form-label">رقم الوحدة *</label>
+                                    <input type="text" class="form-control" id="unit_number" name="unit_number" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="building_number" class="form-label">رقم المبنى</label>
+                                    <input type="text" class="form-control" id="building_number" name="building_number">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="unit_type" class="form-label">نوع الوحدة *</label>
+                                    <select class="form-select" id="unit_type" name="unit_type" required>
+                                        <option value="">اختر النوع</option>
+                                        <option value="residential">سكني</option>
+                                        <option value="commercial">تجاري</option>
+                                        <option value="mixed">مختلط</option>
+                                        <option value="vacant">شاغر</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="housing_category" class="form-label">فئة السكن</label>
+                                    <select class="form-select" id="housing_category" name="housing_category">
+                                        <option value="">اختر الفئة</option>
+                                        <option value="apartment">شقة</option>
+                                        <option value="villa">فيلا</option>
+                                        <option value="studio">استوديو</option>
+                                        <option value="shop">محل</option>
+                                        <option value="office">مكتب</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="center_lat" class="form-label">خط العرض</label>
+                                    <input type="number" class="form-control" id="center_lat" name="center_lat" step="any">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="center_lng" class="form-label">خط الطول</label>
+                                    <input type="number" class="form-control" id="center_lng" name="center_lng" step="any">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="condition_status" class="form-label">حالة الوحدة</label>
+                                    <select class="form-select" id="condition_status" name="condition_status">
+                                        <option value="good">جيدة</option>
+                                        <option value="fair">مقبولة</option>
+                                        <option value="poor">سيئة</option>
+                                        <option value="damaged">متضررة</option>
+                                        <option value="abandoned">مهجورة</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="occupancy_status" class="form-label">حالة الإشغال</label>
+                                    <select class="form-select" id="occupancy_status" name="occupancy_status">
+                                        <option value="unknown">غير معروف</option>
+                                        <option value="occupied">مشغولة</option>
+                                        <option value="vacant">شاغرة</option>
+                                        <option value="under_construction">تحت الإنشاء</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Occupancy Details -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="occupancy_level" class="form-label">عدد السكان الحالي</label>
+                                    <input type="number" class="form-control" id="occupancy_level" name="occupancy_level" min="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_capacity" class="form-label">السعة القصوى</label>
+                                    <input type="number" class="form-control" id="max_capacity" name="max_capacity" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Physical Details -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="floor_area" class="form-label">المساحة (م²)</label>
+                                    <input type="number" class="form-control" id="floor_area" name="floor_area" step="0.1" min="0">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="number_of_rooms" class="form-label">عدد الغرف</label>
+                                    <input type="number" class="form-control" id="number_of_rooms" name="number_of_rooms" min="0">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="number_of_bathrooms" class="form-label">عدد دورات المياه</label>
+                                    <input type="number" class="form-control" id="number_of_bathrooms" name="number_of_bathrooms" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Features -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_parking" name="has_parking">
+                                        <label class="form-check-label" for="has_parking">
+                                            يوجد موقف سيارات
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accessibility Features -->
+                        <div class="mb-3">
+                            <label for="accessibility_features" class="form-label">مميزات إمكانية الوصول</label>
+                            <textarea class="form-control" id="accessibility_features" name="accessibility_features" rows="2" placeholder="مثال: مصعد، منحدرات، مداخل واسعة"></textarea>
+                        </div>
+
+                        <!-- Owner Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="owner_name" class="form-label">اسم المالك</label>
+                                    <input type="text" class="form-control" id="owner_name" name="owner_name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="owner_contact" class="form-label">معلومات الاتصال بالمالك</label>
+                                    <input type="text" class="form-control" id="owner_contact" name="owner_contact">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rental Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="rental_status" class="form-label">حالة الإيجار</label>
+                                    <select class="form-select" id="rental_status" name="rental_status">
+                                        <option value="">غير محدد</option>
+                                        <option value="owned">مملوك</option>
+                                        <option value="rented">مؤجر</option>
+                                        <option value="vacant">شاغر</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="monthly_rent" class="form-label">الإيجار الشهري (ريال)</label>
+                                    <input type="number" class="form-control" id="monthly_rent" name="monthly_rent" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Utilities -->
+                        <div class="mb-3">
+                            <label for="utilities_included" class="form-label">الخدمات المشمولة</label>
+                            <textarea class="form-control" id="utilities_included" name="utilities_included" rows="2" placeholder='مثال: ["كهرباء", "مياه", "إنترنت"]'></textarea>
+                        </div>
+
+                        <!-- Hidden coordinates field -->
+                        <input type="hidden" id="coordinates" name="coordinates">
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('smart_city.housing_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>حفظ الوحدة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>تحديد الموقع
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="location-map" style="height: 400px;"></div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            انقر على الخريطة لتحديد موقع الوحدة
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Info -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>معلومات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="fas fa-check text-success me-2"></i>رقم الوحدة مطلوب</li>
+                        <li><i class="fas fa-check text-success me-2"></i>نوع الوحدة مطلوب</li>
+                        <li><i class="fas fa-check text-success me-2"></i>يمكن تحديد الموقع على الخريطة</li>
+                        <li><i class="fas fa-check text-success me-2"></i>جميع الحقول الأخرى اختيارية</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<script>
+// Initialize map
+let map = L.map('location-map').setView([21.4225, 39.8262], 13);
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Current marker
+let currentMarker = null;
+
+// Click event for setting location
+map.on('click', function(e) {
+    // Remove existing marker
+    if (currentMarker) {
+        map.removeLayer(currentMarker);
+    }
+    
+    // Add new marker
+    currentMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map)
+        .bindPopup('موقع الوحدة السكنية')
+        .openPopup();
+    
+    // Update coordinates fields
+    document.getElementById('center_lat').value = e.latlng.lat.toFixed(6);
+    document.getElementById('center_lng').value = e.latlng.lng.toFixed(6);
+    document.getElementById('coordinates').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+});
+
+// Form validation
+document.getElementById('housing-form').addEventListener('submit', function(e) {
+    let unitNumber = document.getElementById('unit_number').value;
+    let unitType = document.getElementById('unit_type').value;
+    
+    if (!unitNumber || !unitType) {
+        e.preventDefault();
+        alert('يرجى ملء الحقول المطلوبة (رقم الوحدة ونوع الوحدة)');
+        return false;
+    }
+    
+    // Validate utilities JSON if provided
+    let utilities = document.getElementById('utilities_included').value;
+    if (utilities && utilities.trim()) {
+        try {
+            JSON.parse(utilities);
+        } catch (e) {
+            alert('تنسيق الخدمات المشمولة غير صحيح. يجب أن يكون بصيغة JSON صحيحة');
+            return false;
+        }
+    }
+});
+</script>
+{% endblock %}

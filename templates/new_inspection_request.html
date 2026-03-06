@@ -1,0 +1,395 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        إضافة طلب فحص جديد
+                    </h5>
+                    <a href="{{ url_for('inspection_requests') }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>
+                        العودة للقائمة
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- البحث عن اللوحة -->
+                        <div class="col-md-12 mb-4">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <i class="fas fa-search me-2"></i>
+                                    البحث عن اللوحة
+                                </div>
+                                <div class="card-body">
+                                    <div class="input-group mb-3">
+                                        <input type="text" class="form-control" id="panel_search" placeholder="ابحث برقم اللوحة أو رقم ماكسيمو...">
+                                        <button class="btn btn-outline-secondary" type="button" id="search_panel_button">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" type="button" id="clear_panel_search">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" type="button" id="toggle_panel_dropdown" title="إظهار/إخفاء القائمة المنسدلة">
+                                            <i class="fas fa-list"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">يمكنك البحث مباشرة أو استخدام القائمة المنسدلة أدناه</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- نموذج إضافة البلاغ -->
+                    <form action="{{ url_for('add_inspection_request') }}" method="post">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="panel_id" class="form-label">اللوحة (يمكن اختيار أكثر من لوحة)</label>
+                                    <select class="form-select" id="panel_id" name="panel_id" multiple size="5">
+                                        <option value="">اختياري - لا توجد لوحة محددة</option>
+                                        {% for panel in panels %}
+                                            <option value="{{ panel.id }}"
+                                                    data-mdb="{{ panel.mdb }}"
+                                                    data-maximo="{{ panel.maximo_tag }}"
+                                                    data-company="{{ panel.company.name if panel.company else 'غير محدد' }}"
+                                                    data-country="{{ panel.country.name if panel.country else 'غير محدد' }}"
+                                                    data-camp="{{ panel.camp.camp_number if panel.camp else 'غير محدد' }}">
+                                                {{ panel.mdb }} ({{ panel.maximo_tag }}) - {{ panel.area_name }}
+                                                {% if panel.company %} - {{ panel.company.name }}{% endif %}
+                                                {% if panel.country %} - {{ panel.country.name }}{% endif %}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">اضغط Ctrl لتحديد أكثر من لوحة. هذا الحقل اختياري.</div>
+                                </div>
+                                <!-- معلومات اللوحة المحددة -->
+                                <div id="panel_info" class="alert alert-info" style="display: none;">
+                                    <h6><i class="fas fa-info-circle me-2"></i>معلومات اللوحة المحددة:</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>رقم اللوحة:</strong> <span id="selected_mdb">-</span></p>
+                                            <p class="mb-1"><strong>رقم ماكسيمو:</strong> <span id="selected_maximo">-</span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>الشركة:</strong> <span id="selected_company">-</span></p>
+                                            <p class="mb-1"><strong>الدولة:</strong> <span id="selected_country">-</span></p>
+                                            <p class="mb-1"><strong>المخيم:</strong> <span id="selected_camp">-</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">عنوان الطلب (اختياري)</label>
+                                    <input type="text" class="form-control" id="title" name="title" placeholder="عنوان وصفي للطلب">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="request_type_id" class="form-label">نوع الطلب (اختياري)</label>
+                                    <select class="form-select" id="request_type_id" name="request_type_id">
+                                        <option value="">اختياري - لا يوجد نوع محدد</option>
+                                        {% for type in request_types %}
+                                            <option value="{{ type.id }}">{{ type.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">الأولوية (اختياري)</label>
+                                    <select class="form-select" id="priority" name="priority">
+                                        <option value="منخفض">منخفض</option>
+                                        <option value="متوسط" selected>متوسط</option>
+                                        <option value="عالي">عالي</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="assignee_id" class="form-label">تعيين إلى مستخدم (اختياري)</label>
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control" id="user_search" placeholder="ابحث عن مستخدم...">
+                                        <button class="btn btn-outline-secondary" type="button" id="search_user_button">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" type="button" id="clear_user_search">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <select class="form-select" id="assignee_id" name="assignee_id">
+                                        <option value="">اختياري - لا يوجد مستخدم معين</option>
+                                        {% if users %}
+                                            {% for user in users %}
+                                                <option value="{{ user.id }}" data-name="{{ user.name }}" data-username="{{ user.username }}" data-role="{{ user.role }}">
+                                                    {{ user.name }} ({{ user.username }}) -
+                                                    {% if user.role == 'admin' %}مدير
+                                                    {% elif user.role == 'readings_recorder' %}مسجل قراءات
+                                                    {% elif user.role == 'contractor' %}مقاول
+                                                    {% endif %}
+                                                </option>
+                                            {% endfor %}
+                                        {% else %}
+                                            <option value="" disabled>لا يوجد مستخدمين متاحين</option>
+                                        {% endif %}
+                                    </select>
+                                    <div class="form-text">يمكن تعيين طلب الفحص إلى مستخدم محدد للمتابعة</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="due_date" class="form-label">تاريخ الاستحقاق</label>
+                                    <input type="date" class="form-control" id="due_date" name="due_date">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">وصف الطلب (اختياري)</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" placeholder="وصف مفصل للطلب (اختياري)"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mutawif_name" class="form-label">اسم المطوف (اختياري)</label>
+                                    <input type="text" class="form-control" id="mutawif_name" name="mutawif_name" placeholder="اسم المطوف">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="pilgrim_guide_name" class="form-label">اسم المرشد (اختياري)</label>
+                                    <input type="text" class="form-control" id="pilgrim_guide_name" name="pilgrim_guide_name" placeholder="اسم المرشد">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="location_details" class="form-label">تفاصيل الموقع (اختياري)</label>
+                                    <textarea class="form-control" id="location_details" name="location_details" rows="2" placeholder="تفاصيل إضافية عن الموقع"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('inspection_requests') }}" class="btn btn-secondary me-md-2">
+                                        <i class="fas fa-times me-1"></i>
+                                        إلغاء
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-plus-circle me-1"></i>
+                                        إضافة الطلب
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function () {
+    // حفظ اللوحات الأصلية كمصفوفة
+    var originalPanels = [];
+    $('#panel_id option').each(function() {
+        if ($(this).val() !== '') {
+            originalPanels.push({
+                value: $(this).val(),
+                text: $(this).text(),
+                mdb: $(this).attr('data-mdb') || '',
+                maximo: $(this).attr('data-maximo') || ''
+            });
+        }
+    });
+
+    // حفظ المستخدمين الأصليين كمصفوفة
+    var originalUsers = [];
+    $('#assignee_id option').each(function() {
+        if ($(this).val() !== '') {
+            originalUsers.push({
+                value: $(this).val(),
+                text: $(this).text(),
+                name: $(this).attr('data-name') || '',
+                username: $(this).attr('data-username') || '',
+                role: $(this).attr('data-role') || ''
+            });
+        }
+    });
+
+    console.log('تم حفظ', originalPanels.length, 'لوحة');
+    console.log('تم حفظ', originalUsers.length, 'مستخدم');
+    if (originalPanels.length > 0) console.log('مثال على لوحة:', originalPanels[0]);
+    if (originalUsers.length > 0) console.log('مثال على مستخدم:', originalUsers[0]);
+
+    // بحث في اللوحات - إعادة بناء القائمة
+    $('#panel_search').on('input', function () {
+        var searchTerm = $(this).val().toLowerCase().trim();
+        var panelSelect = $('#panel_id');
+
+        console.log('بحث عن لوحة:', searchTerm);
+
+        // مسح القائمة وإعادة بنائها
+        panelSelect.empty();
+        panelSelect.append('<option value="">اختياري - لا توجد لوحة محددة</option>');
+
+        var matchedCount = 0;
+
+        originalPanels.forEach(function(panel) {
+            var mdb = panel.mdb.toLowerCase();
+            var maximo = panel.maximo.toLowerCase();
+            var text = panel.text.toLowerCase();
+
+            if (searchTerm === '' ||
+                mdb.includes(searchTerm) ||
+                maximo.includes(searchTerm) ||
+                text.includes(searchTerm)) {
+
+                var option = $('<option></option>')
+                    .attr('value', panel.value)
+                    .attr('data-mdb', panel.mdb)
+                    .attr('data-maximo', panel.maximo)
+                    .text(panel.text);
+                panelSelect.append(option);
+                matchedCount++;
+            }
+        });
+
+        console.log('عدد اللوحات المطابقة:', matchedCount);
+    });
+
+    // مسح بحث اللوحات
+    $('#clear_panel_search').click(function () {
+        $('#panel_search').val('');
+        // إعادة جميع اللوحات
+        var panelSelect = $('#panel_id');
+        panelSelect.empty();
+        panelSelect.append('<option value="">اختياري - لا توجد لوحة محددة</option>');
+
+        originalPanels.forEach(function(panel) {
+            var option = $('<option></option>')
+                .attr('value', panel.value)
+                .attr('data-mdb', panel.mdb)
+                .attr('data-maximo', panel.maximo)
+                .text(panel.text);
+            panelSelect.append(option);
+        });
+
+        console.log('تم مسح بحث اللوحات وإعادة جميع اللوحات');
+    });
+
+    // بحث في المستخدمين - إعادة بناء القائمة
+    $('#user_search').on('input', function () {
+        var searchTerm = $(this).val().toLowerCase().trim();
+        var userSelect = $('#assignee_id');
+
+        console.log('بحث عن مستخدم:', searchTerm);
+
+        // مسح القائمة وإعادة بنائها
+        userSelect.empty();
+        userSelect.append('<option value="">اختياري - لا يوجد مستخدم معين</option>');
+
+        var matchedCount = 0;
+
+        originalUsers.forEach(function(user) {
+            var name = user.name.toLowerCase();
+            var username = user.username.toLowerCase();
+            var role = user.role.toLowerCase();
+            var text = user.text.toLowerCase();
+
+            if (searchTerm === '' ||
+                name.includes(searchTerm) ||
+                username.includes(searchTerm) ||
+                role.includes(searchTerm) ||
+                text.includes(searchTerm)) {
+
+                var option = $('<option></option>')
+                    .attr('value', user.value)
+                    .attr('data-name', user.name)
+                    .attr('data-username', user.username)
+                    .attr('data-role', user.role)
+                    .text(user.text);
+                userSelect.append(option);
+                matchedCount++;
+            }
+        });
+
+        console.log('عدد المستخدمين المطابقين:', matchedCount);
+    });
+
+    // مسح بحث المستخدمين
+    $('#clear_user_search').click(function () {
+        $('#user_search').val('');
+        // إعادة جميع المستخدمين
+        var userSelect = $('#assignee_id');
+        userSelect.empty();
+        userSelect.append('<option value="">اختياري - لا يوجد مستخدم معين</option>');
+
+        originalUsers.forEach(function(user) {
+            var option = $('<option></option>')
+                .attr('value', user.value)
+                .attr('data-name', user.name)
+                .attr('data-username', user.username)
+                .attr('data-role', user.role)
+                .text(user.text);
+            userSelect.append(option);
+        });
+
+        console.log('تم مسح بحث المستخدمين وإعادة جميع المستخدمين');
+    });
+
+    // أزرار البحث
+    $('#search_panel_button').click(function () {
+        $('#panel_search').trigger('input');
+    });
+
+    $('#search_user_button').click(function () {
+        $('#user_search').trigger('input');
+    });
+
+    // بحث عند الضغط على Enter
+    $('#panel_search').on('keypress', function(e) {
+        if (e.which === 13) {
+            $(this).trigger('input');
+        }
+    });
+
+    $('#user_search').on('keypress', function(e) {
+        if (e.which === 13) {
+            $(this).trigger('input');
+        }
+    });
+
+    // زر إظهار/إخفاء القائمة
+    $('#toggle_panel_dropdown').click(function () {
+        $('#panel_id').toggle();
+    });
+
+    // تحديث معلومات اللوحة عند الاختيار
+    $('#panel_id').on('change', function() {
+        var selectedOptions = $(this).find('option:selected');
+        var panelInfo = $('#panel_info');
+
+        if (selectedOptions.length > 0 && selectedOptions.first().val() !== '') {
+            // إذا تم اختيار لوحة واحدة، عرض معلوماتها
+            if (selectedOptions.length === 1) {
+                var option = selectedOptions.first();
+                $('#selected_mdb').text(option.data('mdb') || '-');
+                $('#selected_maximo').text(option.data('maximo') || '-');
+                $('#selected_company').text(option.data('company') || 'غير محدد');
+                $('#selected_country').text(option.data('country') || 'غير محدد');
+                $('#selected_camp').text(option.data('camp') || 'غير محدد');
+                panelInfo.show();
+            } else {
+                // إذا تم اختيار أكثر من لوحة، عرض رسالة
+                $('#selected_mdb').text('متعدد (' + selectedOptions.length + ' لوحة)');
+                $('#selected_maximo').text('-');
+                $('#selected_company').text('-');
+                $('#selected_country').text('-');
+                $('#selected_camp').text('-');
+                panelInfo.show();
+            }
+        } else {
+            // إخفاء معلومات اللوحة إذا لم يتم اختيار أي لوحة
+            panelInfo.hide();
+        }
+    });
+});
+</script>
+{% endblock %}

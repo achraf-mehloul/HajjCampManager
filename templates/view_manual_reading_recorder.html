@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">تفاصيل القراءة اليدوية للوحة: {{ panel.mdb }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">وقت القراءة:</label>
+                                <p>{{ reading.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">سعة القاطع (A):</label>
+                                <p>{{ reading.breaker_capacity }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4 mb-3">قراءات التيار (I)</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">التيار L1 (I):</label>
+                                <p>{{ reading.current_l1 }} {{ reading.current_unit.name if reading.current_unit else 'A' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">التيار L2 (I):</label>
+                                <p>{{ reading.current_l2 }} {{ reading.current_unit.name if reading.current_unit else 'A' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">التيار L3 (I):</label>
+                                <p>{{ reading.current_l3 }} {{ reading.current_unit.name if reading.current_unit else 'A' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if reading.mutawif_name %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">اسم المطوف:</label>
+                                <p>{{ reading.mutawif_name }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('readings.all_readings') }}" class="btn btn-secondary">العودة إلى القراءات</a>
+                        {% if current_user.role == 'admin' or current_user.id == reading.created_by %}
+                        <a href="{{ url_for('readings.delete_manual_reading', reading_id=reading.id) }}" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذه القراءة؟')">حذف القراءة</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

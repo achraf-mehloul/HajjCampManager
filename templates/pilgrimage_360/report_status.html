@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-clipboard-check me-2"></i>
+                حالة البلاغ #{{ report.report_number }}
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('pilgrimage_index') }}">تجربة الحجاج 360°</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('pilgrimage_report_issue') }}">تقديم بلاغ</a></li>
+                    <li class="breadcrumb-item active">حالة البلاغ</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Status Alert -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-{% if report.status == 'resolved' %}success{% elif report.status == 'investigating' %}warning{% elif report.status == 'reported' %}info{% else %}secondary{% endif %} alert-dismissible fade show" role="alert">
+                <h4 class="alert-heading">
+                    <i class="fas fa-{% if report.status == 'resolved' %}check-circle{% elif report.status == 'investigating' %}search{% elif report.status == 'reported' %}info-circle{% else %}clock{% endif %} me-2"></i>
+                    {% if report.status == 'resolved' %}تم حل البلاغ
+                    {% elif report.status == 'investigating' %}قيد التحقيق
+                    {% elif report.status == 'reported' %}تم استلام البلاغ
+                    {% else %}حالة غير معروفة
+                    {% endif %}
+                </h4>
+                <p class="mb-0">
+                    {% if report.status == 'resolved' %}
+                        تم حل المشكلة المبلغ عنها بنجاح. شكراً لك على تعاونك في تحسين الخدمات.
+                    {% elif report.status == 'investigating' %}
+                        نحن نعمل حالياً على التحقيق في البلاغ واتخاذ الإجراءات اللازمة.
+                    {% elif report.status == 'reported' %}
+                        تم استلام بلاغك بنجاح وسيتم مراجعته من قبل الفريق المختص.
+                    {% else %}
+                        البلاغ قيد المعالجة.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Details -->
+    <div class="row">
+        <!-- Main Details -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-file-alt me-2"></i>تفاصيل البلاغ
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>رقم البلاغ:</strong>
+                            <span class="badge bg-primary ms-2">{{ report.report_number }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>نوع البلاغ:</strong>
+                            <span class="badge bg-secondary ms-2">
+                                {% if report.report_type == 'crowding' %}ازدحام
+                                {% elif report.report_type == 'cleanliness' %}نظافة
+                                {% elif report.report_type == 'accessibility' %}إمكانية الوصول
+                                {% elif report.report_type == 'emergency' %}حالة طوارئ
+                                {% elif report.report_type == 'lost_person' %}شخص مفقود
+                                {% elif report.report_type == 'service_issue' %}مشكلة في الخدمة
+                                {% else %}{{ report.report_type }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>درجة الأهمية:</strong>
+                            <span class="badge bg-{% if report.urgency == 'emergency' %}danger{% elif report.urgency == 'high' %}warning{% elif report.urgency == 'medium' %}info{% else %}secondary{% endif %} ms-2">
+                                {% if report.urgency == 'emergency' %}طوارئ
+                                {% elif report.urgency == 'high' %}عالية
+                                {% elif report.urgency == 'medium' %}متوسطة
+                                {% else %}منخفضة
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>تاريخ التقديم:</strong>
+                            <span class="ms-2">{{ report.report_date.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                    </div>
+
+                    {% if report.location %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>الموقع:</strong>
+                            <a href="{{ url_for('pilgrimage_location_detail', location_id=report.location.id) }}" class="ms-2 text-decoration-none">
+                                {{ report.location.location_name }}
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>وصف البلاغ:</strong>
+                            <div class="mt-2 p-3 bg-light rounded">
+                                {{ report.description }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if report.description_en %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>الوصف بالإنجليزية:</strong>
+                            <div class="mt-2 p-3 bg-light rounded">
+                                {{ report.description_en }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if report.resolution_notes %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>ملاحظات الحل:</strong>
+                            <div class="mt-2 p-3 bg-success bg-opacity-10 border border-success rounded">
+                                {{ report.resolution_notes }}
+                            </div>
+                            {% if report.resolution_notes_en %}
+                            <div class="mt-2 p-3 bg-success bg-opacity-10 border border-success rounded">
+                                <em>{{ report.resolution_notes_en }}</em>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- AI Response -->
+            {% if report.ai_response %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot me-2"></i>الرد التلقائي
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        {{ report.ai_response }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Reporter Information -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>معلومات المبلغ
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>الاسم:</strong> {{ report.reported_by_name }}</p>
+                    {% if report.reported_by_nationality %}
+                    <p><strong>الجنسية:</strong> {{ report.reported_by_nationality }}</p>
+                    {% endif %}
+                    <p><strong>معلومات الاتصال:</strong> {{ report.contact_info }}</p>
+                    <p><strong>اللغة المفضلة:</strong> 
+                        {% if report.preferred_language == 'ar' %}العربية
+                        {% elif report.preferred_language == 'en' %}English
+                        {% elif report.preferred_language == 'ur' %}اردو
+                        {% elif report.preferred_language == 'fr' %}Français
+                        {% elif report.preferred_language == 'id' %}Bahasa Indonesia
+                        {% else %}{{ report.preferred_language }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>الجدول الزمني
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">تم تقديم البلاغ</h6>
+                                <p class="timeline-text">{{ report.report_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                        </div>
+                        
+                        {% if report.assigned_to %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">تم تعيين مسؤول</h6>
+                                <p class="timeline-text">{{ report.assigned_to.username }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if report.status == 'investigating' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">قيد التحقيق</h6>
+                                <p class="timeline-text">جاري العمل على حل المشكلة</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if report.resolution_date %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">تم الحل</h6>
+                                <p class="timeline-text">{{ report.resolution_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-tools me-2"></i>إجراءات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('pilgrimage_report_issue') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>تقديم بلاغ جديد
+                        </a>
+                        <button class="btn btn-success" onclick="shareReport()">
+                            <i class="fas fa-share me-2"></i>مشاركة البلاغ
+                        </button>
+                        <button class="btn btn-info" onclick="printReport()">
+                            <i class="fas fa-print me-2"></i>طباعة
+                        </button>
+                        {% if report.status == 'resolved' and not report.satisfaction_rating %}
+                        <button class="btn btn-warning" onclick="rateService()">
+                            <i class="fas fa-star me-2"></i>تقييم الخدمة
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -23px;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.timeline-title {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.timeline-text {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0;
+}
+</style>
+
+<script>
+function shareReport() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'بلاغ #{{ report.report_number }}',
+            text: '{{ report.description[:100] }}',
+            url: window.location.href
+        });
+    } else {
+        navigator.clipboard.writeText(window.location.href);
+        alert('تم نسخ رابط البلاغ');
+    }
+}
+
+function printReport() {
+    window.print();
+}
+
+function rateService() {
+    // يمكن إضافة نموذج تقييم هنا
+    alert('شكراً لك! سيتم إضافة نظام التقييم قريباً');
+}
+
+// تحديث الصفحة كل 30 ثانية للحصول على آخر التحديثات
+setInterval(function() {
+    if (document.visibilityState === 'visible') {
+        location.reload();
+    }
+}, 30000);
+</script>
+{% endblock %}

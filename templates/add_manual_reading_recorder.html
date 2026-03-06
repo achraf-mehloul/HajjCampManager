@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">إضافة قراءة يدوية للوحة: {{ panel.mdb }}</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('readings.add_manual_reading', panel_id=panel.id) }}" method="post">
+                        <!-- حقول مخفية للبدء التلقائي -->
+                        {% if auto_start %}
+                            <input type="hidden" name="auto_start" value="true">
+                        {% endif %}
+                        {% if issue_id %}
+                            <input type="hidden" name="issue_id" value="{{ issue_id }}">
+                        {% endif %}
+                        {% if request_id %}
+                            <input type="hidden" name="request_id" value="{{ request_id }}">
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="timestamp" class="form-label">وقت القراءة</label>
+                                    <input type="datetime-local" class="form-control" id="timestamp" name="timestamp" value="{{ now.strftime('%Y-%m-%dT%H:%M') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="breaker_capacity" class="form-label">سعة القاطع (A)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="breaker_capacity" name="breaker_capacity" step="0.01" value="{{ default_values.breaker_capacity }}" {{ 'readonly' if panel.breaker_capacity else '' }}>
+                                        <span class="input-group-text">A</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3">قراءات التيار (I)</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="current_l1" class="form-label">التيار L1 (I)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="current_l1" name="current_l1" step="0.01" value="{{ default_values.current }}">
+                                        <select class="form-select" id="current_unit_id" name="current_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'current' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="current_l2" class="form-label">التيار L2 (I)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="current_l2" name="current_l2" step="0.01" value="{{ default_values.current }}">
+                                        <span class="input-group-text current-unit-display">A</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="current_l3" class="form-label">التيار L3 (I)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="current_l3" name="current_l3" step="0.01" value="{{ default_values.current }}">
+                                        <span class="input-group-text current-unit-display">A</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="mutawif_name" class="form-label">اسم المطوف (اختياري)</label>
+                                    <input type="text" class="form-control" id="mutawif_name" name="mutawif_name">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- إضافة حقول مخفية للقيم الأخرى -->
+                        <input type="hidden" name="reading_type" value="manual">
+                        <input type="hidden" name="panel_status" value="عامل">
+                        <input type="hidden" name="voltage_unit_id" value="1">
+                        <input type="hidden" name="power_unit_id" value="2">
+                        <input type="hidden" name="active_power_unit_id" value="2">
+                        <input type="hidden" name="apparent_power_unit_id" value="5">
+                        <input type="hidden" name="reactive_power_unit_id" value="8">
+                        <input type="hidden" name="energy_unit_id" value="11">
+                        <!-- لا نحتاج إلى إرسال load_percentage لأنه سيتم حسابه في الخادم -->
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('readings.search_panel_for_reading') }}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-primary">حفظ القراءة</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تحديث وحدات القياس في العناصر الأخرى عند تغيير وحدة القياس الرئيسية
+        $('#current_unit_id').change(function() {
+            var selectedText = $(this).find('option:selected').text();
+            $('.current-unit-display').text(selectedText);
+        });
+
+        // تحديث وحدات القياس عند تحميل الصفحة
+        var currentUnitText = $('#current_unit_id').find('option:selected').text();
+        $('.current-unit-display').text(currentUnitText);
+
+        // إضافة معالج حدث لحساب نسبة الحمل وعرض حالة اللوحة
+        function calculateLoadStatus() {
+            var breaker_capacity = parseFloat($('#breaker_capacity').val());
+            if (!breaker_capacity || isNaN(breaker_capacity) || breaker_capacity <= 0) return;
+
+            // الحصول على قيم التيار للأطوار الثلاثة
+            var current_l1 = parseFloat($('#current_l1').val()) || 0;
+            var current_l2 = parseFloat($('#current_l2').val()) || 0;
+            var current_l3 = parseFloat($('#current_l3').val()) || 0;
+
+            // حساب نسبة الحمل لكل فاز
+            var load_percentage_l1 = (current_l1 / breaker_capacity) * 100;
+            var load_percentage_l2 = (current_l2 / breaker_capacity) * 100;
+            var load_percentage_l3 = (current_l3 / breaker_capacity) * 100;
+
+            // استخدام أعلى نسبة حمل من الفازات الثلاثة
+            var calculated_load = Math.max(load_percentage_l1, load_percentage_l2, load_percentage_l3);
+
+            // عرض نسبة الحمل
+            if (!isNaN(calculated_load)) {
+                var status = '';
+                var color = '';
+
+                // تحديد حالة الحمل
+                if (calculated_load >= 80) {
+                    status = 'خطر';
+                    color = '#dc3545'; // أحمر
+                } else if (calculated_load >= 70) {
+                    status = 'تحذير';
+                    color = '#ffc107'; // أصفر
+                } else {
+                    status = 'طبيعي';
+                    color = '#28a745'; // أخضر
+                }
+
+                // إضافة أو تحديث عنصر لعرض نسبة الحمل
+                var load_info = $('#load_status_info');
+                if (load_info.length === 0) {
+                    $('#breaker_capacity').parent().after(
+                        '<div id="load_status_info" class="mt-2">' +
+                        '<span>نسبة الحمل: <strong style="color:' + color + '">' + calculated_load.toFixed(1) + '%</strong> (' + status + ')</span><br>' +
+                        '<small>الفاز 1: ' + load_percentage_l1.toFixed(1) + '% | الفاز 2: ' + load_percentage_l2.toFixed(1) + '% | الفاز 3: ' + load_percentage_l3.toFixed(1) + '%</small>' +
+                        '</div>'
+                    );
+                } else {
+                    load_info.html(
+                        '<span>نسبة الحمل: <strong style="color:' + color + '">' + calculated_load.toFixed(1) + '%</strong> (' + status + ')</span><br>' +
+                        '<small>الفاز 1: ' + load_percentage_l1.toFixed(1) + '% | الفاز 2: ' + load_percentage_l2.toFixed(1) + '% | الفاز 3: ' + load_percentage_l3.toFixed(1) + '%</small>'
+                    );
+                }
+            }
+        }
+
+        // حساب نسبة الحمل عند تغيير قيم التيار أو سعة القاطع
+        $('#current_l1, #current_l2, #current_l3, #breaker_capacity').on('input', calculateLoadStatus);
+
+        // حساب نسبة الحمل عند تحميل الصفحة
+        calculateLoadStatus();
+    });
+</script>
+{% endblock %}

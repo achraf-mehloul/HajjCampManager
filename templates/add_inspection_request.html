@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم إضافة طلب فحص جديد -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-clipboard-check me-2 icon-primary"></i>
+        إضافة طلب فحص جديد للوحة: {{ panel.mdb }}
+    </h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    تفاصيل طلب الفحص
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_inspection_request') }}" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="panel_id" value="{{ panel.id }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">عنوان الطلب</label>
+                                    <input type="text" class="form-control" id="title" name="title" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="request_type_id" class="form-label">نوع الطلب</label>
+                                    <select class="form-select" id="request_type_id" name="request_type_id" required>
+                                        <option value="">-- اختر نوع الطلب --</option>
+                                        {% for type in request_types %}
+                                            <option value="{{ type.id }}">{{ type.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">الأولوية</label>
+                                    <select class="form-select" id="priority" name="priority">
+                                        <option value="منخفض">منخفض</option>
+                                        <option value="متوسط" selected>متوسط</option>
+                                        <option value="عالي">عالي</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="due_date" class="form-label">تاريخ الاستحقاق</label>
+                                    <input type="date" class="form-control" id="due_date" name="due_date">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mutawif_name" class="form-label">اسم المطوف</label>
+                                    <input type="text" class="form-control" id="mutawif_name" name="mutawif_name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">وصف الطلب</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="pilgrim_guide_name" class="form-label">اسم المرشد</label>
+                                    <input type="text" class="form-control" id="pilgrim_guide_name" name="pilgrim_guide_name">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="location_details" class="form-label">تفاصيل الموقع</label>
+                                    <textarea class="form-control" id="location_details" name="location_details" rows="2"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="image" class="form-label">صورة (اختياري)</label>
+                                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <a href="{{ url_for('panel_details', panel_id=panel.id) }}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-primary">إرسال طلب الفحص</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-info-circle me-2"></i>
+                    معلومات اللوحة
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>رقم اللوحة:</strong> {{ panel.mdb }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>رقم تاج ماكسيمو:</strong> {{ panel.maximo_tag }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>المنطقة:</strong> {{ panel.area_name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>نوع اللوحة:</strong> {{ panel.panel_type }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>الحالة:</strong>
+                        <span class="badge {% if panel.status == 'عامل' %}bg-success{% elif panel.status == 'معطل' %}bg-danger{% else %}bg-warning{% endif %}">
+                            {{ panel.status }}
+                        </span>
+                    </div>
+                    {% if panel.x_coordinate and panel.y_coordinate %}
+                        <div class="mb-2">
+                            <strong>الإحداثيات:</strong> {{ panel.x_coordinate }}, {{ panel.y_coordinate }}
+                        </div>
+                        <div class="mt-3">
+                            <a href="https://www.google.com/maps?q={{ panel.y_coordinate }},{{ panel.x_coordinate }}" target="_blank" class="btn btn-sm btn-secondary w-100">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                عرض على خرائط Google
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

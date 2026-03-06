@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        البلاغات المستلمة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- فلاتر البحث -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="filter-status" class="form-label">حالة البلاغ</label>
+                                <select class="form-select" id="filter-status">
+                                    <option value="all">الكل</option>
+                                    <option value="pending">قيد الانتظار</option>
+                                    <option value="in_progress">قيد المعالجة</option>
+                                    <option value="resolved">تم الحل</option>
+                                    <option value="closed">مغلق</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="filter-priority" class="form-label">الأولوية</label>
+                                <select class="form-select" id="filter-priority">
+                                    <option value="all">الكل</option>
+                                    <option value="منخفض">منخفضة</option>
+                                    <option value="متوسط">متوسطة</option>
+                                    <option value="عالي">عالية</option>
+                                    <option value="حرج">حرجة</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="filter-date-from" class="form-label">من تاريخ</label>
+                                <input type="date" class="form-control" id="filter-date-from">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="filter-date-to" class="form-label">إلى تاريخ</label>
+                                <input type="date" class="form-control" id="filter-date-to">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <button id="apply-filters" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>
+                                تطبيق الفلاتر
+                            </button>
+                            <button id="reset-filters" class="btn btn-secondary">
+                                <i class="fas fa-undo me-1"></i>
+                                إعادة تعيين
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- جدول البلاغات -->
+                    {% if issues %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="issues-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>رقم البلاغ</th>
+                                    <th>العنوان</th>
+                                    <th>نوع المشكلة</th>
+                                    <th>اللوحة</th>
+                                    <th>المنطقة</th>
+                                    <th>الأولوية</th>
+                                    <th>تاريخ البلاغ</th>
+                                    <th>المبلغ</th>
+                                    <th>وقت المعالجة</th>
+                                    <th>وقت الإنجاز</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in issues %}
+                                <tr>
+                                    <td>{{ issue.id }}</td>
+                                    <td>{{ issue.title }}</td>
+                                    <td>{{ issue.issue_type or 'غير محدد' }}</td>
+                                    <td>
+                                        {% if issue.panel %}
+                                            <a href="{{ url_for('panel_details', panel_id=issue.panel.id) }}" class="text-primary">
+                                                {{ issue.panel.mdb }}
+                                                <i class="fas fa-external-link-alt ms-1" style="font-size: 0.8em;"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ issue.panel.area_name if issue.panel else 'غير محدد' }}</td>
+                                    <td>
+                                        <span class="badge {% if issue.priority == 'منخفض' %}bg-success{% elif issue.priority == 'متوسط' %}bg-warning text-dark{% elif issue.priority == 'عالي' %}bg-danger{% elif issue.priority == 'حرج' %}bg-dark{% else %}bg-secondary{% endif %}">
+                                            {{ issue.priority or 'غير محدد' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ issue.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ issue.creator.name if issue.creator else 'غير محدد' }}</td>
+                                    <td>
+                                        {% if issue.started_at and issue.created_at %}
+                                            {% set processing_time = ((issue.started_at - issue.created_at).total_seconds() / 60) | int %}
+                                            {% if processing_time < 60 %}
+                                                {{ processing_time }} دقيقة
+                                            {% else %}
+                                                {{ (processing_time / 60) | int }} ساعة {{ processing_time % 60 }} دقيقة
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if issue.closed_at and issue.started_at %}
+                                            {% set completion_time = ((issue.closed_at - issue.started_at).total_seconds() / 60) | int %}
+                                            {% if completion_time < 60 %}
+                                                {{ completion_time }} دقيقة
+                                            {% else %}
+                                                {{ (completion_time / 60) | int }} ساعة {{ completion_time % 60 }} دقيقة
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.status == 'pending' %}bg-primary{% elif issue.status == 'in_progress' %}bg-warning text-dark{% elif issue.status == 'resolved' %}bg-success{% elif issue.status == 'closed' %}bg-secondary{% else %}bg-secondary{% endif %}">
+                                            {% if issue.status == 'pending' %}قيد الانتظار{% elif issue.status == 'in_progress' %}قيد المعالجة{% elif issue.status == 'resolved' %}تم الحل{% elif issue.status == 'closed' %}مغلق{% else %}{{ issue.status }}{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <!-- عرض تفاصيل البلاغ -->
+                                            <a href="{{ url_for('view_issue', issue_id=issue.id) }}"
+                                               class="btn btn-sm btn-info"
+                                               title="عرض تفاصيل البلاغ">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+
+                                            <!-- زر قراءة اللوحة -->
+                                            {% if issue.panel %}
+                                            <a href="{{ url_for('readings.add_manual_reading_view', panel_id=issue.panel.id) }}"
+                                               class="btn btn-sm btn-secondary"
+                                               title="قراءة اللوحة {{ issue.panel.mdb }}">
+                                                <i class="fas fa-clipboard-list"></i>
+                                            </a>
+                                            {% endif %}
+
+                                            <!-- زر قبول البلاغ -->
+                                            {% if issue.status == 'pending' %}
+                                            <button class="btn btn-sm btn-warning accept-issue"
+                                                    data-issue-id="{{ issue.id }}"
+                                                    title="قبول البلاغ">
+                                                <i class="fas fa-hand-paper"></i>
+                                            </button>
+                                            {% endif %}
+
+                                            <!-- زر إنهاء البلاغ -->
+                                            {% if issue.status == 'in_progress' %}
+                                            <button class="btn btn-sm btn-success resolve-issue"
+                                                    data-issue-id="{{ issue.id }}"
+                                                    title="إنهاء البلاغ">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">لا توجد بلاغات مستلمة</h5>
+                        <p class="text-muted">لم يتم العثور على أي بلاغات مخصصة لك حالياً.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تأكيد حل البلاغ -->
+<div class="modal fade" id="resolveIssueModal" tabindex="-1" aria-labelledby="resolveIssueModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resolveIssueModalLabel">تأكيد حل البلاغ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حل هذا البلاغ؟</p>
+                <form id="resolve-issue-form">
+                    <div class="mb-3">
+                        <label for="resolution-notes" class="form-label">ملاحظات الحل</label>
+                        <textarea class="form-control" id="resolution-notes" rows="3" placeholder="اكتب تفاصيل الحل المطبق..."></textarea>
+                    </div>
+                    <input type="hidden" id="issue-id" value="">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" id="confirm-resolve">تأكيد الحل</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تهيئة جدول البيانات
+        var table = $('#issues-table').DataTable({
+            order: [[6, 'desc']], // ترتيب حسب تاريخ البلاغ (تنازلي)
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
+            }
+        });
+
+        // تطبيق الفلاتر
+        $('#apply-filters').click(function() {
+            applyFilters();
+        });
+
+        // إعادة تعيين الفلاتر
+        $('#reset-filters').click(function() {
+            $('#filter-status').val('all');
+            $('#filter-priority').val('all');
+            $('#filter-date-from').val('');
+            $('#filter-date-to').val('');
+            applyFilters();
+        });
+
+        // فتح نافذة تأكيد حل البلاغ
+        $('.resolve-issue').click(function() {
+            var issueId = $(this).data('issue-id');
+            $('#issue-id').val(issueId);
+            $('#resolveIssueModal').modal('show');
+        });
+
+        // قبول البلاغ
+        $('.accept-issue').click(function() {
+            var issueId = $(this).data('issue-id');
+
+            if (confirm('هل أنت متأكد من قبول هذا البلاغ؟ سيتم حذفه من باقي المستخدمين.')) {
+                $.ajax({
+                    url: '/accept-issue/' + issueId,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            alert('تم قبول البلاغ بنجاح');
+                            location.reload();
+                        } else {
+                            alert('حدث خطأ أثناء قبول البلاغ: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('حدث خطأ أثناء الاتصال بالخادم');
+                    }
+                });
+            }
+        });
+
+        // تأكيد حل البلاغ
+        $('#confirm-resolve').click(function() {
+            var issueId = $('#issue-id').val();
+            var notes = $('#resolution-notes').val();
+
+            $.ajax({
+                url: '/resolve-issue/' + issueId,
+                type: 'POST',
+                data: {
+                    notes: notes
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#resolveIssueModal').modal('hide');
+                        // تحديث الصفحة لعرض التغييرات
+                        location.reload();
+                    } else {
+                        alert('حدث خطأ أثناء حل البلاغ: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('حدث خطأ أثناء الاتصال بالخادم');
+                }
+            });
+        });
+
+        // دالة تطبيق الفلاتر
+        function applyFilters() {
+            var statusFilter = $('#filter-status').val();
+            var priorityFilter = $('#filter-priority').val();
+            var dateFromFilter = $('#filter-date-from').val();
+            var dateToFilter = $('#filter-date-to').val();
+
+            // إعادة تعيين الفلتر
+            table.search('').columns().search('').draw();
+
+            // تطبيق فلتر الحالة
+            if (statusFilter !== 'all') {
+                table.column(10).search(translateStatusForFilter(statusFilter)).draw();
+            }
+
+            // تطبيق فلتر الأولوية
+            if (priorityFilter !== 'all') {
+                table.column(5).search(priorityFilter).draw();
+            }
+
+            // تطبيق فلتر التاريخ
+            if (dateFromFilter || dateToFilter) {
+                $.fn.dataTable.ext.search.push(
+                    function(settings, data, dataIndex) {
+                        var date = new Date(data[6]);
+                        var dateFrom = dateFromFilter ? new Date(dateFromFilter) : null;
+                        var dateTo = dateToFilter ? new Date(dateToFilter) : null;
+
+                        if (
+                            (dateFrom === null || date >= dateFrom) &&
+                            (dateTo === null || date <= dateTo)
+                        ) {
+                            return true;
+                        }
+                        return false;
+                    }
+                );
+                table.draw();
+                $.fn.dataTable.ext.search.pop();
+            }
+        }
+
+        // ترجمة حالة البلاغ للفلتر
+        function translateStatusForFilter(status) {
+            switch(status) {
+                case 'pending': return 'قيد الانتظار';
+                case 'in_progress': return 'قيد المعالجة';
+                case 'resolved': return 'تم الحل';
+                case 'closed': return 'مغلق';
+                default: return '';
+            }
+        }
+    });
+</script>
+{% endblock %}

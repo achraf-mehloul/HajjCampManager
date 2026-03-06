@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة قراءة يدوية{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">إضافة قراءة يدوية للوحة: {{ panel.mdb }}</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('readings.add_manual_reading', panel_id=panel.id) }}" method="post">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="timestamp" class="form-label">وقت القراءة</label>
+                                    <input type="datetime-local" class="form-control" id="timestamp" name="timestamp" value="{{ now.strftime('%Y-%m-%dT%H:%M') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="reading_type" class="form-label">نوع القراءة</label>
+                                    <select class="form-select" id="reading_type" name="reading_type">
+                                        <option value="manual">يدوية</option>
+                                        <option value="imported">مستوردة</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="current" class="form-label">التيار</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="current" name="current" step="0.01" value="{{ default_values.current }}">
+                                        <select class="form-select" id="current_unit_id" name="current_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'current' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="voltage" class="form-label">الجهد</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="voltage" name="voltage" step="0.01" value="{{ default_values.voltage }}">
+                                        <select class="form-select" id="voltage_unit_id" name="voltage_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'voltage' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="power" class="form-label">القدرة</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="power" name="power" step="0.01" value="{{ default_values.power }}">
+                                        <select class="form-select" id="power_unit_id" name="power_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'power' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="energy" class="form-label">الطاقة</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="energy" name="energy" step="0.01" value="{{ default_values.energy }}">
+                                        <select class="form-select" id="energy_unit_id" name="energy_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'energy' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="power_factor" class="form-label">معامل القدرة</label>
+                                    <input type="number" class="form-control" id="power_factor" name="power_factor" step="0.01" min="0" max="1" value="{{ default_values.power_factor }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="frequency" class="form-label">التردد (هرتز)</label>
+                                    <input type="number" class="form-control" id="frequency" name="frequency" step="0.01" value="{{ default_values.frequency }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="breaker_capacity" class="form-label">سعة القاطع (أمبير)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="breaker_capacity" name="breaker_capacity" step="0.01" value="{{ panel.breaker_capacity or default_values.breaker_capacity }}" {{ 'readonly' if panel.breaker_capacity else '' }}>
+                                        <select class="form-select" id="dropdown_breaker_capacity" name="dropdown_breaker_capacity">
+                                            <option value="">-- اختر --</option>
+                                            {% for dropdown in dropdowns %}
+                                                {% if dropdown.field_type == 'breaker_capacity' %}
+                                                    {% for item in dropdown.items %}
+                                                        {% if item.is_active %}
+                                                        <option value="{{ item.value }}">{{ item.display_text }}</option>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    {% if panel.breaker_capacity %}
+                                    <small class="text-muted">سعة القاطع معرفة مسبقاً. <a href="#" id="edit-breaker-capacity" class="text-primary">تعديل</a></small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- القوائم المنسدلة الديناميكية -->
+                        <div class="row">
+                            {% for dropdown in dropdowns %}
+                                {% if dropdown.is_active and (dropdown.visibility == 'all' or (current_user.role == 'admin' and dropdown.visibility == 'admin') or (current_user.role == 'contractor' and dropdown.visibility == 'contractor')) %}
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="dropdown_{{ dropdown.id }}" class="form-label">{{ dropdown.display_name }}</label>
+                                        <select class="form-select" id="dropdown_{{ dropdown.id }}" name="dropdown_{{ dropdown.id }}">
+                                            <option value="">-- اختر --</option>
+                                            {% for item in dropdown.items %}
+                                                {% if item.is_active %}
+                                                <option value="{{ item.value }}">{{ item.display_text }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('readings.search_panel_for_reading') }}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-primary">حفظ القراءة</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // حساب معامل القدرة تلقائيًا إذا تم إدخال القدرة والتيار والجهد
+        $('#current, #voltage, #power').change(function() {
+            var current = parseFloat($('#current').val());
+            var voltage = parseFloat($('#voltage').val());
+            var power = parseFloat($('#power').val());
+
+            if (!isNaN(current) && !isNaN(voltage) && !isNaN(power) && current > 0 && voltage > 0) {
+                var powerFactor = power / (current * voltage);
+                if (powerFactor > 0 && powerFactor <= 1) {
+                    $('#power_factor').val(powerFactor.toFixed(2));
+                }
+            }
+        });
+
+        // تحويل الوحدات عند تغيير وحدة القياس
+        $('#current_unit_id').change(function() {
+            convertUnit('current', $(this).val());
+        });
+
+        $('#voltage_unit_id').change(function() {
+            convertUnit('voltage', $(this).val());
+        });
+
+        $('#power_unit_id').change(function() {
+            convertUnit('power', $(this).val());
+        });
+
+        $('#energy_unit_id').change(function() {
+            convertUnit('energy', $(this).val());
+        });
+
+        // تحديث قيمة سعة القاطع عند اختيار قيمة من القائمة المنسدلة
+        $('#dropdown_breaker_capacity').change(function() {
+            var selectedValue = $(this).val();
+            if (selectedValue) {
+                $('#breaker_capacity').val(selectedValue);
+            }
+        });
+
+        // السماح بتعديل سعة القاطع
+        $('#edit-breaker-capacity').click(function(e) {
+            e.preventDefault();
+            $('#breaker_capacity').prop('readonly', false).focus();
+            $(this).parent().text('يمكنك تعديل سعة القاطع الآن.');
+        });
+
+        // إضافة معالج حدث لحساب نسبة الحمل وعرض حالة اللوحة
+        function calculateLoadStatus() {
+            var breaker_capacity = parseFloat($('#breaker_capacity').val());
+            if (!breaker_capacity || isNaN(breaker_capacity) || breaker_capacity <= 0) return;
+
+            // الحصول على قيمة التيار
+            var current = parseFloat($('#current').val()) || 0;
+
+            // حساب نسبة الحمل
+            var calculated_load = (current / breaker_capacity) * 100;
+
+            // عرض نسبة الحمل
+            if (!isNaN(calculated_load)) {
+                var status = '';
+                var color = '';
+
+                // تحديد حالة الحمل
+                if (calculated_load >= 80) {
+                    status = 'خطر';
+                    color = '#dc3545'; // أحمر
+                } else if (calculated_load >= 70) {
+                    status = 'تحذير';
+                    color = '#ffc107'; // أصفر
+                } else {
+                    status = 'طبيعي';
+                    color = '#28a745'; // أخضر
+                }
+
+                // إضافة أو تحديث عنصر لعرض نسبة الحمل
+                var load_info = $('#load_status_info');
+                if (load_info.length === 0) {
+                    $('#breaker_capacity').parent().after(
+                        '<div id="load_status_info" class="mt-2">' +
+                        '<span>نسبة الحمل: <strong style="color:' + color + '">' + calculated_load.toFixed(1) + '%</strong> (' + status + ')</span>' +
+                        '</div>'
+                    );
+                } else {
+                    load_info.html('<span>نسبة الحمل: <strong style="color:' + color + '">' + calculated_load.toFixed(1) + '%</strong> (' + status + ')</span>');
+                }
+            }
+        }
+
+        // حساب نسبة الحمل عند تغيير قيم التيار أو سعة القاطع
+        $('#current, #breaker_capacity').on('input', calculateLoadStatus);
+
+        // حساب نسبة الحمل عند تحميل الصفحة
+        calculateLoadStatus();
+
+        function convertUnit(field, unitId) {
+            var value = parseFloat($('#' + field).val());
+            if (isNaN(value)) return;
+
+            // هنا يمكن إضافة منطق تحويل الوحدات
+            // على سبيل المثال، إذا كان التحويل من أمبير إلى كيلو أمبير، نقسم على 1000
+            // سيتم تنفيذ هذا بشكل أكثر تفصيلاً في الكود الخلفي
+        }
+    });
+</script>
+{% endblock %}

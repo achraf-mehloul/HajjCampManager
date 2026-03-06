@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+
+{% block title %}الخريطة التفاعلية - تجربة الحجاج والسياح 360°{% endblock %}
+
+{% block head %}
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <style>
+        .map-container {
+            height: 80vh;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        #interactive-map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .map-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .filter-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 5px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            text-decoration: none;
+            color: #495057;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .location-popup {
+            max-width: 300px;
+        }
+
+        .location-popup h5 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .location-popup .amenities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .amenity-tag {
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #495057;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Back Button -->
+    <button class="back-button" onclick="window.location.href='{{ url_for('pilgrimage_index') }}'">
+        <i class="fas fa-arrow-right"></i>
+    </button>
+
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-center mb-3">
+                <i class="fas fa-map-marked-alt text-primary me-3"></i>
+                الخريطة التفاعلية للمواقع المقدسة
+            </h1>
+            <p class="text-center text-muted">
+                استكشف المواقع المقدسة والتاريخية مع معلومات شاملة وتفاعلية
+            </p>
+        </div>
+    </div>
+
+    <!-- Map Controls -->
+    <div class="map-controls">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 class="mb-3">تصفية المواقع:</h5>
+                <a href="#" class="filter-btn active" data-type="all">
+                    <i class="fas fa-globe me-1"></i>جميع المواقع
+                </a>
+                <a href="#" class="filter-btn" data-type="holy_site">
+                    <i class="fas fa-mosque me-1"></i>المواقع المقدسة
+                </a>
+                <a href="#" class="filter-btn" data-type="historical_site">
+                    <i class="fas fa-landmark me-1"></i>المواقع التاريخية
+                </a>
+                <a href="#" class="filter-btn" data-type="parking">
+                    <i class="fas fa-parking me-1"></i>المواقف
+                </a>
+                <a href="#" class="filter-btn" data-type="accommodation">
+                    <i class="fas fa-bed me-1"></i>الإقامة
+                </a>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{{ url_for('pilgrimage_add_location') }}" class="filter-btn" style="background: #28a745; color: white; border-color: #28a745;">
+                    <i class="fas fa-plus me-1"></i>إضافة موقع
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Container -->
+    <div class="map-container">
+        <div id="interactive-map"></div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary" id="total-locations">{{ map_data|length }}</h3>
+                    <p class="text-muted">إجمالي المواقع</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success" id="holy-sites">0</h3>
+                    <p class="text-muted">المواقع المقدسة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info" id="historical-sites">0</h3>
+                    <p class="text-muted">المواقع التاريخية</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning" id="other-locations">0</h3>
+                    <p class="text-muted">مواقع أخرى</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // بيانات المواقع من الخادم
+        const mapData = {{ map_data | tojson | safe }};
+        console.log('Map data loaded:', mapData);
+        
+        // تهيئة الخريطة
+        const map = L.map('interactive-map').setView([21.4225, 39.8262], 11);
+        
+        // إضافة طبقة الخريطة
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // مجموعة العلامات
+        const markersGroup = L.layerGroup().addTo(map);
+
+        // رموز المواقع
+        const locationIcons = {
+            holy_site: '🕌',
+            historical_site: '🏛️',
+            parking: '🅿️',
+            accommodation: '🏨',
+            service: '🏢',
+            shopping: '🛍️'
+        };
+
+        // إضافة العلامات
+        function addMarkers(data) {
+            markersGroup.clearLayers();
+            
+            data.forEach(location => {
+                const icon = locationIcons[location.type] || '📍';
+                
+                const marker = L.marker([location.lat, location.lng]).addTo(markersGroup);
+                
+                const popupContent = `
+                    <div class="location-popup">
+                        <h5>${icon} ${location.name}</h5>
+                        <p><strong>النوع:</strong> ${getTypeLabel(location.type)}</p>
+                        <p><strong>الوصف:</strong> ${location.description}</p>
+                        <p><strong>ساعات العمل:</strong> ${location.operating_hours}</p>
+                        <p><strong>مستوى الازدحام:</strong> ${getCrowdLabel(location.crowd_level)}</p>
+                        ${location.amenities && location.amenities.length > 0 ? 
+                            `<div class="amenities">
+                                ${location.amenities.map(amenity => `<span class="amenity-tag">${amenity}</span>`).join('')}
+                            </div>` : ''
+                        }
+                        <div class="mt-2">
+                            <a href="/pilgrimage-360/location/${location.id}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i>عرض التفاصيل
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+            });
+        }
+
+        // دوال مساعدة
+        function getTypeLabel(type) {
+            const labels = {
+                holy_site: 'موقع مقدس',
+                historical_site: 'موقع تاريخي',
+                parking: 'موقف سيارات',
+                accommodation: 'إقامة',
+                service: 'خدمات',
+                shopping: 'تسوق'
+            };
+            return labels[type] || type;
+        }
+
+        function getCrowdLabel(level) {
+            const labels = {
+                low: 'منخفض',
+                medium: 'متوسط',
+                high: 'مرتفع',
+                very_high: 'مرتفع جداً'
+            };
+            return labels[level] || level;
+        }
+
+        // تحديث الإحصائيات
+        function updateStats(data) {
+            const holySites = data.filter(l => l.type === 'holy_site').length;
+            const historicalSites = data.filter(l => l.type === 'historical_site').length;
+            const otherLocations = data.length - holySites - historicalSites;
+            
+            document.getElementById('total-locations').textContent = data.length;
+            document.getElementById('holy-sites').textContent = holySites;
+            document.getElementById('historical-sites').textContent = historicalSites;
+            document.getElementById('other-locations').textContent = otherLocations;
+        }
+
+        // تصفية المواقع
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // إزالة الفئة النشطة من جميع الأزرار
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const type = this.dataset.type;
+                let filteredData = mapData;
+                
+                if (type !== 'all') {
+                    filteredData = mapData.filter(location => location.type === type);
+                }
+                
+                addMarkers(filteredData);
+                updateStats(filteredData);
+            });
+        });
+
+        // تحميل البيانات الأولية
+        addMarkers(mapData);
+        updateStats(mapData);
+        
+    } catch (error) {
+        console.error('Error initializing map:', error);
+        document.getElementById('interactive-map').innerHTML = 
+            '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; color: #6c757d; font-size: 18px;">' +
+            '<div><i class="fas fa-exclamation-triangle me-2"></i>خطأ في تحميل الخريطة. يرجى إعادة تحميل الصفحة.</div>' +
+            '</div>';
+    }
+});
+</script>
+{% endblock %}

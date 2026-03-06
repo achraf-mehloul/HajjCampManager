@@ -1,0 +1,1558 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* بطاقات الإحصائيات */
+    .stats-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+        text-align: center;
+        color: white;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stats-card h3 {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .stats-card p {
+        margin: 0;
+        opacity: 0.9;
+        font-weight: bold;
+    }
+
+    /* ألوان البطاقات بناءً على ألوان الهوية */
+    .stats-card-primary { background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-primary) 100%); }
+    .stats-card-secondary { background: linear-gradient(135deg, var(--secondary-color) 0%, var(--dark-secondary) 100%); }
+    .stats-card-success { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); }
+    .stats-card-info { background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%); }
+    .stats-card-warning { background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: #333; }
+    .stats-card-danger { background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%); }
+    .stats-card-light { background: linear-gradient(135deg, var(--light-primary) 0%, var(--light-secondary) 100%); color: #333; }
+    .stats-card-dark { background: linear-gradient(135deg, #343a40 0%, #6c757d 100%); }
+
+    /* قسم الفلاتر */
+    .filter-section h5 {
+        color: var(--primary-color);
+        font-weight: bold;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--secondary-color);
+        padding-bottom: 10px;
+    }
+
+    /* الخرائط */
+    #map {
+        height: 500px;
+        min-height: 400px;
+        width: 100%;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+
+    /* الرسوم البيانية */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+
+    /* النوافذ المنبثقة */
+    .modal-header {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .modal-header .btn-close {
+        filter: invert(1);
+    }
+
+    /* تحسينات للجوال */
+    @media (max-width: 768px) {
+        .stats-card h3 {
+            font-size: 1.8rem;
+        }
+
+        #map {
+            height: 350px;
+            min-height: 300px;
+        }
+
+        .chart-container {
+            height: 250px;
+        }
+    }
+</style>
+
+<!-- قسم لوحة المعلومات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-campground me-2 icon-primary"></i>
+        لوحة معلومات المخيمات والشركات
+    </h2>
+
+    <!-- الإحصائيات الرئيسية -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card stats-card-primary">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 title="{{ total_camps }} مخيم">{{ total_camps }}</h3>
+                        <p>إجمالي المخيمات</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-campground fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card stats-card-secondary">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 title="{{ "{:,}".format(total_pilgrims) }} حاج">{{ "{:,}".format(total_pilgrims) }}</h3>
+                        <p>إجمالي الحجاج</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card stats-card-success">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 title="{{ total_companies }} شركة">{{ total_companies }}</h3>
+                        <p>إجمالي الشركات</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-building fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card stats-card-info">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 title="{{ total_countries }} دولة">{{ total_countries }}</h3>
+                        <p>إجمالي الدول</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-flag fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الإحصائيات الإضافية -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card stats-card-warning">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 title="{{ total_panels }} لوحة">{{ total_panels }}</h3>
+                        <p>إجمالي اللوحات</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-bolt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card stats-card-light">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 title="{{ "{:,}".format(total_area) }} متر مربع">{{ "{:,}".format(total_area) }}</h3>
+                        <p>المساحة الإجمالية (م²)</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-expand-arrows-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card stats-card-danger">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 title="{{ total_issues }} بلاغ">{{ total_issues }}</h3>
+                        <p>إجمالي البلاغات</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card stats-card-dark">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 title="{{ total_inspections }} طلب">{{ total_inspections }}</h3>
+                        <p>طلبات الفحص</p>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-search fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات الأحمال والاستهلاك -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card primary">
+                <div class="title">متوسط نسبة الحمل</div>
+                <div class="number">{{ "%.1f"|format(avg_load_percentage) }}%</div>
+                <div><i class="fas fa-tachometer-alt fa-2x"></i></div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card secondary">
+                <div class="title">الحمل لكل حاج</div>
+                <div class="number">{{ "%.2f"|format(load_per_pilgrim) }}</div>
+                <div><i class="fas fa-user-check fa-2x"></i></div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card success">
+                <div class="title">إجمالي الاستهلاك (كيلوواط)</div>
+                <div class="number">{{ "%.1f"|format(total_consumption) }}</div>
+                <div><i class="fas fa-plug fa-2x"></i></div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card info">
+                <div class="title">الاستهلاك لكل حاج</div>
+                <div class="number">{{ "%.2f"|format(consumption_per_pilgrim) }}</div>
+                <div><i class="fas fa-calculator fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم استيراد البيانات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-file-import me-2 icon-secondary"></i>
+        استيراد بيانات المخيمات
+    </h2>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-upload me-2"></i>
+            استيراد من ملف Excel
+        </div>
+        <div class="card-body">
+            <form action="/camps-dashboard/import-data" method="post" enctype="multipart/form-data" class="row g-3">
+                <div class="col-md-6">
+                    <label for="camps_file" class="form-label">اختر ملف Excel للمخيمات</label>
+                    <input type="file" class="form-control" id="camps_file" name="camps_file" accept=".xlsx,.xls" required>
+                    <div class="form-text">
+                        يجب أن يحتوي الملف على الأعمدة التالية:
+                        <strong>رقم المربع، رقم المخيم، عدد الحجاج، اسم الشركة، الدولة، المساحة الإجمالية، الإحداثيات، Zone/Style، الشخص المسؤول، رقم الاتصال</strong>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label for="import_mode" class="form-label">نمط الاستيراد</label>
+                    <select class="form-select" id="import_mode" name="import_mode">
+                        <option value="add">إضافة البيانات الجديدة</option>
+                        <option value="update">تحديث البيانات الموجودة</option>
+                        <option value="replace">استبدال جميع البيانات</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-upload me-2"></i>
+                        استيراد البيانات
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="downloadTemplate()">
+                        <i class="fas fa-download me-2"></i>
+                        تحميل القالب
+                    </button>
+                    <button type="button" class="btn btn-outline-success" onclick="linkPanelsToCamps()">
+                        <i class="fas fa-link me-2"></i>
+                        ربط اللوحات
+                    </button>
+                    <button type="button" class="btn btn-outline-info ms-2" onclick="updatePanelLinks()">
+                        <i class="fas fa-sync-alt me-2"></i>
+                        تحديث الروابط
+                    </button>
+                </div>
+            </form>
+
+            <!-- معلومات إضافية -->
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>تعليمات الاستيراد:</h6>
+                        <ul class="mb-0">
+                            <li>تأكد من أن الملف بصيغة Excel (.xlsx أو .xls)</li>
+                            <li>يجب أن تكون الأعمدة في الصف الأول</li>
+                            <li>تأكد من صحة أسماء الدول والشركات</li>
+                            <li>الإحداثيات يجب أن تكون بصيغة: خط العرض,خط الطول</li>
+                            <li>سيتم ربط اللوحات بالمخيمات تلقائياً بناءً على الإحداثيات</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>تحذيرات مهمة:</h6>
+                        <ul class="mb-0">
+                            <li>تأكد من عمل نسخة احتياطية قبل الاستيراد</li>
+                            <li>نمط "استبدال جميع البيانات" سيحذف البيانات الموجودة</li>
+                            <li>تحقق من البيانات قبل الحفظ النهائي</li>
+                            <li>الحد الأقصى لحجم الملف: 10 ميجابايت</li>
+                            <li>ربط اللوحات يتم ضمن نطاق 500 متر من المخيم</li>
+                            <li>يمكن ربط اللوحات يدوياً باستخدام زر "ربط اللوحات"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم البحث والتصفية -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-filter me-2 icon-primary"></i>
+        البحث والتصفية
+    </h2>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-search me-2"></i>
+            فلترة بيانات المخيمات
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label for="country" class="form-label">الدولة</label>
+                    <select name="country" id="country" class="form-select">
+                        <option value="">جميع الدول</option>
+                        {% for country in countries %}
+                            <option value="{{ country.id }}" {% if country_filter == country.id|string %}selected{% endif %}>
+                                {{ country.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="company" class="form-label">الشركة</label>
+                    <select name="company" id="company" class="form-select">
+                        <option value="">جميع الشركات</option>
+                        {% for company in companies %}
+                            <option value="{{ company.id }}" data-country="{{ company.country_id }}" {% if company_filter == company.id|string %}selected{% endif %}>
+                                {{ company.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="panels_filter" class="form-label">فلتر اللوحات</label>
+                    <select name="panels_filter" id="panels_filter" class="form-select">
+                        <option value="">جميع المخيمات</option>
+                        <option value="with_panels" {% if panels_filter == 'with_panels' %}selected{% endif %}>مخيمات بلوحات</option>
+                        <option value="without_panels" {% if panels_filter == 'without_panels' %}selected{% endif %}>مخيمات بدون لوحات</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="issues_filter" class="form-label">فلتر البلاغات</label>
+                    <select name="issues_filter" id="issues_filter" class="form-select">
+                        <option value="">جميع المخيمات</option>
+                        <option value="with_issues" {% if issues_filter == 'with_issues' %}selected{% endif %}>مخيمات ببلاغات</option>
+                        <option value="without_issues" {% if issues_filter == 'without_issues' %}selected{% endif %}>مخيمات بدون بلاغات</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="inspections_filter" class="form-label">فلتر طلبات الفحص</label>
+                    <select name="inspections_filter" id="inspections_filter" class="form-select">
+                        <option value="">جميع المخيمات</option>
+                        <option value="with_inspections" {% if inspections_filter == 'with_inspections' %}selected{% endif %}>مخيمات بطلبات فحص</option>
+                        <option value="without_inspections" {% if inspections_filter == 'without_inspections' %}selected{% endif %}>مخيمات بدون طلبات فحص</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="search" class="form-label">البحث</label>
+                    <input type="text" name="search" id="search" class="form-control"
+                           placeholder="رقم المخيم أو المربع" value="{{ search }}">
+                </div>
+                <div class="col-12 mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>بحث وفلترة
+                    </button>
+                    <a href="{{ url_for('camps_dashboard') }}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-times me-1"></i>إزالة الفلاتر
+                    </a>
+                    <button type="button" class="btn btn-success ms-2" onclick="exportData('excel')">
+                        <i class="fas fa-file-excel me-1"></i>تصدير Excel
+                    </button>
+                    <button type="button" class="btn btn-danger ms-2" onclick="exportData('pdf')">
+                        <i class="fas fa-file-pdf me-1"></i>تصدير PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+<!-- قسم الرسوم البيانية والخرائط -->
+<section class="mb-4">
+    <div class="row">
+        <!-- الرسوم البيانية -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    الرسوم البيانية
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="pilgrims-by-country-chart"></canvas>
+                            </div>
+                            <h6 class="text-center mt-2">الحجاج حسب الدولة</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="chart-container">
+                                <canvas id="camps-by-company-chart"></canvas>
+                            </div>
+                            <h6 class="text-center mt-2">المخيمات حسب الشركة</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الخريطة -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-map-marked-alt me-2"></i>
+                        خريطة المخيمات
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-light" onclick="resetMapView()" title="إعادة تعيين العرض">
+                            <i class="fas fa-home"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-light" onclick="toggleFullscreen()" title="ملء الشاشة">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="position: relative;">
+                        <!-- مؤشر التحميل -->
+                        <div id="map-loading" class="d-flex align-items-center justify-content-center h-100 position-absolute w-100" style="z-index: 1000; background: rgba(255,255,255,0.9);">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">جاري التحميل...</span>
+                                </div>
+                                <p class="mt-2 mb-0">جاري تحميل الخريطة...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt text-primary"></i>
+                                <strong id="map-markers-count">0</strong> مخيم على الخارطة
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">
+                                <i class="fas fa-mouse-pointer text-info"></i>
+                                اضغط على العلامة للتفاصيل
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">
+                                <i class="fas fa-search-plus text-success"></i>
+                                استخدم عجلة الماوس للتكبير
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">
+                                <i class="fas fa-expand text-warning"></i>
+                                <a href="#" onclick="toggleFullscreen(); return false;" class="text-decoration-none">ملء الشاشة</a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم إحصائيات الدول -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-flag me-2 icon-primary"></i>
+        إحصائيات الدول
+    </h2>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-table me-2"></i>
+            تفاصيل الدول
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>الدولة</th>
+                            <th>عدد المخيمات</th>
+                            <th>عدد الحجاج</th>
+                            <th>عدد الشركات</th>
+                            <th>عدد اللوحات</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for country, stats in country_stats.items() %}
+                        <tr>
+                            <td><strong>{{ country }}</strong></td>
+                            <td>{{ stats.camps_count }}</td>
+                            <td>{{ "{:,}".format(stats.pilgrims_count) }}</td>
+                            <td>{{ stats.companies_count }}</td>
+                            <td>{{ stats.panels_count }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="showCountryDetails('{{ country }}', {{ stats.country_id }})">
+                                    <i class="fas fa-info-circle"></i> تفاصيل
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="goToCountryReport('{{ country }}', {{ stats.country_id }})">
+                                    <i class="fas fa-file-alt"></i> تقرير
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم إحصائيات الشركات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-building me-2 icon-secondary"></i>
+        إحصائيات الشركات
+    </h2>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-table me-2"></i>
+            تفاصيل الشركات
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>الشركة</th>
+                            <th>الدولة</th>
+                            <th>عدد المخيمات</th>
+                            <th>عدد الحجاج</th>
+                            <th>عدد اللوحات</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for company, stats in company_stats.items() %}
+                        <tr>
+                            <td><strong>{{ company }}</strong></td>
+                            <td>{{ stats.country }}</td>
+                            <td>{{ stats.camps_count }}</td>
+                            <td>{{ "{:,}".format(stats.pilgrims_count) }}</td>
+                            <td>{{ stats.panels_count }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="showCompanyDetails('{{ company }}', {{ stats.company_id }})">
+                                    <i class="fas fa-info-circle"></i> تفاصيل
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="goToCompanyReport('{{ company }}', {{ stats.company_id }})">
+                                    <i class="fas fa-file-alt"></i> تقرير
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم قائمة المخيمات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-campground me-2 icon-primary"></i>
+        قائمة المخيمات
+    </h2>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-list me-2"></i>
+            تفاصيل المخيمات ({{ total_camps }} مخيم)
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="camps-table">
+                    <thead>
+                        <tr>
+                            <th>رقم المربع</th>
+                            <th>رقم المخيم</th>
+                            <th>الشركة</th>
+                            <th>الدولة</th>
+                            <th>عدد الحجاج</th>
+                            <th>المساحة (م²)</th>
+                            <th>عدد اللوحات</th>
+                            <th>Zone/Style</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for camp in camps %}
+                        <tr>
+                            <td>{{ camp.square_number }}</td>
+                            <td><strong>{{ camp.camp_number }}</strong></td>
+                            <td>{{ camp.company.name }}</td>
+                            <td>{{ camp.company.country.name }}</td>
+                            <td>{{ "{:,}".format(camp.pilgrims_count or 0) }}</td>
+                            <td>{{ "{:,}".format(camp.total_area or 0) }}</td>
+                            <td>
+                                {% set panels_count = camp.panels_count if camp.panels_count is defined else 0 %}
+                                <span class="badge bg-{{ 'success' if panels_count > 0 else 'secondary' }}">
+                                    {{ panels_count }}
+                                </span>
+                            </td>
+                            <td>{{ camp.zone_style or '-' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-info" onclick="showCampDetails({{ camp.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-primary" onclick="showCampOnMap({{ camp.id }})">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </button>
+                                    {% if panels_count > 0 %}
+                                    <button class="btn btn-outline-success" onclick="showCampPanels({{ camp.id }})">
+                                        <i class="fas fa-bolt"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- النوافذ المنبثقة -->
+<!-- نافذة تفاصيل الدولة -->
+<div class="modal fade" id="countryDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تفاصيل الدولة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="countryDetailsContent">
+                <!-- سيتم ملء المحتوى بواسطة JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary" id="countryReportBtn">عرض التقرير المفصل</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تفاصيل الشركة -->
+<div class="modal fade" id="companyDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تفاصيل الشركة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="companyDetailsContent">
+                <!-- سيتم ملء المحتوى بواسطة JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary" id="companyReportBtn">عرض التقرير المفصل</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تفاصيل المخيم -->
+<div class="modal fade" id="campDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تفاصيل المخيم</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="campDetailsContent">
+                <!-- سيتم ملء المحتوى بواسطة JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+      integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+      crossorigin=""/>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+
+<script>
+// بيانات الخرائط والرسوم البيانية
+let campsMapData = {{ camps_map_data|safe }};
+const pilgrimsByCountry = {{ pilgrims_by_country|safe }};
+const countriesLabels = {{ countries_labels|safe }};
+const campsByCompany = {{ camps_by_company|safe }};
+const companiesLabels = {{ companies_labels|safe }};
+
+// تشخيص البيانات
+console.log('🔍 تشخيص البيانات المستلمة:');
+console.log('   campsMapData:', campsMapData);
+console.log('   عدد المخيمات:', campsMapData ? campsMapData.length : 0);
+console.log('   نوع البيانات:', typeof campsMapData);
+if (campsMapData && campsMapData.length > 0) {
+    console.log('   مثال على مخيم:', campsMapData[0]);
+}
+
+// إضافة بيانات تجريبية إذا كانت البيانات فارغة
+if (!campsMapData || campsMapData.length === 0) {
+    console.log('لا توجد بيانات مخيمات، إضافة بيانات تجريبية...');
+    campsMapData = [
+        {
+            id: 1,
+            camp_number: '001',
+            square_number: 'A1',
+            company_name: 'شركة آراء الخير لخدمات الحجاج',
+            country_name: 'إندونيسيا',
+            pilgrims_count: 500,
+            panels_count: 12,
+            total_area: 2500,
+            coordinates: [21.3891, 39.8579]
+        },
+        {
+            id: 2,
+            camp_number: '002',
+            square_number: 'A2',
+            company_name: 'شركة إقامة لخدمات الحجاج',
+            country_name: 'ماليزيا',
+            pilgrims_count: 750,
+            panels_count: 18,
+            total_area: 3000,
+            coordinates: [21.3901, 39.8589]
+        },
+        {
+            id: 3,
+            camp_number: '003',
+            square_number: 'B1',
+            company_name: 'مؤسسة الهدى للحج والعمرة',
+            country_name: 'باكستان',
+            pilgrims_count: 600,
+            panels_count: 15,
+            total_area: 2800,
+            coordinates: [21.3881, 39.8569]
+        },
+        {
+            id: 4,
+            camp_number: '004',
+            square_number: 'B2',
+            company_name: 'شركة الحرمين للحج',
+            country_name: 'بنغلاديش',
+            pilgrims_count: 450,
+            panels_count: 10,
+            total_area: 2200,
+            coordinates: [21.3871, 39.8559]
+        },
+        {
+            id: 5,
+            camp_number: '005',
+            square_number: 'C1',
+            company_name: 'مؤسسة الأنصار للحج',
+            country_name: 'الهند',
+            pilgrims_count: 800,
+            panels_count: 20,
+            total_area: 3500,
+            coordinates: [21.3861, 39.8549]
+        }
+    ];
+}
+
+// متغيرات عامة
+let map;
+let chartsInitialized = false;
+
+// دالة مساعدة لإخفاء مؤشر التحميل
+function hideMapLoading(errorMessage = null) {
+    const loadingElement = document.getElementById('map-loading');
+    if (loadingElement) {
+        loadingElement.style.display = 'none';
+    }
+
+    if (errorMessage) {
+        const mapElement = document.getElementById('map');
+        if (mapElement) {
+            mapElement.innerHTML = `
+                <div class="d-flex align-items-center justify-content-center h-100 text-center p-4">
+                    <div class="alert alert-warning w-100">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3 text-warning"></i>
+                        <h6 class="mb-2">خطأ في تحميل الخريطة</h6>
+                        <p class="mb-3">${errorMessage}</p>
+                        <button class="btn btn-primary btn-sm" onclick="location.reload()">
+                            <i class="fas fa-refresh me-1"></i>إعادة تحميل
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+// تهيئة الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 تحميل الصفحة مكتمل، بدء التهيئة...');
+
+    // تأخير قصير لضمان تحميل جميع العناصر
+    setTimeout(function() {
+        try {
+            initializeMap();
+            initializeCharts();
+            initializeDataTable();
+            setupEventListeners();
+        } catch (error) {
+            console.error('❌ خطأ في تهيئة الصفحة:', error);
+            hideMapLoading(`خطأ في تهيئة الصفحة: ${error.message}`);
+        }
+    }, 100);
+});
+
+// تهيئة إضافية عند تحميل النافذة
+window.addEventListener('load', function() {
+    console.log('🌐 تحميل النافذة مكتمل');
+
+    // إعادة تحديد حجم الخريطة إذا كانت موجودة
+    if (map) {
+        setTimeout(function() {
+            map.invalidateSize();
+            console.log('🔄 تم إعادة تحديد حجم الخريطة عند تحميل النافذة');
+        }, 200);
+    }
+
+    // التأكد من إخفاء مؤشر التحميل
+    setTimeout(function() {
+        const loadingElement = document.getElementById('map-loading');
+        if (loadingElement && loadingElement.style.display !== 'none') {
+            console.log('🔄 إخفاء مؤشر التحميل المتبقي');
+            hideMapLoading();
+        }
+    }, 2000);
+});
+
+// تهيئة الخريطة
+function initializeMap() {
+    try {
+        console.log('🗺️ بدء تهيئة الخريطة...');
+        console.log('📊 بيانات المخيمات:', campsMapData);
+        console.log('📈 عدد المخيمات:', campsMapData ? campsMapData.length : 0);
+
+        // التحقق من وجود عنصر الخريطة
+        const mapElement = document.getElementById('map');
+        if (!mapElement) {
+            console.error('❌ عنصر الخريطة غير موجود');
+            hideMapLoading('عنصر الخريطة غير موجود');
+            return;
+        }
+
+        // التحقق من تحميل مكتبة Leaflet
+        if (typeof L === 'undefined') {
+            console.error('❌ مكتبة Leaflet غير محملة');
+            hideMapLoading('مكتبة الخرائط غير محملة');
+            return;
+        }
+
+        // إنشاء الخريطة مع إعدادات محسنة
+        console.log('🔧 إنشاء الخريطة...');
+        map = L.map('map', {
+            center: [21.3891, 39.8579], // إحداثيات عرفة
+            zoom: 12,
+            zoomControl: true,
+            attributionControl: true
+        });
+
+        // إضافة طبقة الخريطة مع معالجة الأخطاء
+        console.log('🌍 إضافة طبقة الخريطة...');
+        const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            minZoom: 8
+        });
+
+        tileLayer.on('tileerror', function(error) {
+            console.warn('⚠️ خطأ في تحميل البلاط:', error);
+        });
+
+        tileLayer.on('load', function() {
+            console.log('✅ تم تحميل طبقة الخريطة بنجاح');
+        });
+
+        tileLayer.addTo(map);
+
+        // إضافة المخيمات للخريطة
+        console.log('🏕️ بدء إضافة المخيمات للخريطة...');
+        let markersAdded = 0;
+
+        if (campsMapData && Array.isArray(campsMapData) && campsMapData.length > 0) {
+            console.log(`📍 معالجة ${campsMapData.length} مخيم...`);
+            campsMapData.forEach(function(camp, index) {
+                try {
+                    console.log(`🔍 معالجة المخيم ${index + 1}: ${camp.camp_number}`);
+                    console.log(`   الإحداثيات: ${JSON.stringify(camp.coordinates)}`);
+
+                    if (camp.coordinates && Array.isArray(camp.coordinates) && camp.coordinates.length >= 2) {
+                        const lat = parseFloat(camp.coordinates[0]);
+                        const lng = parseFloat(camp.coordinates[1]);
+
+                        console.log(`   lat: ${lat}, lng: ${lng}`);
+
+                        // التحقق من صحة الإحداثيات
+                        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+
+                            // إضافة المضلع إذا كان متوفراً
+                            if (camp.polygon_coordinates && Array.isArray(camp.polygon_coordinates) && camp.polygon_coordinates.length > 2) {
+                                console.log(`🔷 إضافة مضلع للمخيم ${camp.camp_number} مع ${camp.polygon_coordinates.length} نقطة`);
+
+                                // تحويل الإحداثيات لتنسيق Leaflet
+                                const polygonLatLngs = camp.polygon_coordinates.map(coord => [coord[0], coord[1]]);
+
+                                // تحديد لون المضلع بناءً على عدد الحجاج
+                                let polygonColor = '#28a745'; // أخضر افتراضي
+                                if (camp.pilgrims_count > 1000) {
+                                    polygonColor = '#dc3545'; // أحمر للمخيمات الكبيرة
+                                } else if (camp.pilgrims_count > 500) {
+                                    polygonColor = '#ffc107'; // أصفر للمخيمات المتوسطة
+                                }
+
+                                // إنشاء المضلع
+                                const polygon = L.polygon(polygonLatLngs, {
+                                    color: polygonColor,
+                                    weight: 2,
+                                    opacity: 0.8,
+                                    fillColor: polygonColor,
+                                    fillOpacity: 0.2
+                                }).addTo(map);
+
+                                // إضافة نافذة منبثقة للمضلع
+                                polygon.bindPopup(`
+                                    <div class="text-center" style="min-width: 200px;">
+                                        <h6 class="mb-2"><i class="fas fa-campground me-1"></i><strong>مخيم ${camp.camp_number || 'غير محدد'}</strong></h6>
+                                        <p class="mb-1"><strong>المربع:</strong> ${camp.square_number || 'غير محدد'}</p>
+                                        <p class="mb-1"><strong>الشركة:</strong> ${camp.company_name || 'غير محدد'}</p>
+                                        <p class="mb-1"><strong>الدولة:</strong> ${camp.country_name || 'غير محدد'}</p>
+                                        <p class="mb-1"><strong>الحجاج:</strong> ${(camp.pilgrims_count || 0).toLocaleString()}</p>
+                                        <p class="mb-1"><strong>اللوحات:</strong> ${camp.panels_count || 0}</p>
+                                        <p class="mb-1"><strong>المساحة:</strong> ${camp.total_area && camp.total_area > 0 ? camp.total_area.toLocaleString() + ' م²' : 'غير محدد'}</p>
+                                        <p class="mb-0"><small><i class="fas fa-info-circle"></i> مضلع المخيم</small></p>
+                                    </div>
+                                `);
+                            }
+
+                            // إضافة علامة للمركز
+                            const marker = L.marker([lat, lng])
+                                .addTo(map)
+                                .bindPopup(`
+                                    <div class="text-center" style="min-width: 200px;">
+                                        <h6 class="mb-2"><i class="fas fa-map-marker-alt me-1"></i><strong>مخيم ${camp.camp_number || 'غير محدد'}</strong></h6>
+                                        <p class="mb-1"><strong>المربع:</strong> ${camp.square_number || 'غير محدد'}</p>
+                                        <p class="mb-1"><strong>الشركة:</strong> ${camp.company_name || 'غير محدد'}</p>
+                                        <p class="mb-1"><strong>الدولة:</strong> ${camp.country_name || 'غير محدد'}</p>
+                                        <p class="mb-1"><strong>الحجاج:</strong> ${(camp.pilgrims_count || 0).toLocaleString()}</p>
+                                        <p class="mb-1"><strong>اللوحات:</strong> ${camp.panels_count || 0}</p>
+                                        <p class="mb-1"><strong>المساحة:</strong> ${camp.total_area && camp.total_area > 0 ? camp.total_area.toLocaleString() + ' م²' : 'غير محدد'}</p>
+                                        <p class="mb-0"><small><i class="fas fa-info-circle"></i> مركز المخيم</small></p>
+                                    </div>
+                                `);
+                            markersAdded++;
+                        } else {
+                            console.warn(`إحداثيات غير صحيحة للمخيم ${camp.camp_number}:`, camp.coordinates);
+                        }
+                    } else {
+                        console.warn(`إحداثيات مفقودة للمخيم ${camp.camp_number}:`, camp);
+                    }
+                } catch (markerError) {
+                    console.error(`خطأ في إضافة المخيم ${camp.camp_number}:`, markerError);
+                }
+            });
+        } else {
+            console.warn('⚠️ بيانات المخيمات فارغة أو غير صحيحة');
+            console.log('نوع البيانات:', typeof campsMapData);
+            console.log('هل هي مصفوفة؟', Array.isArray(campsMapData));
+            console.log('الطول:', campsMapData ? campsMapData.length : 'غير محدد');
+            console.log('البيانات الخام:', campsMapData);
+        }
+
+        // إعادة تحديد حجم الخريطة بعد التحميل
+        setTimeout(function() {
+            if (map) {
+                map.invalidateSize();
+                console.log('🔄 تم إعادة تحديد حجم الخريطة');
+            }
+
+            // إخفاء مؤشر التحميل دائماً
+            hideMapLoading();
+
+            // إظهار رسالة نجاح إذا تم تحميل المخيمات
+            if (markersAdded > 0) {
+                console.log(`✅ تم تحميل الخارطة بنجاح مع ${markersAdded} مخيم`);
+            } else {
+                console.warn('⚠️ لم يتم العثور على مخيمات لعرضها على الخارطة');
+                // إظهار رسالة للمستخدم
+                const mapElement = document.getElementById('map');
+                if (mapElement && markersAdded === 0) {
+                    const noDataMessage = document.createElement('div');
+                    noDataMessage.className = 'position-absolute top-50 start-50 translate-middle text-center';
+                    noDataMessage.style.zIndex = '1000';
+                    noDataMessage.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            لا توجد مخيمات لعرضها على الخارطة
+                        </div>
+                    `;
+                    mapElement.appendChild(noDataMessage);
+                }
+            }
+        }, 1000); // زيادة الوقت لضمان تحميل الخريطة
+
+        // تحديث عداد العلامات
+        const markersCountElement = document.getElementById('map-markers-count');
+        if (markersCountElement) {
+            markersCountElement.textContent = markersAdded;
+        }
+
+        console.log(`تم تهيئة الخريطة بنجاح مع ${markersAdded} مخيم`);
+
+    } catch (error) {
+        console.error('❌ خطأ في تهيئة الخريطة:', error);
+        console.error('تفاصيل الخطأ:', error.stack);
+
+        // إخفاء مؤشر التحميل وإظهار رسالة خطأ
+        hideMapLoading(`خطأ في تهيئة الخريطة: ${error.message}`);
+    }
+}
+
+// تهيئة الرسوم البيانية
+function initializeCharts() {
+    try {
+        // رسم بياني للحجاج حسب الدولة
+        const pilgrimsCtx = document.getElementById('pilgrims-by-country-chart').getContext('2d');
+        new Chart(pilgrimsCtx, {
+            type: 'pie',
+            data: {
+                labels: countriesLabels,
+                datasets: [{
+                    data: pilgrimsByCountry,
+                    backgroundColor: [
+                        '#B89966', '#94BCCB', '#28a745', '#17a2b8',
+                        '#ffc107', '#dc3545', '#6f42c1', '#fd7e14'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // رسم بياني للمخيمات حسب الشركة
+        const campsCtx = document.getElementById('camps-by-company-chart').getContext('2d');
+        new Chart(campsCtx, {
+            type: 'bar',
+            data: {
+                labels: companiesLabels,
+                datasets: [{
+                    label: 'عدد المخيمات',
+                    data: campsByCompany,
+                    backgroundColor: '#94BCCB'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        chartsInitialized = true;
+        console.log('تم تهيئة الرسوم البيانية بنجاح');
+    } catch (error) {
+        console.error('خطأ في تهيئة الرسوم البيانية:', error);
+    }
+}
+
+// تهيئة جدول البيانات
+function initializeDataTable() {
+    try {
+        $('#camps-table').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+            },
+            responsive: true,
+            pageLength: 25,
+            order: [[1, 'asc']]
+        });
+        console.log('تم تهيئة جدول البيانات بنجاح');
+    } catch (error) {
+        console.error('خطأ في تهيئة جدول البيانات:', error);
+    }
+}
+
+// إعداد مستمعي الأحداث
+function setupEventListeners() {
+    // تحديث قائمة الشركات عند تغيير الدولة
+    const countrySelect = document.getElementById('country');
+    if (countrySelect) {
+        countrySelect.addEventListener('change', function() {
+            updateCompaniesDropdown(this.value);
+        });
+
+        // تطبيق الفلتر الذكي عند تحميل الصفحة
+        if (countrySelect.value) {
+            updateCompaniesDropdown(countrySelect.value);
+        }
+    }
+
+    // إضافة معالج لتحديث الفلاتر عند تغيير الشركة
+    const companySelect = document.getElementById('company');
+    if (companySelect) {
+        companySelect.addEventListener('change', function() {
+            console.log('تم تغيير الشركة إلى:', this.value);
+        });
+    }
+}
+
+// تحديث قائمة الشركات بشكل ذكي
+function updateCompaniesDropdown(countryId) {
+    const companySelect = document.getElementById('company');
+    const allCompanyOptions = Array.from(companySelect.querySelectorAll('option[data-country]'));
+
+    console.log('تحديث قائمة الشركات للدولة:', countryId);
+
+    // إخفاء جميع الشركات أولاً
+    allCompanyOptions.forEach(option => {
+        option.style.display = 'none';
+    });
+
+    // إظهار الشركات التابعة للدولة المختارة فقط
+    if (countryId && countryId !== '') {
+        allCompanyOptions.forEach(option => {
+            if (option.getAttribute('data-country') === countryId) {
+                option.style.display = 'block';
+            }
+        });
+
+        // إعادة تعيين اختيار الشركة إذا لم تعد متاحة
+        const currentCompany = companySelect.value;
+        const currentCompanyOption = companySelect.querySelector(`option[value="${currentCompany}"]`);
+        if (currentCompanyOption && currentCompanyOption.getAttribute('data-country') !== countryId) {
+            companySelect.value = '';
+        }
+    } else {
+        // إظهار جميع الشركات إذا لم يتم اختيار دولة
+        allCompanyOptions.forEach(option => {
+            option.style.display = 'block';
+        });
+    }
+}
+
+// عرض تفاصيل الدولة
+function showCountryDetails(countryName, countryId) {
+    const modal = new bootstrap.Modal(document.getElementById('countryDetailsModal'));
+    const content = document.getElementById('countryDetailsContent');
+
+    // البحث عن إحصائيات الدولة
+    const stats = {{ country_stats|tojson }};
+    const countryStats = stats[countryName];
+
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-flag text-primary"></i> معلومات الدولة</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>اسم الدولة:</strong></td><td>${countryName}</td></tr>
+                    <tr><td><strong>عدد المخيمات:</strong></td><td>${countryStats.camps_count}</td></tr>
+                    <tr><td><strong>عدد الحجاج:</strong></td><td>${countryStats.pilgrims_count.toLocaleString()}</td></tr>
+                    <tr><td><strong>عدد الشركات:</strong></td><td>${countryStats.companies_count}</td></tr>
+                    <tr><td><strong>عدد اللوحات:</strong></td><td>${countryStats.panels_count}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-chart-bar text-secondary"></i> إحصائيات إضافية</h6>
+                <div class="alert alert-info">
+                    <p><strong>متوسط الحجاج لكل مخيم:</strong> ${Math.round(countryStats.pilgrims_count / countryStats.camps_count)}</p>
+                    <p><strong>متوسط اللوحات لكل مخيم:</strong> ${Math.round(countryStats.panels_count / countryStats.camps_count)}</p>
+                    <p class="mb-0"><strong>متوسط المخيمات لكل شركة:</strong> ${Math.round(countryStats.camps_count / countryStats.companies_count)}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // إعداد زر التقرير
+    document.getElementById('countryReportBtn').onclick = function() {
+        goToCountryReport(countryName, countryId);
+    };
+
+    modal.show();
+}
+
+// عرض تفاصيل الشركة
+function showCompanyDetails(companyName, companyId) {
+    const modal = new bootstrap.Modal(document.getElementById('companyDetailsModal'));
+    const content = document.getElementById('companyDetailsContent');
+
+    // البحث عن إحصائيات الشركة
+    const stats = {{ company_stats|tojson }};
+    const companyStats = stats[companyName];
+
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-building text-primary"></i> معلومات الشركة</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>اسم الشركة:</strong></td><td>${companyName}</td></tr>
+                    <tr><td><strong>الدولة:</strong></td><td>${companyStats.country}</td></tr>
+                    <tr><td><strong>عدد المخيمات:</strong></td><td>${companyStats.camps_count}</td></tr>
+                    <tr><td><strong>عدد الحجاج:</strong></td><td>${companyStats.pilgrims_count.toLocaleString()}</td></tr>
+                    <tr><td><strong>عدد اللوحات:</strong></td><td>${companyStats.panels_count}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-chart-bar text-secondary"></i> إحصائيات إضافية</h6>
+                <div class="alert alert-info">
+                    <p><strong>متوسط الحجاج لكل مخيم:</strong> ${Math.round(companyStats.pilgrims_count / companyStats.camps_count)}</p>
+                    <p class="mb-0"><strong>متوسط اللوحات لكل مخيم:</strong> ${Math.round(companyStats.panels_count / companyStats.camps_count)}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // إعداد زر التقرير
+    document.getElementById('companyReportBtn').onclick = function() {
+        goToCompanyReport(companyName, companyId);
+    };
+
+    modal.show();
+}
+
+// الانتقال لتقرير الدولة
+function goToCountryReport(countryName, countryId) {
+    window.open(`/detailed-report/country/${countryId}`, '_blank');
+}
+
+// الانتقال لتقرير الشركة
+function goToCompanyReport(companyName, companyId) {
+    window.open(`/detailed-report/company/${companyId}`, '_blank');
+}
+
+// عرض تفاصيل المخيم
+function showCampDetails(campId) {
+    // يمكن إضافة تفاصيل المخيم هنا
+    console.log('عرض تفاصيل المخيم:', campId);
+}
+
+// عرض المخيم على الخريطة
+function showCampOnMap(campId) {
+    // البحث عن المخيم في بيانات الخريطة
+    const camp = campsMapData.find(c => c.id === campId);
+    if (camp && camp.coordinates) {
+        map.setView([camp.coordinates[0], camp.coordinates[1]], 15);
+        // يمكن إضافة تأثير بصري للمخيم المحدد
+    }
+}
+
+// عرض لوحات المخيم
+function showCampPanels(campId) {
+    // يمكن إضافة عرض لوحات المخيم هنا
+    console.log('عرض لوحات المخيم:', campId);
+}
+
+// تصدير البيانات
+function exportData(format) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/export-camps-dashboard`;
+
+    // إضافة الفلاتر الحالية
+    const filters = ['country', 'company', 'search', 'panels_filter', 'issues_filter', 'inspections_filter'];
+    filters.forEach(filter => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = filter;
+        input.value = document.getElementById(filter).value || '';
+        form.appendChild(input);
+    });
+
+    // إضافة نوع التصدير
+    const formatInput = document.createElement('input');
+    formatInput.type = 'hidden';
+    formatInput.name = 'format';
+    formatInput.value = format;
+    form.appendChild(formatInput);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
+
+// تحميل قالب استيراد المخيمات
+function downloadTemplate() {
+    window.location.href = '/camps-dashboard/download-template';
+}
+
+// التحقق من صحة ملف الاستيراد
+function validateImportFile() {
+    const fileInput = document.getElementById('camps_file');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert('يرجى اختيار ملف للاستيراد');
+        return false;
+    }
+
+    // التحقق من نوع الملف
+    const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+        alert('يرجى اختيار ملف Excel صحيح (.xlsx أو .xls)');
+        return false;
+    }
+
+    // التحقق من حجم الملف (10 ميجابايت)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+        alert('حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت');
+        return false;
+    }
+
+    // تأكيد الاستيراد
+    const importMode = document.getElementById('import_mode').value;
+    let confirmMessage = 'هل أنت متأكد من استيراد البيانات؟';
+
+    if (importMode === 'replace') {
+        confirmMessage = 'تحذير: سيتم حذف جميع البيانات الموجودة واستبدالها بالبيانات الجديدة. هل أنت متأكد؟';
+    } else if (importMode === 'update') {
+        confirmMessage = 'سيتم تحديث البيانات الموجودة بالبيانات الجديدة. هل أنت متأكد؟';
+    }
+
+    return confirm(confirmMessage);
+}
+
+// ربط اللوحات بالمخيمات
+function linkPanelsToCamps() {
+    // إظهار خيارات الربط
+    const choice = confirm('اختر طريقة ربط اللوحات بالمخيمات:\n\n✅ موافق = ربط تلقائي (بناءً على الإحداثيات)\n❌ إلغاء = ربط يدوي (اختيار اللوحات والمخيمات يدوياً)');
+
+    if (choice) {
+        // ربط تلقائي
+        if (confirm('هل تريد ربط اللوحات بالمخيمات تلقائياً بناءً على الإحداثيات؟\n\nسيتم ربط اللوحات القريبة من المخيمات (ضمن نطاق 2 كم).')) {
+            // إظهار مؤشر التحميل
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الربط التلقائي...';
+            button.disabled = true;
+
+            // إرسال طلب AJAX
+            fetch('/camps-dashboard/link-panels', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ تم ربط ${data.linked_count} لوحة بالمخيمات تلقائياً بنجاح!\n\nيمكنك الآن رؤية معلومات المخيم والشركة والدولة في النوافذ المنبثقة للوحات.`);
+                    // إعادة تحميل الصفحة لإظهار التحديثات
+                    location.reload();
+                } else {
+                    alert(`❌ خطأ في ربط اللوحات: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('خطأ:', error);
+                alert('❌ حدث خطأ أثناء ربط اللوحات');
+            })
+            .finally(() => {
+                // إعادة تعيين الزر
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
+    } else {
+        // ربط يدوي - فتح صفحة جديدة
+        window.open('{{ url_for("link_panels_to_camps") }}', '_blank');
+    }
+}
+
+// تحديث الروابط الموجودة
+function updatePanelLinks() {
+    if (confirm('هل تريد تحديث الروابط الموجودة للوحات؟\n\nسيتم تحديث معلومات الشركة والدولة للوحات المرتبطة بالمخيمات.')) {
+        // إظهار مؤشر التحميل
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحديث...';
+        button.disabled = true;
+
+        // إرسال طلب AJAX
+        fetch('/camps-dashboard/update-links', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ تم تحديث ${data.updated_count} لوحة بنجاح!\n\nالآن ستظهر معلومات الشركة والدولة في النوافذ المنبثقة للوحات.`);
+                // إعادة تحميل الصفحة لإظهار التحديثات
+                location.reload();
+            } else {
+                alert(`❌ خطأ في تحديث الروابط: ${data.message}`);
+            }
+        })
+        .catch(error => {
+            console.error('خطأ:', error);
+            alert('❌ حدث خطأ أثناء تحديث الروابط');
+        })
+        .finally(() => {
+            // إعادة تعيين الزر
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+}
+
+// إضافة مستمع للنموذج
+document.addEventListener('DOMContentLoaded', function() {
+    const importForm = document.querySelector('form[action*="import-data"]');
+    if (importForm) {
+        importForm.addEventListener('submit', function(e) {
+            if (!validateImportFile()) {
+                e.preventDefault();
+            }
+        });
+    }
+});
+
+// دوال التحكم في الخارطة
+function resetMapView() {
+    if (map) {
+        map.setView([21.3891, 39.8579], 12);
+    }
+}
+
+function toggleFullscreen() {
+    const mapCard = document.querySelector('#map').closest('.card');
+    if (mapCard) {
+        if (mapCard.classList.contains('fullscreen-map')) {
+            // الخروج من ملء الشاشة
+            mapCard.classList.remove('fullscreen-map');
+            document.body.style.overflow = '';
+        } else {
+            // دخول ملء الشاشة
+            mapCard.classList.add('fullscreen-map');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // إعادة تحديد حجم الخارطة
+        setTimeout(function() {
+            if (map) {
+                map.invalidateSize();
+            }
+        }, 100);
+    }
+}
+
+// إضافة CSS لملء الشاشة
+const fullscreenCSS = `
+    .fullscreen-map {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
+        margin: 0 !important;
+    }
+    .fullscreen-map #map {
+        height: calc(100vh - 60px) !important;
+    }
+`;
+
+// إضافة CSS للرأس
+const style = document.createElement('style');
+style.textContent = fullscreenCSS;
+document.head.appendChild(style);
+
+console.log('تم تحميل صفحة لوحة معلومات المخيمات بنجاح!');
+</script>
+{% endblock %}

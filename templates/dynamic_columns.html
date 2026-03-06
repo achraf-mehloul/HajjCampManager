@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم إدارة الأعمدة الديناميكية -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-columns me-2 icon-primary"></i>
+        إدارة الأعمدة الديناميكية
+    </h2>
+    
+    <div class="row">
+        <!-- إضافة عمود جديد -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة عمود جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_dynamic_column') }}" method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">اسم العمود (بالإنجليزية)</label>
+                            <input type="text" class="form-control" id="name" name="name" required pattern="[a-zA-Z0-9_]+" title="يرجى استخدام الحروف الإنجليزية والأرقام والشرطة السفلية فقط">
+                            <div class="form-text">استخدم الحروف الإنجليزية والأرقام والشرطة السفلية فقط، بدون مسافات أو أحرف خاصة</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="display_name" class="form-label">اسم العرض</label>
+                            <input type="text" class="form-control" id="display_name" name="display_name" required>
+                            <div class="form-text">الاسم الذي سيظهر في الجداول والتقارير</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="data_type" class="form-label">نوع البيانات</label>
+                            <select class="form-select" id="data_type" name="data_type" required>
+                                <option value="text">نص</option>
+                                <option value="number">رقم</option>
+                                <option value="date">تاريخ</option>
+                                <option value="boolean">نعم/لا</option>
+                                <option value="select">قائمة اختيار</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="options-container" style="display: none;">
+                            <label for="options" class="form-label">خيارات القائمة</label>
+                            <textarea class="form-control" id="options" name="options" rows="3" placeholder="أدخل الخيارات مفصولة بفواصل"></textarea>
+                            <div class="form-text">أدخل الخيارات مفصولة بفواصل، مثال: خيار1,خيار2,خيار3</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة العمود
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- قائمة الأعمدة الحالية -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-list me-2"></i>
+                    الأعمدة الحالية
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>اسم العمود</th>
+                                    <th>اسم العرض</th>
+                                    <th>نوع البيانات</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if dynamic_columns %}
+                                    {% for column in dynamic_columns %}
+                                        <tr>
+                                            <td>{{ column.name }}</td>
+                                            <td>{{ column.display_name }}</td>
+                                            <td>
+                                                {% if column.data_type == 'text' %}
+                                                    نص
+                                                {% elif column.data_type == 'number' %}
+                                                    رقم
+                                                {% elif column.data_type == 'date' %}
+                                                    تاريخ
+                                                {% elif column.data_type == 'boolean' %}
+                                                    نعم/لا
+                                                {% elif column.data_type == 'select' %}
+                                                    قائمة اختيار
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ column.created_at.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <span class="badge {% if column.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ 'نشط' if column.is_active else 'غير نشط' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('edit_dynamic_column', column_id=column.id) }}" class="btn btn-info">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    {% if column.is_active %}
+                                                        <a href="{{ url_for('toggle_dynamic_column', column_id=column.id) }}" class="btn btn-warning">
+                                                            <i class="fas fa-eye-slash"></i>
+                                                        </a>
+                                                    {% else %}
+                                                        <a href="{{ url_for('toggle_dynamic_column', column_id=column.id) }}" class="btn btn-success">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">لا توجد أعمدة ديناميكية حالياً</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم تطبيق الأعمدة على البيانات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-sync-alt me-2 icon-secondary"></i>
+        تحديث ملف الاستيراد
+    </h2>
+    
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-file-excel me-2"></i>
+            تحديث قالب ملف الاستيراد
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p>يمكنك تحميل قالب ملف Excel يحتوي على جميع الأعمدة الحالية (الأساسية والديناميكية) لاستخدامه في استيراد البيانات.</p>
+                    <a href="{{ url_for('download_template') }}" class="btn btn-primary">
+                        <i class="fas fa-download me-2"></i>
+                        تحميل قالب الاستيراد
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>
+                            ملاحظة هامة
+                        </h5>
+                        <p>عند إضافة أعمدة جديدة، يجب تحديث ملف الاستيراد الخاص بك ليشمل الأعمدة الجديدة. يمكنك تحميل القالب الحديث من هنا.</p>
+                        <p>الأعمدة الأساسية المطلوبة هي:</p>
+                        <ul>
+                            <li>MDB</li>
+                            <li>رقم تاج ماكسيمو</li>
+                            <li>X</li>
+                            <li>Y</li>
+                            <li>الملاحظات</li>
+                            <li>المرحلة</li>
+                            <li>سنة التنفيذ</li>
+                            <li>كود المنطقة - تشغيل</li>
+                            <li>نوع لوحة التوزيع</li>
+                            <li>اسم المنطقة بالتنفيذ</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // إظهار/إخفاء حقل الخيارات عند اختيار نوع البيانات
+    document.addEventListener('DOMContentLoaded', function() {
+        const dataTypeSelect = document.getElementById('data_type');
+        const optionsContainer = document.getElementById('options-container');
+        
+        if (dataTypeSelect && optionsContainer) {
+            dataTypeSelect.addEventListener('change', function() {
+                if (this.value === 'select') {
+                    optionsContainer.style.display = 'block';
+                } else {
+                    optionsContainer.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

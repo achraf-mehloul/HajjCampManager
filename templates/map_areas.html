@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم إدارة مناطق الخارطة -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-draw-polygon me-2 icon-primary"></i>
+        إدارة مناطق الخارطة
+    </h2>
+
+    <div class="row">
+        <!-- استيراد مناطق الخارطة -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-file-import me-2"></i>
+                    استيراد مناطق الخارطة
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('import_map_areas') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">اختر ملف Excel</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
+                            <div class="form-text">يجب أن يحتوي الملف على الأعمدة التالية: الاسم، الوصف، الإحداثيات، اللون</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="replace_existing" name="replace_existing">
+                                <label class="form-check-label" for="replace_existing">
+                                    استبدال المناطق الحالية
+                                </label>
+                            </div>
+                            <div class="form-text">إذا تم تحديد هذا الخيار، سيتم حذف جميع المناطق الحالية واستبدالها بالمناطق الجديدة</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-upload me-2"></i>
+                            استيراد المناطق
+                        </button>
+                    </form>
+
+                    <hr>
+
+                    <div class="mt-3">
+                        <h6>تنسيق ملف الاستيراد</h6>
+                        <p>يجب أن يحتوي ملف Excel على الأعمدة التالية:</p>
+                        <ul>
+                            <li><strong>الاسم:</strong> اسم المنطقة</li>
+                            <li><strong>الوصف:</strong> وصف المنطقة (اختياري)</li>
+                            <li><strong>الإحداثيات:</strong> سلسلة من الإحداثيات بتنسيق JSON</li>
+                            <li><strong>اللون:</strong> لون المنطقة بتنسيق HEX (مثل #FF0000)</li>
+                        </ul>
+                        <p>مثال للإحداثيات:</p>
+                        <pre class="bg-light p-2" style="font-size: 0.8rem; direction: ltr;">[[24.7136, 46.6753], [24.7200, 46.6800], [24.7150, 46.6900], [24.7100, 46.6850]]</pre>
+                        <a href="{{ url_for('download_map_areas_template') }}" class="btn btn-sm btn-secondary mt-2">
+                            <i class="fas fa-download me-1"></i>
+                            تحميل قالب الاستيراد
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة مناطق الخارطة -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-list me-2"></i>
+                    قائمة مناطق الخارطة
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>الوصف</th>
+                                    <th>اللون</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if map_areas %}
+                                    {% for area in map_areas %}
+                                        <tr>
+                                            <td>{{ area.name }}</td>
+                                            <td>{{ area.description or '-' }}</td>
+                                            <td>
+                                                <span class="color-preview" style="display: inline-block; width: 20px; height: 20px; background-color: {{ area.color }}; border-radius: 3px; vertical-align: middle;"></span>
+                                                <span class="ms-1">{{ area.color }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if area.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ 'نشط' if area.is_active else 'غير نشط' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ area.created_at.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('edit_map_area', area_id=area.id) }}" class="btn btn-info">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    {% if area.is_active %}
+                                                        <a href="{{ url_for('toggle_map_area', area_id=area.id) }}" class="btn btn-warning">
+                                                            <i class="fas fa-eye-slash"></i>
+                                                        </a>
+                                                    {% else %}
+                                                        <a href="{{ url_for('toggle_map_area', area_id=area.id) }}" class="btn btn-success">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">لا توجد مناطق خارطة</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- معاينة الخارطة -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-map me-2 icon-secondary"></i>
+        معاينة الخارطة
+    </h2>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-map-marked-alt me-2"></i>
+                معاينة مناطق الخارطة
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary" id="reset-map">
+                    <i class="fas fa-sync-alt me-1"></i>
+                    إعادة ضبط الخارطة
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="preview-map" style="height: 500px; border-radius: 10px;"></div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet للخرائط -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+    // بيانات مناطق الخارطة
+    const mapAreasData = [
+        {% for area in map_areas %}
+            {% if area.is_active %}
+                {
+                    id: {{ area.id }},
+                    name: "{{ area.name }}",
+                    description: "{{ area.description or '' }}",
+                    coordinates: {{ area.coordinates|safe }},
+                    color: "{{ area.color }}"
+                },
+            {% endif %}
+        {% endfor %}
+    ];
+
+    // بيانات اللوحات
+    const panelsData = [
+        {% for panel in panels %}
+            {% if panel.x_coordinate and panel.y_coordinate %}
+                {
+                    id: {{ panel.id }},
+                    mdb: "{{ panel.mdb }}",
+                    lat: {{ panel.y_coordinate }},
+                    lng: {{ panel.x_coordinate }},
+                    status: "{{ panel.status }}",
+                    area_name: "{{ panel.area_name }}"
+                },
+            {% endif %}
+        {% endfor %}
+    ];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // إنشاء الخارطة
+        const map = L.map('preview-map').setView([24.7136, 46.6753], 12);
+
+        // إضافة طبقة الخارطة
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // إضافة مناطق الخارطة
+        const polygons = [];
+        mapAreasData.forEach(area => {
+            const polygon = L.polygon(area.coordinates, {
+                color: area.color,
+                fillColor: area.color,
+                fillOpacity: 0.3
+            }).addTo(map);
+
+            polygon.bindPopup(`<b>${area.name}</b><br>${area.description}`);
+            polygons.push(polygon);
+        });
+
+        // إضافة اللوحات
+        panelsData.forEach(panel => {
+            // تحديد لون العلامة حسب الحالة
+            let markerColor = '#4CAF50'; // أخضر للوحات العاملة
+            if (panel.status === 'معطل') {
+                markerColor = '#F44336'; // أحمر للوحات المعطلة
+            } else if (panel.status === 'تحت الصيانة') {
+                markerColor = '#FFC107'; // أصفر للوحات تحت الصيانة
+            }
+
+            // إنشاء العلامة
+            const marker = L.circleMarker([panel.lat, panel.lng], {
+                radius: 6,
+                fillColor: markerColor,
+                color: '#FFFFFF',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+
+            marker.bindPopup(`<b>${panel.mdb}</b><br>${panel.area_name}`);
+        });
+
+        // ضبط حدود الخارطة لتشمل جميع المناطق واللوحات
+        if (polygons.length > 0) {
+            const group = new L.featureGroup(polygons);
+            map.fitBounds(group.getBounds());
+        }
+
+        // إعادة ضبط الخارطة
+        document.getElementById('reset-map').addEventListener('click', function() {
+            map.setView([24.7136, 46.6753], 12);
+        });
+    });
+</script>
+{% endblock %}

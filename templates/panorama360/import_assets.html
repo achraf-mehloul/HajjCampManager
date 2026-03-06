@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}استيراد الأصول من Excel{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- العنوان -->
+            <div class="mb-4">
+                <h2>
+                    <i class="fas fa-file-excel me-2"></i>
+                    استيراد الأصول من Excel
+                </h2>
+                <p class="text-muted">رفع ملف Excel يحتوي على بيانات الأصول</p>
+            </div>
+
+            <!-- نموذج الرفع -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">اختر ملف Excel</label>
+                            <input type="file" 
+                                   class="form-control form-control-lg" 
+                                   name="excel_file" 
+                                   accept=".xlsx,.xls"
+                                   required>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                الملفات المدعومة: .xlsx, .xls
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-upload me-2"></i>
+                                استيراد الأصول
+                            </button>
+                            <a href="{{ url_for('panorama360.admin_dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-right me-2"></i>
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- الأعمدة المطلوبة -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i>
+                        الأعمدة المطلوبة في ملف Excel
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>اسم العمود</th>
+                                    <th>الوصف</th>
+                                    <th>مثال</th>
+                                    <th>إلزامي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>رقم الأصل</code></td>
+                                    <td>رقم الأصل الفريد</td>
+                                    <td>MDB-001</td>
+                                    <td><span class="badge bg-danger">نعم</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>الوصف</code></td>
+                                    <td>وصف الأصل</td>
+                                    <td>لوحة توزيع رئيسية</td>
+                                    <td><span class="badge bg-warning">مستحسن</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>المنطقة</code></td>
+                                    <td>المنطقة الجغرافية</td>
+                                    <td>منى، عرفات، مزدلفة</td>
+                                    <td><span class="badge bg-warning">مستحسن</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>الدولة</code></td>
+                                    <td>الدولة</td>
+                                    <td>السعودية</td>
+                                    <td><span class="badge bg-secondary">اختياري</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>المطوف/الشركة</code></td>
+                                    <td>اسم المطوف أو الشركة</td>
+                                    <td>شركة النور</td>
+                                    <td><span class="badge bg-secondary">اختياري</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>النوع</code></td>
+                                    <td>نوع الأصل</td>
+                                    <td>لوحة، مطعم، مطبخ، حلاق، بقالة</td>
+                                    <td><span class="badge bg-secondary">اختياري</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>X</code></td>
+                                    <td>خط الطول</td>
+                                    <td>39.8262</td>
+                                    <td><span class="badge bg-warning">مستحسن</span></td>
+                                </tr>
+                                <tr>
+                                    <td><code>Y</code></td>
+                                    <td>خط العرض</td>
+                                    <td>21.4225</td>
+                                    <td><span class="badge bg-warning">مستحسن</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- تحميل قالب -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-download me-2"></i>
+                        تحميل قالب Excel
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        يمكنك تحميل قالب Excel جاهز يحتوي على الأعمدة المطلوبة
+                    </p>
+                    <a href="#" class="btn btn-success" onclick="downloadTemplate(); return false;">
+                        <i class="fas fa-file-download me-2"></i>
+                        تحميل القالب
+                    </a>
+                </div>
+            </div>
+
+            <!-- ملاحظات -->
+            <div class="alert alert-warning mt-4">
+                <h6 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ملاحظات مهمة:
+                </h6>
+                <ul class="mb-0">
+                    <li>إذا كان رقم الأصل موجود مسبقاً، سيتم تحديث بياناته</li>
+                    <li>الأصول التي تبدأ بـ "MDB" سيتم ربطها تلقائياً مع اللوحات الموجودة</li>
+                    <li>تأكد من صحة الإحداثيات (X, Y) لضمان دقة الموقع</li>
+                    <li>يمكن استيراد آلاف الأصول دفعة واحدة</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function downloadTemplate() {
+    // إنشاء قالب Excel بسيط
+    const data = [
+        ['رقم الأصل', 'الوصف', 'المنطقة', 'الدولة', 'المطوف/الشركة', 'X', 'Y'],
+        ['MDB-001', 'لوحة توزيع رئيسية', 'منى', 'السعودية', 'شركة النور', '39.8262', '21.4225'],
+        ['MDB-002', 'محول كهربائي', 'عرفات', 'السعودية', 'شركة الهدى', '39.8563', '21.3544'],
+        ['MDB-003', 'لوحة فرعية', 'مزدلفة', 'السعودية', 'شركة المشاعر', '39.8945', '21.4012']
+    ];
+    
+    let csv = data.map(row => row.join(',')).join('\n');
+    let blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    let link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'قالب_الأصول.csv';
+    link.click();
+}
+</script>
+{% endblock %}

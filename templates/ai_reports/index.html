@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}تقارير الذكاء الاصطناعي{% endblock %}
+
+{% block head %}
+<style>
+    .report-card {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
+        transition: .25s;
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    .report-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, .18);
+    }
+
+    .report-card .card-header {
+        font-size: 1.15rem;
+        font-weight: bold;
+        border: none;
+        padding: 20px;
+    }
+
+    .report-card .card-icon {
+        font-size: 3rem;
+        opacity: .85;
+    }
+
+    .progress-wrap {
+        display: none;
+    }
+
+    #status-msg {
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <h2><i class="fas fa-chart-line me-2 text-primary"></i>تقارير الذكاء الاصطناعي</h2>
+        <p class="text-muted">اختر نوع التقرير لتوليد ملف Excel احترافي مع رسوم بيانية وملخص ذكي</p>
+    </div>
+
+    <!-- نوع التقرير -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card report-card" onclick="downloadReport('issues')">
+                <div class="card-header bg-danger text-white">
+                    <div class="card-icon mb-2">📋</div>
+                    <div>تقرير البلاغات</div>
+                </div>
+                <div class="card-body text-muted">
+                    جميع البلاغات المسجلة مع إحصائيات ورسم بياني للحالات
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card report-card" onclick="downloadReport('readings')">
+                <div class="card-header bg-success text-white">
+                    <div class="card-icon mb-2">⚡</div>
+                    <div>تقرير القراءات الكهربائية</div>
+                </div>
+                <div class="card-body text-muted">
+                    قراءات الجهد والتيار مع التحليل الزمني
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card report-card" onclick="downloadReport('assets')">
+                <div class="card-header bg-purple text-white"
+                    style="background:linear-gradient(135deg,#6c5ce7,#a29bfe)!important">
+                    <div class="card-icon mb-2">🏗️</div>
+                    <div>تقرير الأصول والمعدات</div>
+                </div>
+                <div class="card-body text-muted">
+                    جرد كامل للأصول مع حالاتها وتوزيعها الجغرافي
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مفتاح AI اختياري -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <label class="form-label fw-bold"><i class="fas fa-key me-2 text-warning"></i>مفتاح Gemini AI (اختياري -
+                لتفعيل الملخص الذكي)</label>
+            <div class="input-group">
+                <input type="text" id="ai-key" class="form-control"
+                    placeholder="AIza... (اتركه فارغاً إذا لم يكن لديك مفتاح)">
+                <span class="input-group-text">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-decoration-none">
+                        <i class="fas fa-external-link-alt me-1"></i>احصل على مفتاح
+                    </a>
+                </span>
+            </div>
+            <small class="text-muted">يمكنك أيضاً تحديد المفتاح مرة واحدة من <a
+                    href="{{ url_for('trips_ai.add_ai_model') }}">إعدادات نماذج AI</a></small>
+        </div>
+    </div>
+
+    <!-- شريط التقدم -->
+    <div class="progress-wrap" id="progress-wrap">
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <div id="status-msg">جاري توليد التقرير...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function downloadReport(type) {
+        const aiKey = document.getElementById('ai-key').value.trim();
+
+        document.getElementById('progress-wrap').style.display = 'block';
+        document.getElementById('status-msg').textContent = 'جاري توليد التقرير مع الذكاء الاصطناعي...';
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            const res = await fetch('/ai-reports/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ report_type: type, ai_key: aiKey })
+            });
+
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ error: 'خطأ غير معروف' }));
+                throw new Error(err.error || 'فشل توليد التقرير');
+            }
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `AI_Report_${type}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            document.getElementById('status-msg').textContent = '✅ تم توليد التقرير وبدأ التنزيل!';
+            setTimeout(() => { document.getElementById('progress-wrap').style.display = 'none'; }, 3000);
+
+        } catch (e) {
+            document.getElementById('status-msg').textContent = '❌ خطأ: ' + e.message;
+            setTimeout(() => { document.getElementById('progress-wrap').style.display = 'none'; }, 4000);
+        }
+    }
+</script>
+{% endblock %}

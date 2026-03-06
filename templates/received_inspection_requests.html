@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-inbox me-2"></i>
+                        طلبات الفحص المستلمة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- فلاتر البحث -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="filter-status" class="form-label">حالة الطلب</label>
+                                <select class="form-select" id="filter-status">
+                                    <option value="all">الكل</option>
+                                    <option value="جديد">جديد</option>
+                                    <option value="قيد التنفيذ">قيد التنفيذ</option>
+                                    <option value="مكتمل">مكتمل</option>
+                                    <option value="ملغي">ملغي</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="filter-type" class="form-label">نوع الطلب</label>
+                                <select class="form-select" id="filter-type">
+                                    <option value="all">الكل</option>
+                                    {% for type in request_types %}
+                                    <option value="{{ type.id }}">{{ type.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="filter-date-from" class="form-label">من تاريخ</label>
+                                <input type="date" class="form-control" id="filter-date-from">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="filter-date-to" class="form-label">إلى تاريخ</label>
+                                <input type="date" class="form-control" id="filter-date-to">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <button id="apply-filters" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>
+                                تطبيق الفلاتر
+                            </button>
+                            <button id="reset-filters" class="btn btn-secondary">
+                                <i class="fas fa-undo me-1"></i>
+                                إعادة تعيين
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- جدول الطلبات -->
+                    {% if requests %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="requests-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>رقم الطلب</th>
+                                    <th>نوع الطلب</th>
+                                    <th>اللوحة</th>
+                                    <th>المنطقة</th>
+                                    <th>تاريخ الطلب</th>
+                                    <th>المرسل</th>
+                                    <th>وقت المعالجة</th>
+                                    <th>وقت الإنجاز</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in requests %}
+                                <tr>
+                                    <td>{{ request.request_number or request.id }}</td>
+                                    <td>{{ request.request_type_obj.name if request.request_type_obj else 'غير محدد' }}</td>
+                                    <td>
+                                        {% if request.panel %}
+                                            <a href="{{ url_for('panel_details', panel_id=request.panel.id) }}" class="text-primary">
+                                                {{ request.panel.mdb }}
+                                                <i class="fas fa-external-link-alt ms-1" style="font-size: 0.8em;"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ request.panel.area_name if request.panel else 'غير محدد' }}</td>
+                                    <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ request.requester.name if request.requester else 'غير محدد' }}</td>
+                                    <td>
+                                        {% if request.started_at and request.created_at %}
+                                            {% set processing_time = ((request.started_at - request.created_at).total_seconds() / 60) | int %}
+                                            {% if processing_time < 60 %}
+                                                {{ processing_time }} دقيقة
+                                            {% else %}
+                                                {{ (processing_time / 60) | int }} ساعة {{ processing_time % 60 }} دقيقة
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if request.completed_at and request.started_at %}
+                                            {% set completion_time = ((request.completed_at - request.started_at).total_seconds() / 60) | int %}
+                                            {% if completion_time < 60 %}
+                                                {{ completion_time }} دقيقة
+                                            {% else %}
+                                                {{ (completion_time / 60) | int }} ساعة {{ completion_time % 60 }} دقيقة
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if request.status == 'جديد' %}bg-primary{% elif request.status == 'قيد التنفيذ' %}bg-warning text-dark{% elif request.status == 'مكتمل' %}bg-success{% elif request.status == 'ملغي' %}bg-danger{% endif %}">
+                                            {{ request.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <!-- عرض تفاصيل طلب الفحص -->
+                                            <a href="{{ url_for('inspection_request_details', request_id=request.id) }}"
+                                               class="btn btn-sm btn-info"
+                                               title="عرض تفاصيل طلب الفحص">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+
+                                            <!-- زر قراءة اللوحة -->
+                                            {% if request.panel %}
+                                            <a href="{{ url_for('readings.add_manual_reading_view', panel_id=request.panel.id) }}"
+                                               class="btn btn-sm btn-secondary"
+                                               title="قراءة اللوحة {{ request.panel.mdb }}">
+                                                <i class="fas fa-clipboard-list"></i>
+                                            </a>
+                                            {% endif %}
+
+                                            <!-- زر قبول الطلب -->
+                                            {% if request.status == 'جديد' %}
+                                            <button class="btn btn-sm btn-warning accept-request"
+                                                    data-request-id="{{ request.id }}"
+                                                    title="قبول طلب الفحص">
+                                                <i class="fas fa-hand-paper"></i>
+                                            </button>
+                                            {% endif %}
+
+                                            <!-- زر إنهاء طلب الفحص -->
+                                            {% if request.status == 'قيد التنفيذ' %}
+                                            <button class="btn btn-sm btn-success complete-request"
+                                                    data-request-id="{{ request.id }}"
+                                                    title="إنهاء طلب الفحص">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">لا توجد طلبات فحص مستلمة</h5>
+                        <p class="text-muted">لم يتم العثور على أي طلبات فحص مخصصة لك حالياً.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تأكيد إكمال الطلب -->
+<div class="modal fade" id="completeRequestModal" tabindex="-1" aria-labelledby="completeRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completeRequestModalLabel">تأكيد إكمال الطلب</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من إكمال هذا الطلب؟</p>
+                <form id="complete-request-form">
+                    <div class="mb-3">
+                        <label for="completion-notes" class="form-label">ملاحظات الإكمال</label>
+                        <textarea class="form-control" id="completion-notes" rows="3"></textarea>
+                    </div>
+                    <input type="hidden" id="request-id" value="">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" id="confirm-complete">تأكيد الإكمال</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تهيئة جدول البيانات
+        var table = $('#requests-table').DataTable({
+            order: [[4, 'desc']], // ترتيب حسب تاريخ الطلب (تنازلي)
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
+            }
+        });
+
+        // تطبيق الفلاتر
+        $('#apply-filters').click(function() {
+            applyFilters();
+        });
+
+        // إعادة تعيين الفلاتر
+        $('#reset-filters').click(function() {
+            $('#filter-status').val('all');
+            $('#filter-type').val('all');
+            $('#filter-date-from').val('');
+            $('#filter-date-to').val('');
+            applyFilters();
+        });
+
+        // فتح نافذة تأكيد إكمال الطلب
+        $('.complete-request').click(function() {
+            var requestId = $(this).data('request-id');
+            $('#request-id').val(requestId);
+            $('#completeRequestModal').modal('show');
+        });
+
+        // قبول طلب الفحص
+        $('.accept-request').click(function() {
+            var requestId = $(this).data('request-id');
+
+            if (confirm('هل أنت متأكد من قبول هذا الطلب؟ سيتم حذفه من باقي المستخدمين.')) {
+                $.ajax({
+                    url: '/accept-inspection-request/' + requestId,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            alert('تم قبول الطلب بنجاح');
+                            location.reload();
+                        } else {
+                            alert('حدث خطأ أثناء قبول الطلب: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('حدث خطأ أثناء الاتصال بالخادم');
+                    }
+                });
+            }
+        });
+
+        // تأكيد إكمال الطلب
+        $('#confirm-complete').click(function() {
+            var requestId = $('#request-id').val();
+            var notes = $('#completion-notes').val();
+
+            $.ajax({
+                url: '/complete-inspection-request/' + requestId,
+                type: 'POST',
+                data: {
+                    notes: notes
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#completeRequestModal').modal('hide');
+                        // تحديث الصفحة لعرض التغييرات
+                        location.reload();
+                    } else {
+                        alert('حدث خطأ أثناء إكمال الطلب: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('حدث خطأ أثناء الاتصال بالخادم');
+                }
+            });
+        });
+
+        // دالة تطبيق الفلاتر
+        function applyFilters() {
+            var statusFilter = $('#filter-status').val();
+            var typeFilter = $('#filter-type').val();
+            var dateFromFilter = $('#filter-date-from').val();
+            var dateToFilter = $('#filter-date-to').val();
+
+            // إعادة تعيين الفلتر
+            table.search('').columns().search('').draw();
+
+            // تطبيق فلتر الحالة
+            if (statusFilter !== 'all') {
+                table.column(8).search(translateStatusForFilter(statusFilter)).draw();
+            }
+
+            // تطبيق فلتر النوع
+            if (typeFilter !== 'all') {
+                table.column(1).search($('#filter-type option:selected').text()).draw();
+            }
+
+            // تطبيق فلتر التاريخ
+            if (dateFromFilter || dateToFilter) {
+                $.fn.dataTable.ext.search.push(
+                    function(settings, data, dataIndex) {
+                        var date = new Date(data[4]);
+                        var dateFrom = dateFromFilter ? new Date(dateFromFilter) : null;
+                        var dateTo = dateToFilter ? new Date(dateToFilter) : null;
+
+                        if (
+                            (dateFrom === null || date >= dateFrom) &&
+                            (dateTo === null || date <= dateTo)
+                        ) {
+                            return true;
+                        }
+                        return false;
+                    }
+                );
+                table.draw();
+                $.fn.dataTable.ext.search.pop();
+            }
+        }
+
+        // ترجمة حالة الطلب للفلتر
+        function translateStatusForFilter(status) {
+            switch(status) {
+                case 'جديد': return 'جديد';
+                case 'قيد التنفيذ': return 'قيد التنفيذ';
+                case 'مكتمل': return 'مكتمل';
+                case 'ملغي': return 'ملغي';
+                default: return '';
+            }
+        }
+    });
+</script>
+{% endblock %}

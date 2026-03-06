@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}ربط اللوحات بالمخيمات{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-link me-2"></i>
+                        ربط اللوحات بالمخيمات يدوياً
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('camps_dashboard') }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            العودة للوحة المعلومات
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if unlinked_panels %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        يوجد {{ unlinked_panels|length }} لوحة غير مرتبطة بمخيمات. يمكنك ربطها يدوياً من خلال النموذج أدناه.
+                    </div>
+
+                    <form method="POST" action="{{ url_for('link_panel_to_camp') }}" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="panel_id" class="form-label">اختر اللوحة</label>
+                                <select class="form-select" id="panel_id" name="panel_id" required>
+                                    <option value="">-- اختر اللوحة --</option>
+                                    {% for panel in unlinked_panels %}
+                                    <option value="{{ panel.id }}" 
+                                            data-coordinates="{{ panel.y_coordinate }},{{ panel.x_coordinate }}"
+                                            data-area="{{ panel.area_name or 'غير محدد' }}">
+                                        {{ panel.mdb }} - {{ panel.area_name or 'غير محدد' }}
+                                        {% if panel.x_coordinate and panel.y_coordinate %}
+                                        ({{ "%.4f"|format(panel.y_coordinate) }}, {{ "%.4f"|format(panel.x_coordinate) }})
+                                        {% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="camp_id" class="form-label">اختر المخيم</label>
+                                <select class="form-select" id="camp_id" name="camp_id" required>
+                                    <option value="">-- اختر المخيم --</option>
+                                    {% for camp in camps %}
+                                    <option value="{{ camp.id }}"
+                                            data-company="{{ camp.company.name }}"
+                                            data-country="{{ camp.company.country.name }}"
+                                            data-coordinates="{{ camp.get_center_coordinates()[0] if camp.get_center_coordinates() else '' }},{{ camp.get_center_coordinates()[1] if camp.get_center_coordinates() else '' }}">
+                                        {{ camp.camp_number }} - {{ camp.square_number }} ({{ camp.company.name }} - {{ camp.company.country.name }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-link me-1"></i>
+                                    ربط اللوحة بالمخيم
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- معلومات إضافية عن اللوحة والمخيم المختارين -->
+                    <div id="selection-info" class="row" style="display: none;">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-bolt me-1"></i>
+                                        معلومات اللوحة المختارة
+                                    </h6>
+                                </div>
+                                <div class="card-body" id="panel-info">
+                                    <!-- سيتم ملؤها بـ JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-campground me-1"></i>
+                                        معلومات المخيم المختار
+                                    </h6>
+                                </div>
+                                <div class="card-body" id="camp-info">
+                                    <!-- سيتم ملؤها بـ JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- جدول اللوحات غير المرتبطة -->
+                    <h5>
+                        <i class="fas fa-list me-2"></i>
+                        اللوحات غير المرتبطة (أول 50 لوحة)
+                    </h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>رقم MDB</th>
+                                    <th>تاج ماكسيمو</th>
+                                    <th>المنطقة</th>
+                                    <th>نوع اللوحة</th>
+                                    <th>الإحداثيات</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for panel in unlinked_panels %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ panel.mdb }}</strong>
+                                    </td>
+                                    <td>{{ panel.maximo_tag or 'غير محدد' }}</td>
+                                    <td>{{ panel.area_name or 'غير محدد' }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ panel.panel_type or 'غير محدد' }}</span>
+                                    </td>
+                                    <td>
+                                        {% if panel.x_coordinate and panel.y_coordinate %}
+                                        <small>
+                                            {{ "%.4f"|format(panel.y_coordinate) }}, {{ "%.4f"|format(panel.x_coordinate) }}
+                                        </small>
+                                        {% else %}
+                                        <span class="text-muted">غير متوفر</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if panel.status == 'عامل' else 'bg-warning' }}">
+                                            {{ panel.status or 'غير محدد' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="selectPanel('{{ panel.id }}')">
+                                            <i class="fas fa-hand-pointer me-1"></i>
+                                            اختيار
+                                        </button>
+                                        {% if panel.x_coordinate and panel.y_coordinate %}
+                                        <a href="https://www.google.com/maps?q={{ panel.y_coordinate }},{{ panel.x_coordinate }}" 
+                                           target="_blank" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            خرائط
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        ممتاز! جميع اللوحات مرتبطة بمخيمات.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// تحديث معلومات اللوحة والمخيم عند الاختيار
+document.getElementById('panel_id').addEventListener('change', updateSelectionInfo);
+document.getElementById('camp_id').addEventListener('change', updateSelectionInfo);
+
+function updateSelectionInfo() {
+    const panelSelect = document.getElementById('panel_id');
+    const campSelect = document.getElementById('camp_id');
+    const selectionInfo = document.getElementById('selection-info');
+    const panelInfo = document.getElementById('panel-info');
+    const campInfo = document.getElementById('camp-info');
+    
+    if (panelSelect.value || campSelect.value) {
+        selectionInfo.style.display = 'block';
+        
+        // معلومات اللوحة
+        if (panelSelect.value) {
+            const selectedOption = panelSelect.options[panelSelect.selectedIndex];
+            const coordinates = selectedOption.dataset.coordinates;
+            const area = selectedOption.dataset.area;
+            
+            panelInfo.innerHTML = `
+                <p><strong>رقم MDB:</strong> ${selectedOption.text.split(' - ')[0]}</p>
+                <p><strong>المنطقة:</strong> ${area}</p>
+                <p><strong>الإحداثيات:</strong> ${coordinates || 'غير متوفر'}</p>
+            `;
+        } else {
+            panelInfo.innerHTML = '<p class="text-muted">لم يتم اختيار لوحة</p>';
+        }
+        
+        // معلومات المخيم
+        if (campSelect.value) {
+            const selectedOption = campSelect.options[campSelect.selectedIndex];
+            const company = selectedOption.dataset.company;
+            const country = selectedOption.dataset.country;
+            const coordinates = selectedOption.dataset.coordinates;
+            
+            campInfo.innerHTML = `
+                <p><strong>رقم المخيم:</strong> ${selectedOption.text.split(' - ')[0]}</p>
+                <p><strong>الشركة:</strong> ${company}</p>
+                <p><strong>الدولة:</strong> ${country}</p>
+                <p><strong>الإحداثيات:</strong> ${coordinates || 'غير متوفر'}</p>
+            `;
+        } else {
+            campInfo.innerHTML = '<p class="text-muted">لم يتم اختيار مخيم</p>';
+        }
+    } else {
+        selectionInfo.style.display = 'none';
+    }
+}
+
+// اختيار لوحة من الجدول
+function selectPanel(panelId) {
+    document.getElementById('panel_id').value = panelId;
+    updateSelectionInfo();
+    
+    // التمرير إلى النموذج
+    document.getElementById('panel_id').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

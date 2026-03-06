@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خريطة 360° - تجربة الحجاج التفاعلية</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- A-Frame for 360° -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #B89966;
+            --secondary-color: #8B7355;
+            --accent-color: #D4AF37;
+            --text-dark: #2C3E50;
+            --bg-light: #F8F9FA;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-light);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-bar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .header-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .header-btn.active {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        .map-section {
+            flex: 1;
+            position: relative;
+        }
+
+        #map360 {
+            height: 100%;
+            width: 100%;
+        }
+
+        .control-panel {
+            width: 350px;
+            background: white;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .control-panel.hidden {
+            transform: translateX(100%);
+        }
+
+        .panel-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .location-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .location-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .location-item.active {
+            border-color: var(--primary-color);
+            background: #f8f9fa;
+        }
+
+        .location-item.has-360 {
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .location-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .location-category {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .location-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .action-btn.secondary {
+            background: #6c757d;
+        }
+
+        .action-btn.success {
+            background: #28a745;
+        }
+
+        .panorama-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 2000;
+            display: none;
+        }
+
+        .panorama-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 2001;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panorama-info {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 300px;
+        }
+
+        .panorama-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .panorama-btn {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            padding: 12px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .panorama-btn:hover {
+            background: white;
+            transform: scale(1.05);
+        }
+
+        .navigation-hotspots {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2001;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .hotspot-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .hotspot-btn:hover {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+
+        .upload-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent-color);
+            background: #fff8e1;
+        }
+
+        .preview-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preview-image {
+            width: 100px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+
+        .toggle-panel {
+            position: absolute;
+            top: 50%;
+            right: -15px;
+            transform: translateY(-50%);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 60px;
+            border-radius: 0 15px 15px 0;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .filters-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .category-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .category-filter {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-filter.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .content-area {
+                flex-direction: column;
+            }
+            
+            .control-panel {
+                width: 100%;
+                height: 40%;
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                transform: translateY(100%);
+            }
+            
+            .control-panel.visible {
+                transform: translateY(0);
+            }
+            
+            .header-controls {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- شريط العنوان -->
+        <div class="header-bar">
+            <h1 class="header-title">
+                <i class="fas fa-globe me-2"></i>
+                خريطة 360°
+            </h1>
+            
+            <div class="header-controls">
+                <button class="header-btn" id="addLocationBtn">
+                    <i class="fas fa-plus me-1"></i>إضافة موقع
+                </button>
+                <button class="header-btn" id="myLocationBtn">
+                    <i class="fas fa-location-arrow me-1"></i>موقعي
+                </button>
+                <button class="header-btn" id="viewModeBtn">
+                    <i class="fas fa-eye me-1"></i>وضع العرض
+                </button>
+                <a href="/pilgrimage-360/" class="header-btn">
+                    <i class="fas fa-home me-1"></i>الرئيسية
+                </a>
+            </div>
+        </div>
+
+        <!-- منطقة المحتوى -->
+        <div class="content-area">
+            <!-- قسم الخريطة -->
+            <div class="map-section">
+                <div id="map360"></div>
+            </div>
+
+            <!-- لوحة التحكم -->
+            <div class="control-panel" id="controlPanel">
+                <button class="toggle-panel" onclick="togglePanel()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                
+                <div class="panel-header">
+                    <h5 class="mb-0">المواقع المتاحة</h5>
+                    <span class="badge bg-primary" id="locationCount">0</span>
+                </div>
+
+                <!-- قسم المرشحات -->
+                <div class="filters-section">
+                    <div class="filter-group">
+                        <label class="filter-label">الفئات</label>
+                        <div class="category-filters" id="categoryFilters">
+                            <button class="category-filter active" data-category="all">الكل</button>
+                            {% for category in categories %}
+                            <button class="category-filter" data-category="{{ category.name }}">
+                                <i class="fas {{ category.icon }} me-1"></i>{{ category.name }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="show360Only">
+                            <label class="form-check-label" for="show360Only">
+                                عرض مواقع 360° فقط
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- قائمة المواقع -->
+                <div class="panel-content" id="locationsList">
+                    <!-- سيتم ملء المواقع هنا -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- عارض الصور البانورامية -->
+    <div class="panorama-viewer" id="panoramaViewer">
+        <div class="panorama-controls">
+            <div class="panorama-info" id="panoramaInfo">
+                <h6 class="mb-2" id="panoramaTitle">اسم الموقع</h6>
+                <p class="mb-1" id="panoramaDescription">وصف الموقع</p>
+                <small class="text-muted" id="panoramaCategory">فئة الموقع</small>
+            </div>
+            
+            <div class="panorama-actions">
+                <button class="panorama-btn" onclick="uploadImage360()" title="رفع صورة 360°">
+                    <i class="fas fa-upload me-1"></i>رفع صورة
+                </button>
+                <button class="panorama-btn" onclick="toggleFullscreen()" title="ملء الشاشة">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button class="panorama-btn" onclick="closePanorama()" title="إغلاق">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- مشهد A-Frame للصور البانورامية -->
+        <a-scene id="panoramaScene" embedded style="height: 100%; width: 100%;">
+            <a-sky id="panoramaSky" src="" rotation="0 -130 0"></a-sky>
+            
+            <!-- نقاط التنقل في المشهد -->
+            <a-entity id="navigationHotspots"></a-entity>
+            
+            <!-- الكاميرا مع التحكم -->
+            <a-camera look-controls wasd-controls="enabled: false">
+                <a-cursor
+                    animation__click="property: scale; startEvents: click; from: 0.1 0.1 0.1; to: 1 1 1; dur: 150"
+                    geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                    material="color: white; shader: flat">
+                </a-cursor>
+            </a-camera>
+        </a-scene>
+        
+        <!-- أزرار التنقل السفلية -->
+        <div class="navigation-hotspots" id="navigationButtons">
+            <!-- سيتم إضافة أزرار التنقل هنا -->
+        </div>
+    </div>
+
+    <!-- نافذة رفع الصور -->
+    <div class="upload-modal" id="uploadModal">
+        <div class="upload-content">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">رفع صورة 360°</h5>
+                <button class="btn-close" onclick="closeUploadModal()"></button>
+            </div>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="hidden" id="uploadLocationId" name="location_id">
+                
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                    <h6>اسحب صورة 360° هنا أو انقر للاختيار</h6>
+                    <p class="text-muted">يُفضل الصور بدقة 2048x1024 أو أعلى</p>
+                    <input type="file" id="imageInput" name="panorama_image" accept="image/*" style="display: none;">
+                </div>
+                
+                <div class="preview-images" id="previewImages"></div>
+                
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i>رفع الصورة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // المتغيرات العامة
+        let map;
+        let userLocation = null;
+        let allLocations = [];
+        let filteredLocations = [];
+        let markersGroup;
+        let currentLocation = null;
+        let currentViewMode = 'map'; // 'map' or '360'
+        
+        // تهيئة التطبيق
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadLocations();
+            initEventListeners();
+        });
+
+        function initMap() {
+            map = L.map('map360').setView([21.4225, 39.8262], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            markersGroup = L.layerGroup().addTo(map);
+
+            // إضافة معالج النقر على الخريطة لإضافة مواقع جديدة
+            map.on('click', function(e) {
+                if (currentViewMode === 'add') {
+                    showAddLocationDialog(e.latlng.lat, e.latlng.lng);
+                }
+            });
+        }
+
+        function loadLocations() {
+            // تحميل المواقع من الخادم
+            fetch('/pilgrimage-360/api/locations')
+                .then(response => response.json())
+                .then(data => {
+                    allLocations = data.locations || data;
+                    filteredLocations = [...allLocations];
+                    updateMap();
+                    updateLocationsList();
+                    updateLocationCount();
+                })
+                .catch(error => {
+                    console.error('خطأ في تحميل المواقع:', error);
+                    // استخدام البيانات المحلية كبديل
+                    allLocations = {{ locations | tojson | safe }};
+                    filteredLocations = [...allLocations];
+                    updateMap();
+                    updateLocationsList();
+                    updateLocationCount();
+                });
+        }
+
+        function updateMap() {
+            markersGroup.clearLayers();
+
+            filteredLocations.forEach(location => {
+                if (location.latitude && location.longitude) {
+                    const marker = createLocationMarker(location);
+                    markersGroup.addLayer(marker);
+                }
+            });
+        }
+
+        function createLocationMarker(location) {
+            // تحديد لون ورمز العلامة حسب الفئة
+            const categoryInfo = getCategoryInfo(location.category?.name || 'خدمات');
+
+            const marker = L.marker([location.latitude, location.longitude], {
+                icon: L.divIcon({
+                    html: `
+                        <div style="
+                            background: ${categoryInfo.color};
+                            width: 35px;
+                            height: 35px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 16px;
+                            border: 3px solid white;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+                            position: relative;
+                        ">
+                            <i class="fas ${categoryInfo.icon}"></i>
+                            ${location.panorama_360_images ? '<div style="position: absolute; top: -5px; right: -5px; background: #D4AF37; width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;"></div>' : ''}
+                        </div>
+                    `,
+                    className: 'custom-marker',
+                    iconSize: [41, 41],
+                    iconAnchor: [20, 20]
+                })
+            });
+
+            marker.locationData = location;
+
+            marker.on('click', () => selectLocation(location));
+
+            return marker;
+        }
+
+        function getCategoryInfo(categoryName) {
+            const categories = {
+                'مطاعم': { icon: 'fa-utensils', color: '#28a745' },
+                'مساجد': { icon: 'fa-mosque', color: '#007bff' },
+                'خدمات طبية': { icon: 'fa-hospital', color: '#dc3545' },
+                'فنادق': { icon: 'fa-bed', color: '#6f42c1' },
+                'مراكز تسوق': { icon: 'fa-shopping-cart', color: '#ffc107' },
+                'مواصلات': { icon: 'fa-bus', color: '#fd7e14' }
+            };
+            return categories[categoryName] || { icon: 'fa-map-marker', color: '#6c757d' };
+        }
+
+        function selectLocation(location) {
+            currentLocation = location;
+
+            // تحديث التحديد في القائمة
+            document.querySelectorAll('.location-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            const selectedItem = document.querySelector(`[data-location-id="${location.id}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('active');
+                selectedItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // التركيز على الموقع في الخريطة
+            map.setView([location.latitude, location.longitude], 16);
+
+            // عرض الصورة البانورامية إذا كانت متوفرة
+            if (location.panorama_360_images) {
+                showPanorama(location);
+            }
+        }
+
+        function updateLocationsList() {
+            const locationsList = document.getElementById('locationsList');
+            locationsList.innerHTML = '';
+
+            filteredLocations.forEach(location => {
+                const distance = userLocation ?
+                    calculateDistance(userLocation.lat, userLocation.lng, location.latitude, location.longitude) : 0;
+
+                const item = document.createElement('div');
+                item.className = `location-item ${location.panorama_360_images ? 'has-360' : ''}`;
+                item.setAttribute('data-location-id', location.id);
+                item.onclick = () => selectLocation(location);
+
+                const categoryInfo = getCategoryInfo(location.category?.name || 'خدمات');
+
+                item.innerHTML = `
+                    <div class="location-name">
+                        <i class="fas ${categoryInfo.icon} me-2" style="color: ${categoryInfo.color}"></i>
+                        ${location.name}
+                    </div>
+                    <div class="location-category">${location.category?.name || 'غير مصنف'}</div>
+                    ${location.description ? `<div class="text-muted small mb-2">${location.description}</div>` : ''}
+                    ${distance > 0 ? `<div class="text-primary small mb-2"><i class="fas fa-route me-1"></i>${distance.toFixed(1)} كم</div>` : ''}
+
+                    <div class="location-actions">
+                        <button class="action-btn" onclick="event.stopPropagation(); selectLocation(${JSON.stringify(location).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-eye me-1"></i>عرض
+                        </button>
+                        ${location.panorama_360_images ?
+                            '<button class="action-btn success" onclick="event.stopPropagation(); showPanorama(' + JSON.stringify(location).replace(/"/g, '&quot;') + ')"><i class="fas fa-globe me-1"></i>360°</button>' :
+                            '<button class="action-btn secondary" onclick="event.stopPropagation(); uploadImage360(' + location.id + ')"><i class="fas fa-upload me-1"></i>رفع 360°</button>'
+                        }
+                    </div>
+                `;
+
+                locationsList.appendChild(item);
+            });
+        }
+
+        function updateLocationCount() {
+            document.getElementById('locationCount').textContent = filteredLocations.length;
+        }
+
+        function showPanorama(location) {
+            if (!location.panorama_360_images) {
+                alert('لا توجد صور 360° لهذا الموقع');
+                return;
+            }
+
+            const viewer = document.getElementById('panoramaViewer');
+            const title = document.getElementById('panoramaTitle');
+            const description = document.getElementById('panoramaDescription');
+            const category = document.getElementById('panoramaCategory');
+            const sky = document.getElementById('panoramaSky');
+
+            title.textContent = location.name;
+            description.textContent = location.description || 'لا يوجد وصف';
+            category.textContent = location.category?.name || 'غير مصنف';
+
+            // تحديد صورة البانوراما
+            let panoramaImage;
+            if (typeof location.panorama_360_images === 'string') {
+                try {
+                    const images = JSON.parse(location.panorama_360_images);
+                    panoramaImage = images[0];
+                } catch (e) {
+                    panoramaImage = location.panorama_360_images;
+                }
+            } else if (Array.isArray(location.panorama_360_images)) {
+                panoramaImage = location.panorama_360_images[0];
+            } else {
+                panoramaImage = '/static/360_images/kaaba_360.jpg'; // صورة افتراضية
+            }
+
+            sky.setAttribute('src', panoramaImage);
+
+            // إضافة نقاط التنقل
+            updateNavigationHotspots(location);
+
+            viewer.style.display = 'block';
+            currentViewMode = '360';
+        }
+
+        function updateNavigationHotspots(location) {
+            const hotspotsContainer = document.getElementById('navigationHotspots');
+            const buttonsContainer = document.getElementById('navigationButtons');
+
+            hotspotsContainer.innerHTML = '';
+            buttonsContainer.innerHTML = '';
+
+            // البحث عن المواقع القريبة التي تحتوي على صور 360°
+            const nearbyLocations = allLocations.filter(loc =>
+                loc.id !== location.id &&
+                loc.panorama_360_images &&
+                calculateDistance(location.latitude, location.longitude, loc.latitude, loc.longitude) < 1.0
+            );
+
+            nearbyLocations.forEach((nearbyLocation, index) => {
+                // إضافة نقطة تنقل في المشهد
+                const hotspot = document.createElement('a-sphere');
+                hotspot.setAttribute('position', `${(index - nearbyLocations.length/2) * 3} 1.5 -4`);
+                hotspot.setAttribute('radius', '0.15');
+                hotspot.setAttribute('color', '#D4AF37');
+                hotspot.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 8000');
+                hotspot.addEventListener('click', () => {
+                    selectLocation(nearbyLocation);
+                    showPanorama(nearbyLocation);
+                });
+
+                // إضافة نص للنقطة
+                const text = document.createElement('a-text');
+                text.setAttribute('position', `${(index - nearbyLocations.length/2) * 3} 1.8 -4`);
+                text.setAttribute('value', nearbyLocation.name);
+                text.setAttribute('align', 'center');
+                text.setAttribute('color', 'white');
+                text.setAttribute('scale', '0.8 0.8 0.8');
+
+                hotspotsContainer.appendChild(hotspot);
+                hotspotsContainer.appendChild(text);
+
+                // إضافة زر في الأسفل
+                const button = document.createElement('button');
+                button.className = 'hotspot-btn';
+                button.innerHTML = `<i class="fas fa-arrow-right me-2"></i>${nearbyLocation.name}`;
+                button.onclick = () => {
+                    selectLocation(nearbyLocation);
+                    showPanorama(nearbyLocation);
+                };
+
+                buttonsContainer.appendChild(button);
+            });
+
+            // إضافة زر العودة للخريطة
+            const backButton = document.createElement('button');
+            backButton.className = 'hotspot-btn';
+            backButton.style.background = '#6c757d';
+            backButton.innerHTML = '<i class="fas fa-map me-2"></i>العودة للخريطة';
+            backButton.onclick = closePanorama;
+            buttonsContainer.appendChild(backButton);
+        }
+
+        function closePanorama() {
+            document.getElementById('panoramaViewer').style.display = 'none';
+            currentViewMode = 'map';
+        }
+
+        function toggleFullscreen() {
+            const viewer = document.getElementById('panoramaViewer');
+            if (!document.fullscreenElement) {
+                viewer.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371; // نصف قطر الأرض بالكيلومتر
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function initEventListeners() {
+            // أزرار الهيدر
+            document.getElementById('addLocationBtn').addEventListener('click', function() {
+                if (currentViewMode === 'add') {
+                    currentViewMode = 'map';
+                    this.classList.remove('active');
+                    this.innerHTML = '<i class="fas fa-plus me-1"></i>إضافة موقع';
+                } else {
+                    currentViewMode = 'add';
+                    this.classList.add('active');
+                    this.innerHTML = '<i class="fas fa-times me-1"></i>إلغاء الإضافة';
+                }
+            });
+
+            document.getElementById('myLocationBtn').addEventListener('click', getCurrentLocation);
+
+            document.getElementById('viewModeBtn').addEventListener('click', function() {
+                if (currentViewMode === '360') {
+                    closePanorama();
+                } else {
+                    this.innerHTML = '<i class="fas fa-map me-1"></i>وضع الخريطة';
+                }
+            });
+
+            // مرشحات الفئات
+            document.querySelectorAll('.category-filter').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.category-filter').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    filterLocations();
+                });
+            });
+
+            // مرشح 360°
+            document.getElementById('show360Only').addEventListener('change', filterLocations);
+
+            // رفع الصور
+            initUploadListeners();
+        }
+
+        function filterLocations() {
+            const selectedCategory = document.querySelector('.category-filter.active').dataset.category;
+            const show360Only = document.getElementById('show360Only').checked;
+
+            filteredLocations = allLocations.filter(location => {
+                // فلتر الفئة
+                if (selectedCategory !== 'all' && location.category?.name !== selectedCategory) {
+                    return false;
+                }
+
+                // فلتر 360°
+                if (show360Only && !location.panorama_360_images) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            updateMap();
+            updateLocationsList();
+            updateLocationCount();
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        map.setView([userLocation.lat, userLocation.lng], 15);
+
+                        // إضافة علامة الموقع الحالي
+                        L.marker([userLocation.lat, userLocation.lng], {
+                            icon: L.divIcon({
+                                html: '<div style="background: #007bff; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                                className: 'user-location-marker',
+                                iconSize: [26, 26],
+                                iconAnchor: [13, 13]
+                            })
+                        }).addTo(map);
+
+                        updateLocationsList();
+                    },
+                    error => {
+                        console.error('خطأ في الحصول على الموقع:', error);
+                        alert('لا يمكن الحصول على موقعك الحالي');
+                    }
+                );
+            } else {
+                alert('المتصفح لا يدعم تحديد الموقع');
+            }
+        }
+
+        function togglePanel() {
+            const panel = document.getElementById('controlPanel');
+            const toggle = panel.querySelector('.toggle-panel i');
+
+            panel.classList.toggle('hidden');
+
+            if (panel.classList.contains('hidden')) {
+                toggle.className = 'fas fa-chevron-left';
+            } else {
+                toggle.className = 'fas fa-chevron-right';
+            }
+        }
+
+        function uploadImage360(locationId = null) {
+            if (locationId) {
+                document.getElementById('uploadLocationId').value = locationId;
+            } else if (currentLocation) {
+                document.getElementById('uploadLocationId').value = currentLocation.id;
+            } else {
+                alert('يرجى تحديد موقع أولاً');
+                return;
+            }
+
+            document.getElementById('uploadModal').style.display = 'flex';
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+            document.getElementById('uploadForm').reset();
+            document.getElementById('previewImages').innerHTML = '';
+        }
+
+        function initUploadListeners() {
+            const uploadArea = document.getElementById('uploadArea');
+            const imageInput = document.getElementById('imageInput');
+            const uploadForm = document.getElementById('uploadForm');
+
+            // النقر على منطقة الرفع
+            uploadArea.addEventListener('click', () => imageInput.click());
+
+            // تغيير الملف
+            imageInput.addEventListener('change', handleImageSelect);
+
+            // السحب والإفلات
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                imageInput.files = e.dataTransfer.files;
+                handleImageSelect({ target: { files: e.dataTransfer.files } });
+            });
+
+            // إرسال النموذج
+            uploadForm.addEventListener('submit', handleImageUpload);
+        }
+
+        function handleImageSelect(e) {
+            const files = e.target.files;
+            const previewContainer = document.getElementById('previewImages');
+            previewContainer.innerHTML = '';
+
+            for (let file of files) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'preview-image';
+                        img.alt = 'معاينة الصورة';
+                        previewContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        function handleImageUpload(e) {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const locationId = formData.get('location_id');
+
+            if (!locationId) {
+                alert('خطأ: لم يتم تحديد الموقع');
+                return;
+            }
+
+            // إظهار مؤشر التحميل
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري الرفع...';
+            submitBtn.disabled = true;
+
+            fetch('/pilgrimage-360/upload-panorama', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('استجابة الخادم:', data);
+                if (data.success) {
+                    alert('تم رفع الصورة بنجاح!\nرابط الصورة: ' + data.image_url);
+                    closeUploadModal();
+                    loadLocations(); // إعادة تحميل المواقع
+                } else {
+                    alert('خطأ في رفع الصورة: ' + data.message);
+                    console.error('خطأ من الخادم:', data);
+                }
+            })
+            .catch(error => {
+                console.error('خطأ في الشبكة:', error);
+                alert('حدث خطأ أثناء رفع الصورة: ' + error.message);
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        }
+
+        function showAddLocationDialog(lat, lng) {
+            const name = prompt('اسم الموقع:');
+            if (!name) return;
+
+            const description = prompt('وصف الموقع (اختياري):') || '';
+
+            // إرسال البيانات للخادم
+            fetch('/pilgrimage-360/add-quick-location', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description,
+                    latitude: lat,
+                    longitude: lng
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('تم إضافة الموقع بنجاح!');
+                    loadLocations(); // إعادة تحميل المواقع
+                    currentViewMode = 'map';
+                    document.getElementById('addLocationBtn').classList.remove('active');
+                    document.getElementById('addLocationBtn').innerHTML = '<i class="fas fa-plus me-1"></i>إضافة موقع';
+                } else {
+                    alert('خطأ في إضافة الموقع: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('خطأ:', error);
+                alert('حدث خطأ أثناء إضافة الموقع');
+            });
+        }
+    </script>
+</body>
+</html>

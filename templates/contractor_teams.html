@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم إدارة فرق المقاول -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-users-cog me-2 icon-primary"></i>
+        {{ translate('إدارة فرق المقاول', get_setting('language', 'ar')) }}: {{ contractor.name }}
+    </h2>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-users me-2"></i>
+                        {{ translate('فرق العمل', get_setting('language', 'ar')) }}
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTeamModal">
+                            <i class="fas fa-plus me-1"></i>
+                            {{ translate('إضافة فريق جديد', get_setting('language', 'ar')) }}
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if teams %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>{{ translate('اسم الفريق', get_setting('language', 'ar')) }}</th>
+                                        <th>{{ translate('الفريق الأب', get_setting('language', 'ar')) }}</th>
+                                        <th>{{ translate('المناطق المسؤول عنها', get_setting('language', 'ar')) }}</th>
+                                        <th>{{ translate('عدد الأعضاء', get_setting('language', 'ar')) }}</th>
+                                        <th>{{ translate('الحالة', get_setting('language', 'ar')) }}</th>
+                                        <th>{{ translate('الإجراءات', get_setting('language', 'ar')) }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for team in teams %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ team.name }}</td>
+                                            <td>
+                                                {% if team.parent_team %}
+                                                    <span class="badge bg-primary">{{ team.parent_team.name }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if team.area_responsibility %}
+                                                    {% set areas = team.area_responsibility.split(',') %}
+                                                    {% for area in areas %}
+                                                        <span class="badge bg-info">{{ area.strip() }}</span>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <span class="text-muted">غير محدد</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ team.members|length }}</td>
+                                            <td>
+                                                {% if team.is_active %}
+                                                    <span class="badge bg-success">{{ translate('نشط', get_setting('language', 'ar')) }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ translate('غير نشط', get_setting('language', 'ar')) }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('team_members', contractor_id=contractor.id, team_id=team.id) }}" class="btn btn-info">
+                                                        <i class="fas fa-users"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-primary edit-team-btn"
+                                                        data-id="{{ team.id }}"
+                                                        data-name="{{ team.name }}"
+                                                        data-areas="{{ team.area_responsibility }}"
+                                                        data-description="{{ team.description }}"
+                                                        data-is-active="{{ team.is_active }}"
+                                                        data-parent-team-id="{{ team.parent_team_id }}"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editTeamModal">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <a href="{{ url_for('delete_team', contractor_id=contractor.id, team_id=team.id) }}" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الفريق؟');">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            {{ translate('لا توجد فرق عمل مسجلة لهذا المقاول', get_setting('language', 'ar')) }}. {{ translate('يمكنك إضافة فريق جديد باستخدام الزر أعلاه', get_setting('language', 'ar')) }}.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة فريق جديد -->
+    <div class="modal fade" id="addTeamModal" tabindex="-1" aria-labelledby="addTeamModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTeamModalLabel">{{ translate('إضافة فريق جديد', get_setting('language', 'ar')) }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <form action="{{ url_for('add_team', contractor_id=contractor.id) }}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">{{ translate('اسم الفريق', get_setting('language', 'ar')) }}</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="parent_team_id" class="form-label">{{ translate('الفريق الأب', get_setting('language', 'ar')) }} ({{ translate('اختياري', get_setting('language', 'ar')) }})</label>
+                            <select class="form-select" id="parent_team_id" name="parent_team_id">
+                                <option value="">-- {{ translate('بدون فريق أب', get_setting('language', 'ar')) }} --</option>
+                                {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">{{ translate('اختر الفريق الأب إذا كان هذا الفريق فرعي', get_setting('language', 'ar')) }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="area_responsibility" class="form-label">{{ translate('المناطق المسؤول عنها', get_setting('language', 'ar')) }}</label>
+                            <select class="form-select" id="area_responsibility" name="area_responsibility" multiple>
+                                {% for area in unique_areas %}
+                                    <option value="{{ area }}">{{ area }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">{{ translate('يمكنك اختيار أكثر من منطقة باستخدام مفتاح Ctrl', get_setting('language', 'ar')) }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">{{ translate('وصف الفريق', get_setting('language', 'ar')) }}</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">{{ translate('فريق نشط', get_setting('language', 'ar')) }}</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ translate('إلغاء', get_setting('language', 'ar')) }}</button>
+                        <button type="submit" class="btn btn-primary">{{ translate('إضافة', get_setting('language', 'ar')) }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل فريق -->
+    <div class="modal fade" id="editTeamModal" tabindex="-1" aria-labelledby="editTeamModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTeamModalLabel">تعديل فريق</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <form action="{{ url_for('edit_team', contractor_id=contractor.id) }}" method="post">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit_team_id" name="team_id">
+                        <div class="mb-3">
+                            <label for="edit_name" class="form-label">اسم الفريق</label>
+                            <input type="text" class="form-control" id="edit_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_parent_team_id" class="form-label">الفريق الأب (اختياري)</label>
+                            <select class="form-select" id="edit_parent_team_id" name="parent_team_id">
+                                <option value="">-- بدون فريق أب --</option>
+                                {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اختر الفريق الأب إذا كان هذا الفريق فرعي</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_area_responsibility" class="form-label">المناطق المسؤول عنها</label>
+                            <select class="form-select" id="edit_area_responsibility" name="area_responsibility" multiple>
+                                {% for area in unique_areas %}
+                                    <option value="{{ area }}">{{ area }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">يمكنك اختيار أكثر من منطقة باستخدام مفتاح Ctrl</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_description" class="form-label">وصف الفريق</label>
+                            <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="edit_is_active" name="is_active">
+                            <label class="form-check-label" for="edit_is_active">فريق نشط</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تهيئة أزرار تعديل الفريق
+        const editButtons = document.querySelectorAll('.edit-team-btn');
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // الحصول على بيانات الفريق من سمات الزر
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const areas = this.getAttribute('data-areas');
+                const description = this.getAttribute('data-description');
+                const isActive = this.getAttribute('data-is-active') === 'True';
+                const parentTeamId = this.getAttribute('data-parent-team-id');
+
+                // تعبئة النموذج ببيانات الفريق
+                document.getElementById('edit_team_id').value = id;
+                document.getElementById('edit_name').value = name;
+                document.getElementById('edit_description').value = description || '';
+                document.getElementById('edit_is_active').checked = isActive;
+
+                // تعيين الفريق الأب
+                const parentTeamSelect = document.getElementById('edit_parent_team_id');
+                if (parentTeamId) {
+                    for (let i = 0; i < parentTeamSelect.options.length; i++) {
+                        if (parentTeamSelect.options[i].value === parentTeamId) {
+                            parentTeamSelect.options[i].selected = true;
+                            break;
+                        }
+                    }
+                } else {
+                    parentTeamSelect.value = '';
+                }
+
+                // تحديد المناطق المسؤول عنها
+                const areaSelect = document.getElementById('edit_area_responsibility');
+                const areaList = areas ? areas.split(',').map(a => a.trim()) : [];
+
+                for (let i = 0; i < areaSelect.options.length; i++) {
+                    areaSelect.options[i].selected = areaList.includes(areaSelect.options[i].value);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

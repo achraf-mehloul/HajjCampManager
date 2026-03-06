@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+
+{% block title %}جميع القراءات اليدوية{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">جميع القراءات اليدوية</h5>
+                    <div class="d-flex">
+                        <div class="input-group me-2" style="max-width: 300px;">
+                            <input type="text" id="search-panel" class="form-control form-control-sm" placeholder="بحث عن رقم اللوحة...">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" id="search-button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal">
+                                <i class="fas fa-filter me-1"></i> تصفية
+                            </button>
+                            <div class="dropdown d-inline-block">
+                                <button class="btn btn-light btn-sm dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-file-export me-1"></i> تصدير
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                    <li>
+                                        <a href="{{ url_for('readings.export_readings', format='excel') }}" class="dropdown-item">
+                                            <i class="fas fa-file-excel me-1"></i> تصدير جميع القراءات
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('readings.export_high_load_panels', format='excel', limit=50) }}" class="dropdown-item">
+                                            <i class="fas fa-bolt me-1"></i> تصدير اللوحات ذات الحمل العالي (50)
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('readings.export_high_load_panels', format='excel', limit=100) }}" class="dropdown-item">
+                                            <i class="fas fa-bolt me-1"></i> تصدير اللوحات ذات الحمل العالي (100)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if current_filters %}
+                    <div class="alert alert-info mb-3">
+                        <h6 class="mb-2">التصفية الحالية:</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if current_filters.panel_id %}
+                            <span class="badge bg-secondary">
+                                اللوحة: {{ current_filters.panel_name }}
+                                <a href="{{ url_for('readings.all_readings', area=current_filters.area, start_date=current_filters.start_date, end_date=current_filters.end_date) }}" class="text-white ms-1">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </span>
+                            {% endif %}
+
+                            {% if current_filters.area %}
+                            <span class="badge bg-secondary">
+                                المنطقة: {{ current_filters.area }}
+                                <a href="{{ url_for('readings.all_readings', panel_id=current_filters.panel_id, start_date=current_filters.start_date, end_date=current_filters.end_date) }}" class="text-white ms-1">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </span>
+                            {% endif %}
+
+                            {% if current_filters.start_date %}
+                            <span class="badge bg-secondary">
+                                من: {{ current_filters.start_date }}
+                                <a href="{{ url_for('readings.all_readings', panel_id=current_filters.panel_id, area=current_filters.area, end_date=current_filters.end_date) }}" class="text-white ms-1">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </span>
+                            {% endif %}
+
+                            {% if current_filters.end_date %}
+                            <span class="badge bg-secondary">
+                                إلى: {{ current_filters.end_date }}
+                                <a href="{{ url_for('readings.all_readings', panel_id=current_filters.panel_id, area=current_filters.area, start_date=current_filters.start_date) }}" class="text-white ms-1">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </span>
+                            {% endif %}
+
+                            <a href="{{ url_for('readings.all_readings') }}" class="btn btn-sm btn-outline-secondary">
+                                إلغاء التصفية
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if readings %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>اللوحة</th>
+                                    <th>المنطقة</th>
+                                    <th>تاريخ القراءة</th>
+                                    <th>التيار (I)</th>
+                                    <th>الجهد (V)</th>
+                                    <th>القدرة (P)</th>
+                                    <th>الطاقة</th>
+                                    <th>معامل القدرة</th>
+                                    <th>التردد</th>
+                                    <th>سعة القاطع</th>
+                                    <th>نسبة الحمل</th>
+                                    <th>الحالة</th>
+                                    <th>المستخدم</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reading in readings %}
+                                <tr>
+                                    <td>{{ loop.index + (page - 1) * per_page }}</td>
+                                    <td>
+                                        <a href="{{ url_for('panel_details', panel_id=reading.panel.id) }}" target="_blank">
+                                            {{ reading.panel.mdb }}
+                                            {% if reading.panel.maximo_tag %}
+                                            <br><small class="text-muted">{{ reading.panel.maximo_tag }}</small>
+                                            {% endif %}
+                                        </a>
+                                    </td>
+                                    <td>{{ reading.panel.area_name }}</td>
+                                    <td>{{ reading.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if reading.current is not none %}
+                                            {{ reading.current }} {{ reading.current_unit.name if reading.current_unit else 'A' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if reading.voltage is not none %}
+                                            {{ reading.voltage }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if reading.power is not none %}
+                                            {{ reading.power }} {{ reading.power_unit.name if reading.power_unit else 'W' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if reading.energy is not none %}
+                                            {{ reading.energy }} {{ reading.energy_unit.name if reading.energy_unit else 'kWh' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ reading.power_factor if reading.power_factor is not none else '-' }}</td>
+                                    <td>{{ reading.frequency if reading.frequency is not none else '-' }} Hz</td>
+                                    <td>{{ reading.breaker_capacity if reading.breaker_capacity is not none else '-' }} A</td>
+                                    <td>
+                                        {% if reading.load_percentage is not none %}
+                                            {{ "%.1f"|format(reading.load_percentage) }}%
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if reading.current_status == 'danger' %}
+                                            <span class="badge bg-danger">خطر</span>
+                                        {% elif reading.current_status == 'warning' %}
+                                            <span class="badge bg-warning text-dark">تحذير</span>
+                                        {% elif reading.current_status == 'normal' %}
+                                            <span class="badge bg-success">طبيعي</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ reading.user.name if reading.user else '-' }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('readings.view_manual_reading', reading_id=reading.id) }}" class="btn btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if current_user.role == 'admin' or reading.created_by == current_user.id %}
+                                            <a href="{{ url_for('readings.delete_manual_reading', reading_id=reading.id) }}" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذه القراءة؟')">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- ترقيم الصفحات -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {{ 'disabled' if page == 1 else '' }}">
+                                <a class="page-link" href="{{ url_for('readings.all_readings', page=page-1, panel_id=current_filters.panel_id, area=current_filters.area, start_date=current_filters.start_date, end_date=current_filters.end_date) if page > 1 else '#' }}">
+                                    السابق
+                                </a>
+                            </li>
+
+                            {% for p in range(1, total_pages + 1) %}
+                            <li class="page-item {{ 'active' if p == page else '' }}">
+                                <a class="page-link" href="{{ url_for('readings.all_readings', page=p, panel_id=current_filters.panel_id, area=current_filters.area, start_date=current_filters.start_date, end_date=current_filters.end_date) }}">
+                                    {{ p }}
+                                </a>
+                            </li>
+                            {% endfor %}
+
+                            <li class="page-item {{ 'disabled' if page == total_pages else '' }}">
+                                <a class="page-link" href="{{ url_for('readings.all_readings', page=page+1, panel_id=current_filters.panel_id, area=current_filters.area, start_date=current_filters.start_date, end_date=current_filters.end_date) if page < total_pages else '#' }}">
+                                    التالي
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="alert alert-info">
+                        لا توجد قراءات يدوية متاحة.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة التصفية -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('readings.all_readings') }}" method="get">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="filterModalLabel">تصفية القراءات</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="panel_id" class="form-label">اللوحة</label>
+                        <select class="form-select" id="panel_id" name="panel_id">
+                            <option value="">-- جميع اللوحات --</option>
+                            {% for panel in panels %}
+                            <option value="{{ panel.id }}" {{ 'selected' if current_filters and current_filters.panel_id == panel.id|string else '' }}>
+                                {{ panel.mdb }} ({{ panel.area_name }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="area" class="form-label">المنطقة</label>
+                        <select class="form-select" id="area" name="area">
+                            <option value="">-- جميع المناطق --</option>
+                            {% for area in areas %}
+                            <option value="{{ area }}" {{ 'selected' if current_filters and current_filters.area == area else '' }}>
+                                {{ area }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="status_filter" class="form-label">الحالة الكهربائية</label>
+                        <select class="form-select" id="status_filter" name="status_filter">
+                            <option value="">-- جميع الحالات --</option>
+                            <option value="danger" {{ 'selected' if current_filters and current_filters.status_filter == 'danger' else '' }}>خطر</option>
+                            <option value="warning" {{ 'selected' if current_filters and current_filters.status_filter == 'warning' else '' }}>تحذير</option>
+                            <option value="normal" {{ 'selected' if current_filters and current_filters.status_filter == 'normal' else '' }}>عادي</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_date" class="form-label">من تاريخ</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ current_filters.start_date if current_filters else '' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_date" class="form-label">إلى تاريخ</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ current_filters.end_date if current_filters else '' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تطبيق التصفية</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تفعيل الجدول للفرز
+        var table = $('table').DataTable({
+            "paging": false,
+            "info": false,
+            "searching": true,
+            "order": [[3, 'desc']], // ترتيب حسب تاريخ القراءة (تنازلي)
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
+            }
+        });
+
+        // تفعيل البحث عن رقم اللوحة
+        $('#search-button').on('click', function() {
+            searchPanel();
+        });
+
+        $('#search-panel').on('keypress', function(e) {
+            if (e.which === 13) { // Enter key
+                searchPanel();
+            }
+        });
+
+        function searchPanel() {
+            var searchTerm = $('#search-panel').val().trim();
+            table.search(searchTerm).draw();
+        }
+    });
+</script>
+{% endblock %}

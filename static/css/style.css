@@ -1,0 +1,603 @@
+:root {
+    --primary-color: #B89966;
+    --secondary-color: #94BCCB;
+    --light-primary: #d9c9a8;
+    --light-secondary: #c5dce5;
+    --dark-primary: #8c7349;
+    --dark-secondary: #6a8a98;
+    --white: #ffffff;
+    --light-gray: #f8f9fa;
+    --gray: #6c757d;
+    --dark: #343a40;
+}
+
+body {
+    font-family: 'Cairo', 'Tajawal', sans-serif;
+    background-color: var(--light-gray);
+    color: var(--dark);
+    direction: rtl;
+    text-align: right;
+}
+
+/* الشريط العلوي */
+.navbar {
+    background-color: var(--primary-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    color: var(--white) !important;
+    font-weight: bold;
+}
+
+.navbar-brand img {
+    max-height: 40px;
+    margin-left: 10px;
+}
+
+.navbar .date-display {
+    color: var(--white);
+    margin-left: 15px;
+}
+
+/* البطاقات */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    border: none;
+    overflow: hidden;
+}
+
+.card-header {
+    background-color: var(--secondary-color);
+    color: var(--white);
+    font-weight: bold;
+    border-bottom: none;
+    padding: 15px 20px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* الأزرار */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--dark-primary);
+    border-color: var(--dark-primary);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+    background-color: var(--dark-secondary);
+    border-color: var(--dark-secondary);
+}
+
+/* الجدول */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: var(--dark);
+    border-collapse: collapse;
+}
+
+.table thead th {
+    background-color: var(--secondary-color);
+    color: var(--white);
+    border-color: var(--dark-secondary);
+    text-align: center;
+    vertical-align: middle;
+}
+
+.table tbody tr:nth-of-type(odd) {
+    background-color: rgba(148, 188, 203, 0.1);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(184, 153, 102, 0.1);
+}
+
+/* تحسينات للجداول على الأجهزة المحمولة */
+@media (max-width: 768px) {
+    .table {
+        font-size: 0.85rem;
+    }
+
+    .table th, .table td {
+        padding: 0.5rem;
+    }
+
+    .dtr-details {
+        width: 100%;
+    }
+
+    .dtr-title {
+        font-weight: bold;
+        min-width: 30%;
+        display: inline-block;
+    }
+
+    .dtr-data {
+        display: inline-block;
+    }
+
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: 95%;
+    }
+}
+
+/* لوحة المعلومات */
+.dashboard-card {
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    transition: transform 0.3s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+}
+
+.dashboard-card.primary {
+    background-color: var(--light-primary);
+    color: var(--dark-primary);
+}
+
+.dashboard-card.secondary {
+    background-color: var(--light-secondary);
+    color: var(--dark-secondary);
+}
+
+.dashboard-card.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.dashboard-card.warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.dashboard-card.danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.dashboard-card.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.dashboard-card .number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.dashboard-card .title {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+/* الرسوم البيانية */
+.chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+}
+
+/* نموذج الاستيراد */
+.import-form {
+    background-color: var(--light-gray);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.custom-file-label::after {
+    content: "استعراض";
+}
+
+/* نموذج التصفية */
+.filter-form {
+    background-color: var(--light-gray);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-form .form-group {
+    margin-bottom: 0;
+}
+
+/* التنبيهات */
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+/* تصميم متجاوب */
+@media (max-width: 768px) {
+    .dashboard-card .number {
+        font-size: 2rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .filter-form .form-group {
+        margin-bottom: 10px;
+    }
+
+    .card-header {
+        padding: 10px 15px;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+    }
+
+    .btn {
+        padding: 0.375rem 0.5rem;
+    }
+
+    .navbar-brand span {
+        display: none;
+    }
+
+    .export-buttons {
+        bottom: 10px;
+        left: 10px;
+    }
+
+    .export-buttons .btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .main-content {
+        padding: 10px;
+    }
+
+    .page-container {
+        padding: 10px;
+    }
+
+    .chart-container {
+        height: 200px;
+    }
+
+    #map-container {
+        height: 300px !important;
+    }
+}
+
+/* تصميم متجاوب للأجهزة الصغيرة جداً */
+@media (max-width: 576px) {
+    .dashboard-card .number {
+        font-size: 1.5rem;
+    }
+
+    .dashboard-card .title {
+        font-size: 0.8rem;
+    }
+
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+    }
+
+    .card-header {
+        padding: 8px 12px;
+    }
+
+    .card-body {
+        padding: 10px;
+    }
+
+    .table th, .table td {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .export-buttons {
+        bottom: 5px;
+        left: 5px;
+    }
+
+    .export-buttons .btn {
+        width: 35px;
+        height: 35px;
+        font-size: 0.8rem;
+    }
+
+    #map-container {
+        height: 250px !important;
+    }
+
+    /* تحسين عرض الأيقونات في القائمة الجانبية */
+    .sidebar .nav-link {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .sidebar .nav-link i {
+        font-size: 1.25rem;
+        margin-right: 0;
+        width: 100%;
+        text-align: center;
+    }
+
+    .sidebar .nav-link span {
+        display: none;
+    }
+
+    /* إظهار التلميح عند تمرير المؤشر فوق الأيقونات */
+    .sidebar .nav-link:hover::after {
+        content: attr(data-title);
+        position: absolute;
+        right: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: var(--dark);
+        color: var(--white);
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        z-index: 1000;
+    }
+}
+
+/* تنسيق الصفحة */
+.page-container {
+    padding: 20px;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.section-title {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    font-weight: bold;
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 10px;
+}
+
+/* تنسيق الفورم */
+.form-control:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 0.2rem rgba(148, 188, 203, 0.25);
+}
+
+select.form-control {
+    padding-right: 30px;
+}
+
+/* تنسيق الأيقونات */
+.icon-primary {
+    color: var(--primary-color);
+}
+
+.icon-secondary {
+    color: var(--secondary-color);
+}
+
+/* تنسيق الصور */
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo-container img {
+    max-width: 200px;
+    height: auto;
+}
+
+/* تنسيق الفوتر */
+.footer {
+    background-color: var(--dark);
+    color: var(--white);
+    padding: 20px 0;
+    margin-top: 30px;
+}
+
+.footer a {
+    color: var(--light-secondary);
+}
+
+.footer a:hover {
+    color: var(--white);
+    text-decoration: none;
+}
+
+/* تنسيق الزر العائم للتصدير */
+.export-buttons {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+}
+
+.export-buttons .btn {
+    margin-right: 10px;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.export-buttons .tooltip-inner {
+    background-color: var(--dark);
+}
+
+.export-buttons .tooltip.bs-tooltip-top .arrow::before {
+    border-top-color: var(--dark);
+}
+
+/* تنسيق الشاشة الترحيبية */
+.welcome-screen {
+    text-align: center;
+    padding: 50px 20px;
+}
+
+.welcome-screen h1 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.welcome-screen p {
+    color: var(--gray);
+    max-width: 600px;
+    margin: 0 auto 30px;
+}
+
+/* تنسيق الجدول المتجاوب */
+.table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* تنسيق الصفحات */
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.pagination .page-link {
+    color: var(--primary-color);
+}
+
+.pagination .page-link:hover {
+    color: var(--dark-primary);
+}
+
+/* تنسيق البحث */
+.search-box {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.search-box .form-control {
+    padding-right: 40px;
+}
+
+.search-box .search-icon {
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    color: var(--gray);
+}
+
+/* تنسيق الرسائل */
+.no-data-message {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--gray);
+}
+
+.no-data-message i {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    color: var(--secondary-color);
+}
+
+/* تنسيق الشاشة الرئيسية */
+.main-content {
+    min-height: calc(100vh - 150px);
+}
+
+/* تنسيق الأزرار المجمعة */
+.btn-group .btn {
+    margin-right: 0;
+}
+
+/* تنسيق الفلاتر المتقدمة */
+.advanced-filters {
+    display: none;
+    padding: 15px;
+    background-color: var(--light-gray);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.advanced-filters.show {
+    display: block;
+}
+
+/* تنسيق الرسوم البيانية */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0 10px 10px 0;
+}
+
+.chart-legend-color {
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+    margin-left: 5px;
+}
+
+.chart-legend-label {
+    font-size: 0.8rem;
+}
+
+/* تنسيق الخارطة الحرارية */
+.map-responsive {
+    width: 100%;
+    height: 0;
+    padding-bottom: 75%;
+    position: relative;
+    overflow: hidden;
+}
+
+.map-responsive > div {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media (max-width: 768px) {
+    .map-responsive {
+        padding-bottom: 100%;
+    }
+}

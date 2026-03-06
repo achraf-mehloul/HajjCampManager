@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-plane me-2"></i>
+                الرحلات والذكاء الاصطناعي
+            </h1>
+            <p class="lead">خطط رحلتك المثالية بمساعدة الذكاء الاصطناعي واكتشف أفضل العروض</p>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-box fa-2x mb-2"></i>
+                    <h4>{{ total_packages }}</h4>
+                    <p class="mb-0">حزم الرحلات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                    <h4>{{ total_bookings }}</h4>
+                    <p class="mb-0">إجمالي الحجوزات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <h4>{{ active_trips }}</h4>
+                    <p class="mb-0">الرحلات النشطة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-robot fa-2x mb-2"></i>
+                    <h4>24/7</h4>
+                    <p class="mb-0">المساعد الذكي</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Assistant Quick Access -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-2">
+                                <i class="fas fa-magic me-2"></i>
+                                خطط رحلتك بالذكاء الاصطناعي
+                            </h4>
+                            <p class="mb-3">اطلب من مساعدنا الذكي تخطيط رحلة مخصصة لك مع أفضل الأسعار والأوقات</p>
+                            <div class="btn-group">
+                                <a href="{{ url_for('trips_ai.ai_planner') }}" class="btn btn-light">
+                                    <i class="fas fa-route me-2"></i>مخطط الرحلات الذكي
+                                </a>
+                                <a href="{{ url_for('trips_ai.chatbot_page') }}" class="btn btn-outline-light">
+                                    <i class="fas fa-comments me-2"></i>المساعد الذكي
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <i class="fas fa-robot fa-5x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Featured Packages -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>
+                    <i class="fas fa-star me-2"></i>الحزم المميزة
+                </h4>
+                <a href="{{ url_for('trips_ai.packages') }}" class="btn btn-outline-primary">
+                    عرض جميع الحزم <i class="fas fa-arrow-left ms-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        {% for package in featured_packages %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                {% if package.main_image %}
+                <img src="{{ package.main_image }}" class="card-img-top" alt="{{ package.package_name }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="fas fa-{% if package.package_type == 'hajj' %}kaaba{% elif package.package_type == 'umrah' %}mosque{% else %}map-marked-alt{% endif %} fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-{% if package.package_type == 'hajj' %}success{% elif package.package_type == 'umrah' %}primary{% else %}info{% endif %}">
+                            {% if package.package_type == 'hajj' %}حج
+                            {% elif package.package_type == 'umrah' %}عمرة
+                            {% elif package.package_type == 'tourism' %}سياحة
+                            {% else %}مخصص
+                            {% endif %}
+                        </span>
+                        <div class="text-end">
+                            {% if package.rating > 0 %}
+                            <div class="text-warning mb-1">
+                                {% for i in range(1, 6) %}
+                                    {% if i <= package.rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">({{ package.reviews_count }} تقييم)</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <h5 class="card-title">{{ package.package_name }}</h5>
+                    <p class="card-text text-muted flex-grow-1">{{ package.description[:100] }}...</p>
+                    
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <small class="text-muted">المدة</small>
+                            <div><strong>{{ package.duration_days }} يوم</strong></div>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">السعر</small>
+                            <div><strong>{{ "{:,.0f}".format(package.price_per_person) }} ر.س</strong></div>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">المتاح</small>
+                            <div><strong>{{ package.max_participants - package.current_bookings }}</strong></div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('trips_ai.package_detail', package_id=package.id) }}" class="btn btn-primary">
+                            <i class="fas fa-eye me-2"></i>عرض التفاصيل
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        {% if not featured_packages %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">لا توجد حزم مميزة حالياً</h5>
+                <p class="text-muted">سيتم إضافة حزم جديدة قريباً</p>
+                <a href="{{ url_for('trips_ai.packages') }}" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>تصفح جميع الحزم
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="fas fa-bolt me-2"></i>إجراءات سريعة
+            </h4>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-search fa-3x text-primary mb-3"></i>
+                    <h5>تصفح الحزم</h5>
+                    <p class="text-muted">اكتشف جميع حزم الرحلات المتاحة</p>
+                    <a href="{{ url_for('trips_ai.packages') }}" class="btn btn-outline-primary">تصفح الآن</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-magic fa-3x text-success mb-3"></i>
+                    <h5>مخطط ذكي</h5>
+                    <p class="text-muted">خطط رحلتك بمساعدة الذكاء الاصطناعي</p>
+                    <a href="{{ url_for('trips_ai.ai_planner') }}" class="btn btn-outline-success">ابدأ التخطيط</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-cog fa-3x text-warning mb-3"></i>
+                    <h5>رحلة مخصصة</h5>
+                    <p class="text-muted">اطلب رحلة مصممة خصيصاً لك</p>
+                    <a href="{{ url_for('trips_ai.custom_trip') }}" class="btn btn-outline-warning">اطلب الآن</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-comments fa-3x text-info mb-3"></i>
+                    <h5>المساعد الذكي</h5>
+                    <p class="text-muted">احصل على مساعدة فورية</p>
+                    <a href="{{ url_for('trips_ai.chatbot_page') }}" class="btn btn-outline-info">ابدأ المحادثة</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Featured Locations -->
+    {% if featured_locations %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="fas fa-map-marker-alt me-2"></i>المواقع المميزة
+            </h4>
+        </div>
+        
+        {% for location in featured_locations[:4] %}
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-{% if location.location_type == 'holy_site' %}mosque{% elif location.location_type == 'shopping' %}shopping-bag{% elif location.location_type == 'transport' %}bus{% else %}info-circle{% endif %} fa-2x text-primary mb-2"></i>
+                    <h6 class="card-title">{{ location.location_name }}</h6>
+                    <p class="card-text small text-muted">{{ location.description[:50] }}...</p>
+                    <a href="{{ url_for('pilgrimage_360.location_detail', location_id=location.id) }}" class="btn btn-sm btn-outline-primary">
+                        زيارة افتراضية
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Recent Bookings -->
+    {% if recent_bookings %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clock me-2"></i>أحدث الحجوزات
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم الحجز</th>
+                                    <th>العميل</th>
+                                    <th>الحزمة</th>
+                                    <th>عدد المسافرين</th>
+                                    <th>المبلغ</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ الحجز</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in recent_bookings %}
+                                <tr>
+                                    <td><strong>{{ booking.booking_number }}</strong></td>
+                                    <td>{{ booking.customer_name }}</td>
+                                    <td>{{ booking.package.package_name }}</td>
+                                    <td>{{ booking.number_of_travelers }}</td>
+                                    <td>{{ "{:,.0f}".format(booking.total_amount) }} ر.س</td>
+                                    <td>
+                                        <span class="badge bg-{% if booking.booking_status == 'confirmed' %}success{% elif booking.booking_status == 'cancelled' %}danger{% else %}warning{% endif %}">
+                                            {{ booking.booking_status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ booking.booking_date.strftime('%Y-%m-%d') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+</style>
+{% endblock %}

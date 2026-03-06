@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة البانوراما{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-images me-2"></i>
+                    إدارة البانوراما
+                </h2>
+                <div>
+                    <a href="{{ url_for('panorama360.create_panorama') }}" class="btn btn-success me-2">
+                        <i class="fas fa-plus me-2"></i>
+                        إنشاء بانوراما
+                    </a>
+                    <a href="{{ url_for('panorama360.admin_dashboard') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        رجوع
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if panoramas %}
+    <div class="row">
+        {% for panorama in panoramas %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <img src="{{ url_for('static', filename=panorama.image_path) }}" 
+                     class="card-img-top" 
+                     style="height: 200px; object-fit: cover;"
+                     alt="{{ panorama.title }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ panorama.title }}</h5>
+                    <p class="card-text text-muted small">
+                        {{ panorama.description[:80] }}{% if panorama.description and panorama.description|length > 80 %}...{% endif %}
+                    </p>
+                    
+                    <div class="mb-2">
+                        <span class="badge bg-{{ 'success' if panorama.is_active else 'secondary' }}">
+                            {{ 'نشط' if panorama.is_active else 'غير نشط' }}
+                        </span>
+                        <span class="badge bg-info">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            {{ panorama.hotspots|length }} نقطة
+                        </span>
+                        <span class="badge bg-primary">
+                            <i class="fas fa-eye me-1"></i>
+                            {{ panorama.view_count }}
+                        </span>
+                    </div>
+                    
+                    <small class="text-muted d-block mb-2">
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        {{ panorama.location_name or panorama.area }}
+                    </small>
+                    
+                    <small class="text-muted d-block">
+                        <i class="far fa-calendar me-1"></i>
+                        {{ panorama.created_at.strftime('%Y-%m-%d') }}
+                    </small>
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="btn-group w-100" role="group">
+                        <a href="{{ url_for('panorama360.edit_hotspots', panorama_id=panorama.id) }}" 
+                           class="btn btn-sm btn-primary"
+                           title="تعديل النقاط">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ url_for('panorama360.view_panorama', panorama_id=panorama.id) }}" 
+                           class="btn btn-sm btn-success"
+                           target="_blank"
+                           title="عرض">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <button class="btn btn-sm btn-warning" 
+                                onclick="toggleStatus({{ panorama.id }}, {{ 'false' if panorama.is_active else 'true' }})"
+                                title="{{ 'إلغاء التفعيل' if panorama.is_active else 'تفعيل' }}">
+                            <i class="fas fa-{{ 'toggle-on' if panorama.is_active else 'toggle-off' }}"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" 
+                                onclick="deletePanorama({{ panorama.id }})"
+                                title="حذف">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-images fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">لا توجد بانوراما</h4>
+            <p class="text-muted">ابدأ بإنشاء أول بانوراما</p>
+            <a href="{{ url_for('panorama360.create_panorama') }}" class="btn btn-success mt-3">
+                <i class="fas fa-plus me-2"></i>
+                إنشاء بانوراما
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleStatus(panoramaId, newStatus) {
+    if (!confirm('هل تريد تغيير حالة البانوراما؟')) return;
+    
+    fetch(`/panorama360/api/panoramas/${panoramaId}/toggle-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('خطأ: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء تغيير الحالة');
+    });
+}
+
+function deletePanorama(panoramaId) {
+    if (!confirm('هل أنت متأكد من حذف هذه البانوراما؟\nسيتم حذف جميع النقاط المرتبطة بها.')) return;
+    
+    fetch(`/panorama360/api/panoramas/${panoramaId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('خطأ: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء الحذف');
+    });
+}
+</script>
+{% endblock %}

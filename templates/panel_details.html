@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('map_view') }}">الخريطة</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">تفاصيل اللوحة</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- معلومات اللوحة -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-server me-2"></i>
+                    معلومات اللوحة
+                </div>
+                <div class="card-body">
+                    <h5 class="text-primary">{{ panel.mdb }}</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <strong>رقم تاج ماكسيمو:</strong> {{ panel.maximo_tag }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>المنطقة:</strong> {{ panel.area_name }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>نوع اللوحة:</strong> {{ panel.panel_type }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>سنة التنفيذ:</strong> {{ panel.implementation_year }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <strong>كود المنطقة:</strong> {{ panel.area_code }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>المرحلة:</strong> {{ panel.phase }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>الإحداثيات:</strong> {{ panel.x_coordinate }}, {{ panel.y_coordinate }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>الملاحظات:</strong> {{ panel.notes or 'لا توجد ملاحظات' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('panel_readings', panel_id=panel.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-chart-line me-1"></i>
+                            عرض القراءات الكهربائية
+                        </a>
+                        <a href="{{ url_for('readings.add_manual_reading_view', panel_id=panel.id) }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-plus-circle me-1"></i>
+                            إضافة قراءة يدوية
+                        </a>
+                        <a href="{{ url_for('add_inspection_request_form', panel_id=panel.id) }}" class="btn btn-sm btn-info">
+                            <i class="fas fa-clipboard-check me-1"></i>
+                            طلب فحص
+                        </a>
+                        {% if panel.location_url %}
+                            <a href="{{ panel.location_url }}" target="_blank" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                الموقع على الخريطة
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تحديث حالة اللوحة ومعلومات القواطع -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-edit me-2"></i>
+                    تحديث حالة اللوحة ومعلومات القواطع
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('update_panel_status', panel_id=panel.id) }}" method="post">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="status" name="status" required>
+                                        <option value="عامل" {% if panel.status == 'عامل' %}selected{% endif %}>عامل</option>
+                                        <option value="تحت الصيانة" {% if panel.status == 'تحت الصيانة' %}selected{% endif %}>تحت الصيانة</option>
+                                        <option value="معطل" {% if panel.status == 'معطل' %}selected{% endif %}>معطل</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="breaker_capacity" class="form-label">سعة القاطع (أمبير)</label>
+                                    <input type="number" step="0.1" class="form-control" id="breaker_capacity" name="breaker_capacity" value="{{ panel.breaker_capacity or '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="responsible_contractor_id" class="form-label">المقاول المسؤول</label>
+                                    <select class="form-select" id="responsible_contractor_id" name="responsible_contractor_id">
+                                        <option value="">-- اختر المقاول --</option>
+                                        {% for contractor in contractors %}
+                                            <option value="{{ contractor.id }}" {% if panel.responsible_contractor_id == contractor.id %}selected{% endif %}>{{ contractor.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="min_voltage" class="form-label">الحد الأدنى للجهد (فولت)</label>
+                                    <input type="number" step="0.1" class="form-control" id="min_voltage" name="min_voltage" value="{{ panel.min_voltage or '210.0' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="max_voltage" class="form-label">الحد الأقصى للجهد (فولت)</label>
+                                    <input type="number" step="0.1" class="form-control" id="max_voltage" name="max_voltage" value="{{ panel.max_voltage or '250.0' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="warning_threshold" class="form-label">نسبة التحذير (%)</label>
+                                    <input type="number" step="1" class="form-control" id="warning_threshold" name="warning_threshold" value="{{ panel.warning_threshold or '70' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="danger_threshold" class="form-label">نسبة الخطر (%)</label>
+                                    <input type="number" step="1" class="form-control" id="danger_threshold" name="danger_threshold" value="{{ panel.danger_threshold or '80' }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="location_url" class="form-label">رابط الموقع على الخريطة</label>
+                            <input type="url" class="form-control" id="location_url" name="location_url" value="{{ panel.location_url or '' }}" placeholder="https://maps.google.com/?q=...">
+                            <div class="form-text">يمكنك إضافة رابط من Google Maps للموقع</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ panel.notes }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">تحديث المعلومات</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إضافة بلاغ جديد -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة بلاغ جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_issue') }}" method="post">
+                        <input type="hidden" name="panel_id" value="{{ panel.id }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">عنوان البلاغ</label>
+                                    <input type="text" class="form-control" id="title" name="title" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">وصف المشكلة</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">الأولوية</label>
+                                    <select class="form-select" id="priority" name="priority" required>
+                                        <option value="عالية">عالية</option>
+                                        <option value="متوسطة" selected>متوسطة</option>
+                                        <option value="منخفضة">منخفضة</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="issue_type" class="form-label">نوع المشكلة</label>
+                                    <select class="form-select" id="issue_type" name="issue_type" required>
+                                        <option value="كهربائية">كهربائية</option>
+                                        <option value="ميكانيكية">ميكانيكية</option>
+                                        <option value="برمجية">برمجية</option>
+                                        <option value="أخرى">أخرى</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="contractor_id" class="form-label">المقاول المسؤول</label>
+                                    <select class="form-select" id="contractor_id" name="contractor_id">
+                                        <option value="">-- اختر المقاول --</option>
+                                        {% for contractor in contractors %}
+                                            <option value="{{ contractor.id }}">{{ contractor.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="responsible_person" class="form-label">الشخص المسؤول</label>
+                                    <input type="text" class="form-control" id="responsible_person" name="responsible_person">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">إضافة البلاغ</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- القراءات اليدوية -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-clipboard-list me-2"></i>
+                    القراءات اليدوية
+                </div>
+                <div class="card-body">
+                    {% if manual_readings %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>تاريخ القراءة</th>
+                                        <th>التيار (I)</th>
+                                        <th>الجهد (V)</th>
+                                        <th>القدرة (P)</th>
+                                        <th>الطاقة</th>
+                                        <th>معامل القدرة</th>
+                                        <th>التردد</th>
+                                        <th>المستخدم</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reading in manual_readings %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ reading.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                            <td>
+                                                {% if reading.current is not none %}
+                                                    {{ reading.current }} {{ reading.current_unit.name if reading.current_unit else 'A' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if reading.voltage is not none %}
+                                                    {{ reading.voltage }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if reading.power is not none %}
+                                                    {{ reading.power }} {{ reading.power_unit.name if reading.power_unit else 'W' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if reading.energy is not none %}
+                                                    {{ reading.energy }} {{ reading.energy_unit.name if reading.energy_unit else 'kWh' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ reading.power_factor if reading.power_factor is not none else '-' }}</td>
+                                            <td>{{ reading.frequency if reading.frequency is not none else '-' }} Hz</td>
+                                            <td>{{ reading.user.name if reading.user else '-' }}</td>
+                                            <td>
+                                                <a href="{{ url_for('readings.view_manual_reading', reading_id=reading.id) }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا توجد قراءات يدوية لهذه اللوحة.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- البلاغات السابقة -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-history me-2"></i>
+                    البلاغات السابقة
+                </div>
+                <div class="card-body">
+                    {% if issues %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>العنوان</th>
+                                        <th>تاريخ الإبلاغ</th>
+                                        <th>الأولوية</th>
+                                        <th>الحالة</th>
+                                        <th>المقاول</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for issue in issues %}
+                                        <tr>
+                                            <td>{{ issue.title }}</td>
+                                            <td>{{ issue.created_at.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <span class="badge {% if issue.priority == 'عالية' %}bg-danger{% elif issue.priority == 'متوسطة' %}bg-warning{% else %}bg-info{% endif %}">
+                                                    {{ issue.priority }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if issue.status == 'مفتوح' %}bg-danger{% elif issue.status == 'قيد التنفيذ' %}bg-warning{% else %}bg-success{% endif %}">
+                                                    {{ issue.status }}
+                                                </span>
+                                            </td>
+                                            <td>{{ issue.contractor.name if issue.contractor else 'غير محدد' }}</td>
+                                            <td>
+                                                <a href="{{ url_for('view_issue', issue_id=issue.id) }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا توجد بلاغات سابقة لهذه اللوحة.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // يمكن إضافة أي سكربتات خاصة بالصفحة هنا
+    });
+</script>
+{% endblock %}

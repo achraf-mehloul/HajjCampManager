@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الخريطة التفاعلية - تجربة الحجاج والسياح 360°</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <!-- Leaflet Cluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    
+    <style>
+        :root {
+            --primary-color: #B89966;
+            --secondary-color: #8B7355;
+            --accent-color: #D4AF37;
+            --text-dark: #2C3E50;
+            --bg-light: #F8F9FA;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-light);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .map-container {
+            height: 100vh;
+            position: relative;
+        }
+
+        #interactive-map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 300px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+            display: block;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .filter-btn {
+            padding: 5px 10px;
+            border: 1px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .filter-btn:hover {
+            background: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        .location-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .location-info.show {
+            transform: translateY(0);
+        }
+
+        .location-header {
+            display: flex;
+            justify-content-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .location-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .close-info {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .location-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-icon {
+            color: var(--primary-color);
+            width: 20px;
+        }
+
+        .crowd-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+
+        .crowd-low { background-color: #28a745; }
+        .crowd-normal { background-color: #ffc107; }
+        .crowd-high { background-color: #fd7e14; }
+        .crowd-very_high { background-color: #dc3545; }
+
+        .rating-stars {
+            color: #ffc107;
+        }
+
+        .action-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-custom {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-outline-custom {
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .btn-primary-custom:hover,
+        .btn-outline-custom:hover {
+            background: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            font-size: 0.9rem;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--text-dark);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .holy-site { background: #8B4513; }
+        .service { background: #007bff; }
+        .shopping { background: #28a745; }
+        .transport { background: #ffc107; color: #000; }
+        .emergency { background: #dc3545; }
+
+        @media (max-width: 768px) {
+            .map-controls {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+                padding: 10px;
+            }
+
+            .location-info {
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                padding: 15px;
+            }
+
+            .location-details {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .legend {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px;
+            }
+
+            .back-button {
+                top: 10px;
+                left: 10px;
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Back Button -->
+    <button class="back-button" onclick="window.location.href='{{ url_for('pilgrimage_index') }}'">
+        <i class="fas fa-arrow-right"></i>
+    </button>
+
+    <!-- Map Container -->
+    <div class="map-container">
+        <div id="interactive-map"></div>
+    </div>
+
+    <!-- Map Controls -->
+    <div class="map-controls">
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-plus me-2"></i>إدارة المواقع
+            </label>
+            <div class="filter-buttons">
+                <a href="{{ url_for('pilgrimage_add_location') }}" class="filter-btn" style="background: #28a745; color: white; text-decoration: none;">
+                    <i class="fas fa-plus me-1"></i>إضافة موقع
+                </a>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-filter me-2"></i>تصفية المواقع
+            </label>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-type="all">الكل</button>
+                <button class="filter-btn" data-type="holy_site">مقدسة</button>
+                <button class="filter-btn" data-type="service">خدمات</button>
+                <button class="filter-btn" data-type="shopping">تسوق</button>
+                <button class="filter-btn" data-type="transport">نقل</button>
+                <button class="filter-btn" data-type="emergency">طوارئ</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-users me-2"></i>مستوى الازدحام
+            </label>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-crowd="all">الكل</button>
+                <button class="filter-btn" data-crowd="low">قليل</button>
+                <button class="filter-btn" data-crowd="normal">عادي</button>
+                <button class="filter-btn" data-crowd="high">عالي</button>
+                <button class="filter-btn" data-crowd="very_high">شديد</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-360-degrees me-2"></i>عرض 360°
+            </label>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="show360Only">
+                <label class="form-check-label" for="show360Only">
+                    المواقع المتاحة فقط
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Info Panel -->
+    <div class="location-info" id="locationInfo">
+        <div class="location-header">
+            <h3 class="location-title" id="locationTitle">اختر موقعاً من الخريطة</h3>
+            <button class="close-info" onclick="hideLocationInfo()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="location-details" id="locationDetails">
+            <!-- سيتم ملؤها ديناميكياً -->
+        </div>
+        <div class="action-buttons" id="actionButtons" style="display: none;">
+            <button class="action-btn btn-primary-custom" onclick="start360Tour()">
+                <i class="fas fa-play me-2"></i>جولة 360°
+            </button>
+            <button class="action-btn btn-outline-custom" onclick="reportIssue()">
+                <i class="fas fa-comment-dots me-2"></i>تقديم بلاغ
+            </button>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-title">دليل الرموز</div>
+        <div class="legend-item">
+            <div class="legend-icon holy-site">
+                <i class="fas fa-mosque"></i>
+            </div>
+            <span>أماكن مقدسة</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-icon service">
+                <i class="fas fa-concierge-bell"></i>
+            </div>
+            <span>خدمات</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-icon shopping">
+                <i class="fas fa-shopping-bag"></i>
+            </div>
+            <span>تسوق</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-icon transport">
+                <i class="fas fa-bus"></i>
+            </div>
+            <span>نقل</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-icon emergency">
+                <i class="fas fa-ambulance"></i>
+            </div>
+            <span>طوارئ</span>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        // التأكد من تحميل Leaflet
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // بيانات المواقع من الخادم
+                const mapData = {{ map_data | tojson | safe }};
+                console.log('Map data loaded:', mapData);
+
+                // تهيئة الخريطة
+                const map = L.map('interactive-map').setView([21.4225, 39.8262], 11);
+        
+        // إضافة طبقة الخريطة
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // مجموعة العلامات مع التجميع
+        const markersGroup = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false
+        });
+
+        // رموز المواقع
+        const locationIcons = {
+            holy_site: { icon: 'mosque', color: '#8B4513' },
+            service: { icon: 'concierge-bell', color: '#007bff' },
+            shopping: { icon: 'shopping-bag', color: '#28a745' },
+            transport: { icon: 'bus', color: '#ffc107' },
+            emergency: { icon: 'ambulance', color: '#dc3545' }
+        };
+
+        // إنشاء رمز مخصص
+        function createCustomIcon(type, crowdLevel) {
+            const iconInfo = locationIcons[type] || { icon: 'map-marker', color: '#6c757d' };
+            const crowdColors = {
+                low: '#28a745',
+                normal: '#ffc107', 
+                high: '#fd7e14',
+                very_high: '#dc3545'
+            };
+            
+            return L.divIcon({
+                html: `
+                    <div style="
+                        background: ${iconInfo.color};
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 14px;
+                        border: 3px solid ${crowdColors[crowdLevel] || '#6c757d'};
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    ">
+                        <i class="fas fa-${iconInfo.icon}"></i>
+                    </div>
+                `,
+                className: 'custom-marker',
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
+            });
+        }
+
+        // إضافة العلامات
+        let allMarkers = [];
+        
+        mapData.forEach(location => {
+            if (location.lat && location.lng) {
+                const marker = L.marker([location.lat, location.lng], {
+                    icon: createCustomIcon(location.type, location.crowd_level)
+                });
+                
+                marker.locationData = location;
+                
+                marker.on('click', function() {
+                    showLocationInfo(location);
+                });
+                
+                allMarkers.push(marker);
+                markersGroup.addLayer(marker);
+            }
+        });
+
+        map.addLayer(markersGroup);
+
+        // عرض معلومات الموقع
+        function showLocationInfo(location) {
+            const infoPanel = document.getElementById('locationInfo');
+            const title = document.getElementById('locationTitle');
+            const details = document.getElementById('locationDetails');
+            const actions = document.getElementById('actionButtons');
+            
+            title.textContent = location.name;
+            
+            const crowdText = {
+                low: 'قليل الازدحام',
+                normal: 'ازدحام عادي', 
+                high: 'ازدحام عالي',
+                very_high: 'ازدحام شديد'
+            };
+            
+            details.innerHTML = `
+                <div class="detail-item">
+                    <i class="fas fa-tag detail-icon"></i>
+                    <span>${location.name_en || 'غير متوفر'}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-info-circle detail-icon"></i>
+                    <span>${location.type}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-users detail-icon"></i>
+                    <span>${crowdText[location.crowd_level] || 'غير محدد'}</span>
+                    <span class="crowd-indicator crowd-${location.crowd_level}"></span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-star detail-icon"></i>
+                    <span class="rating-stars">
+                        ${'★'.repeat(location.safety_rating)}${'☆'.repeat(5-location.safety_rating)}
+                    </span>
+                    <span>السلامة</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-broom detail-icon"></i>
+                    <span class="rating-stars">
+                        ${'★'.repeat(location.cleanliness_rating)}${'☆'.repeat(5-location.cleanliness_rating)}
+                    </span>
+                    <span>النظافة</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-clock detail-icon"></i>
+                    <span>${location.operating_hours || 'غير محدد'}</span>
+                </div>
+            `;
+            
+            // إظهار أزرار الإجراءات إذا كان الموقع يدعم 360°
+            if (location.has_360) {
+                actions.style.display = 'flex';
+                window.currentLocation = location;
+            } else {
+                actions.style.display = 'none';
+            }
+            
+            infoPanel.classList.add('show');
+        }
+
+        // إخفاء معلومات الموقع
+        function hideLocationInfo() {
+            document.getElementById('locationInfo').classList.remove('show');
+        }
+
+        // بدء جولة 360°
+        function start360Tour() {
+            if (window.currentLocation) {
+                window.location.href = `{{ url_for('pilgrimage_location_detail', location_id=0) }}`.replace('0', window.currentLocation.id);
+            }
+        }
+
+        // تقديم بلاغ
+        function reportIssue() {
+            if (window.currentLocation) {
+                window.location.href = `{{ url_for('pilgrimage_report_issue') }}?location_id=${window.currentLocation.id}`;
+            }
+        }
+
+        // تصفية المواقع
+        document.querySelectorAll('.filter-btn[data-type]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // إزالة الفئة النشطة من جميع الأزرار
+                document.querySelectorAll('.filter-btn[data-type]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filterType = this.dataset.type;
+                filterMarkers(filterType, getCurrentCrowdFilter(), getShow360Only());
+            });
+        });
+
+        document.querySelectorAll('.filter-btn[data-crowd]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn[data-crowd]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const crowdFilter = this.dataset.crowd;
+                filterMarkers(getCurrentTypeFilter(), crowdFilter, getShow360Only());
+            });
+        });
+
+        document.getElementById('show360Only').addEventListener('change', function() {
+            filterMarkers(getCurrentTypeFilter(), getCurrentCrowdFilter(), this.checked);
+        });
+
+        // دوال مساعدة للحصول على المرشحات الحالية
+        function getCurrentTypeFilter() {
+            return document.querySelector('.filter-btn[data-type].active').dataset.type;
+        }
+
+        function getCurrentCrowdFilter() {
+            return document.querySelector('.filter-btn[data-crowd].active').dataset.crowd;
+        }
+
+        function getShow360Only() {
+            return document.getElementById('show360Only').checked;
+        }
+
+        // تصفية العلامات
+        function filterMarkers(typeFilter, crowdFilter, show360Only) {
+            markersGroup.clearLayers();
+            
+            allMarkers.forEach(marker => {
+                const location = marker.locationData;
+                let show = true;
+                
+                // تصفية حسب النوع
+                if (typeFilter !== 'all' && location.type !== typeFilter) {
+                    show = false;
+                }
+                
+                // تصفية حسب الازدحام
+                if (crowdFilter !== 'all' && location.crowd_level !== crowdFilter) {
+                    show = false;
+                }
+                
+                // تصفية حسب توفر 360°
+                if (show360Only && !location.has_360) {
+                    show = false;
+                }
+                
+                if (show) {
+                    markersGroup.addLayer(marker);
+                }
+            });
+        }
+
+        // إخفاء لوحة المعلومات عند النقر على الخريطة
+        map.on('click', function(e) {
+            if (e.originalEvent.target === e.originalEvent.currentTarget) {
+                hideLocationInfo();
+            }
+        });
+
+            } catch (error) {
+                console.error('Error initializing map:', error);
+                document.getElementById('interactive-map').innerHTML =
+                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; color: #6c757d; font-size: 18px;">' +
+                    '<div><i class="fas fa-exclamation-triangle me-2"></i>خطأ في تحميل الخريطة. يرجى إعادة تحميل الصفحة.</div>' +
+                    '</div>';
+            }
+        });
+    </script>
+</body>
+</html>

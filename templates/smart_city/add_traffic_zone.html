@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                إضافة منطقة مرورية جديدة
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('smart_city.transportation_dashboard') }}">النقل والمواقف</a></li>
+                    <li class="breadcrumb-item active">إضافة منطقة مرورية</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-road me-2"></i>بيانات المنطقة المرورية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="traffic-form">
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">اسم المنطقة *</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="zone_type" class="form-label">نوع المنطقة *</label>
+                                    <select class="form-select" id="zone_type" name="zone_type" required>
+                                        <option value="">اختر النوع</option>
+                                        <option value="congestion">ازدحام</option>
+                                        <option value="restricted">منطقة محظورة</option>
+                                        <option value="closed">مغلقة</option>
+                                        <option value="construction">أعمال إنشاء</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="severity_level" class="form-label">مستوى الشدة *</label>
+                                    <select class="form-select" id="severity_level" name="severity_level" required>
+                                        <option value="">اختر المستوى</option>
+                                        <option value="low">منخفض</option>
+                                        <option value="medium">متوسط</option>
+                                        <option value="high">عالي</option>
+                                        <option value="critical">حرج</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" id="is_permanent" name="is_permanent">
+                                        <label class="form-check-label" for="is_permanent">
+                                            منطقة دائمة
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Time Period -->
+                        <div class="row" id="time-period">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_time" class="form-label">وقت البداية</label>
+                                    <input type="datetime-local" class="form-control" id="start_time" name="start_time">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_time" class="form-label">وقت النهاية</label>
+                                    <input type="datetime-local" class="form-control" id="end_time" name="end_time">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden coordinates field -->
+                        <input type="hidden" id="coordinates" name="coordinates">
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">الوصف *</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required placeholder="وصف المشكلة المرورية أو سبب الإغلاق"></textarea>
+                        </div>
+
+                        <!-- Alternative Routes -->
+                        <div class="mb-3">
+                            <label for="alternative_routes" class="form-label">الطرق البديلة</label>
+                            <textarea class="form-control" id="alternative_routes" name="alternative_routes" rows="2" placeholder="اقتراحات للطرق البديلة"></textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('smart_city.transportation_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save me-2"></i>حفظ المنطقة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>تحديد المنطقة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="location-map" style="height: 400px;"></div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            ارسم المنطقة المرورية على الخريطة
+                        </small>
+                    </div>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="enableDrawing()">
+                            <i class="fas fa-draw-polygon me-1"></i>رسم المنطقة
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearMap()">
+                            <i class="fas fa-trash me-1"></i>مسح
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Info -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>معلومات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="fas fa-check text-success me-2"></i>يجب رسم المنطقة على الخريطة</li>
+                        <li><i class="fas fa-check text-success me-2"></i>الوصف مطلوب</li>
+                        <li><i class="fas fa-check text-success me-2"></i>حدد مستوى الشدة</li>
+                        <li><i class="fas fa-check text-success me-2"></i>اختر إذا كانت دائمة أم مؤقتة</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+<script>
+// Initialize map
+let map = L.map('location-map').setView([21.4225, 39.8262], 13); // Mecca coordinates
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Variables for drawing
+let drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+let drawControl = new L.Control.Draw({
+    edit: {
+        featureGroup: drawnItems
+    },
+    draw: {
+        polygon: true,
+        polyline: false,
+        rectangle: true,
+        circle: false,
+        marker: false,
+        circlemarker: false
+    }
+});
+
+// Drawing events
+let drawingEnabled = false;
+
+function enableDrawing() {
+    drawingEnabled = true;
+    map.addControl(drawControl);
+}
+
+map.on(L.Draw.Event.CREATED, function(e) {
+    let layer = e.layer;
+    drawnItems.addLayer(layer);
+    
+    // Get coordinates
+    let coordinates = [];
+    if (layer instanceof L.Polygon || layer instanceof L.Rectangle) {
+        coordinates = layer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);
+    }
+    
+    // Set coordinates in hidden field
+    document.getElementById('coordinates').value = JSON.stringify(coordinates);
+});
+
+function clearMap() {
+    drawnItems.clearLayers();
+    document.getElementById('coordinates').value = '';
+    drawingEnabled = false;
+    map.removeControl(drawControl);
+}
+
+// Handle permanent checkbox
+document.getElementById('is_permanent').addEventListener('change', function() {
+    const timePeriod = document.getElementById('time-period');
+    if (this.checked) {
+        timePeriod.style.display = 'none';
+        document.getElementById('start_time').value = '';
+        document.getElementById('end_time').value = '';
+    } else {
+        timePeriod.style.display = 'flex';
+    }
+});
+
+// Form validation
+document.getElementById('traffic-form').addEventListener('submit', function(e) {
+    let name = document.getElementById('name').value;
+    let zoneType = document.getElementById('zone_type').value;
+    let severityLevel = document.getElementById('severity_level').value;
+    let description = document.getElementById('description').value;
+    let coordinates = document.getElementById('coordinates').value;
+    
+    if (!name || !zoneType || !severityLevel || !description) {
+        e.preventDefault();
+        alert('يرجى ملء جميع الحقول المطلوبة');
+        return false;
+    }
+    
+    if (!coordinates) {
+        e.preventDefault();
+        alert('يرجى رسم المنطقة على الخريطة');
+        return false;
+    }
+});
+</script>
+{% endblock %}

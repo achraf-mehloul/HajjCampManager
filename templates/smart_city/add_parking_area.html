@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-plus me-2"></i>
+                إضافة منطقة موقف جديدة
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('smart_city.transportation_dashboard') }}">النقل والمواقف</a></li>
+                    <li class="breadcrumb-item active">إضافة موقف</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-parking me-2"></i>بيانات الموقف
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="parking-form">
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">اسم الموقف *</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="area_type" class="form-label">نوع الموقف *</label>
+                                    <select class="form-select" id="area_type" name="area_type" required>
+                                        <option value="">اختر النوع</option>
+                                        <option value="public">عام</option>
+                                        <option value="private">خاص</option>
+                                        <option value="maintenance">صيانة</option>
+                                        <option value="emergency">طوارئ</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="capacity" class="form-label">السعة *</label>
+                                    <input type="number" class="form-control" id="capacity" name="capacity" min="1" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="hourly_rate" class="form-label">التعرفة بالساعة (ريال)</label>
+                                    <input type="number" class="form-control" id="hourly_rate" name="hourly_rate" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="center_lat" class="form-label">خط العرض</label>
+                                    <input type="number" class="form-control" id="center_lat" name="center_lat" step="any">
+                                    <div class="form-text">سيتم تحديده تلقائياً عند النقر على الخريطة</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="center_lng" class="form-label">خط الطول</label>
+                                    <input type="number" class="form-control" id="center_lng" name="center_lng" step="any">
+                                    <div class="form-text">سيتم تحديده تلقائياً عند النقر على الخريطة</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden coordinates field -->
+                        <input type="hidden" id="coordinates" name="coordinates">
+
+                        <!-- Operating Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="operating_hours" class="form-label">ساعات التشغيل</label>
+                                    <input type="text" class="form-control" id="operating_hours" name="operating_hours" placeholder="مثال: 24/7 أو 06:00-22:00">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="contact_info" class="form-label">معلومات الاتصال</label>
+                                    <input type="text" class="form-control" id="contact_info" name="contact_info" placeholder="رقم الهاتف أو البريد الإلكتروني">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accessibility Features -->
+                        <div class="mb-3">
+                            <label for="accessibility_features" class="form-label">مميزات إمكانية الوصول</label>
+                            <textarea class="form-control" id="accessibility_features" name="accessibility_features" rows="2" placeholder="مثال: مواقف ذوي الاحتياجات الخاصة، مصاعد، منحدرات"></textarea>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('smart_city.transportation_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>حفظ الموقف
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>تحديد الموقع
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="location-map" style="height: 400px;"></div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            انقر على الخريطة لتحديد موقع الموقف أو ارسم المنطقة
+                        </small>
+                    </div>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="enableDrawing()">
+                            <i class="fas fa-draw-polygon me-1"></i>رسم المنطقة
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearMap()">
+                            <i class="fas fa-trash me-1"></i>مسح
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Info -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>معلومات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="fas fa-check text-success me-2"></i>يمكن تحديد الموقع بالنقر على الخريطة</li>
+                        <li><i class="fas fa-check text-success me-2"></i>يمكن رسم منطقة الموقف</li>
+                        <li><i class="fas fa-check text-success me-2"></i>السعة مطلوبة</li>
+                        <li><i class="fas fa-check text-success me-2"></i>النوع مطلوب</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+<script>
+// Initialize map
+let map = L.map('location-map').setView([21.4225, 39.8262], 13); // Mecca coordinates
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Variables for drawing
+let drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+let drawControl = new L.Control.Draw({
+    edit: {
+        featureGroup: drawnItems
+    },
+    draw: {
+        polygon: true,
+        polyline: false,
+        rectangle: true,
+        circle: false,
+        marker: true,
+        circlemarker: false
+    }
+});
+
+// Click event for setting center point
+map.on('click', function(e) {
+    if (!drawingEnabled) {
+        document.getElementById('center_lat').value = e.latlng.lat.toFixed(6);
+        document.getElementById('center_lng').value = e.latlng.lng.toFixed(6);
+        
+        // Remove existing markers
+        map.eachLayer(function(layer) {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+        
+        // Add new marker
+        L.marker([e.latlng.lat, e.latlng.lng]).addTo(map)
+            .bindPopup('موقع الموقف')
+            .openPopup();
+    }
+});
+
+// Drawing events
+let drawingEnabled = false;
+
+function enableDrawing() {
+    drawingEnabled = true;
+    map.addControl(drawControl);
+}
+
+map.on(L.Draw.Event.CREATED, function(e) {
+    let layer = e.layer;
+    drawnItems.addLayer(layer);
+    
+    // Get coordinates
+    let coordinates = [];
+    if (layer instanceof L.Polygon || layer instanceof L.Rectangle) {
+        coordinates = layer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);
+    }
+    
+    // Set coordinates in hidden field
+    document.getElementById('coordinates').value = JSON.stringify(coordinates);
+    
+    // Calculate center if polygon
+    if (coordinates.length > 0) {
+        let bounds = layer.getBounds();
+        let center = bounds.getCenter();
+        document.getElementById('center_lat').value = center.lat.toFixed(6);
+        document.getElementById('center_lng').value = center.lng.toFixed(6);
+    }
+});
+
+function clearMap() {
+    drawnItems.clearLayers();
+    document.getElementById('coordinates').value = '';
+    document.getElementById('center_lat').value = '';
+    document.getElementById('center_lng').value = '';
+    
+    // Remove markers
+    map.eachLayer(function(layer) {
+        if (layer instanceof L.Marker) {
+            map.removeLayer(layer);
+        }
+    });
+    
+    drawingEnabled = false;
+    map.removeControl(drawControl);
+}
+
+// Form validation
+document.getElementById('parking-form').addEventListener('submit', function(e) {
+    let name = document.getElementById('name').value;
+    let areaType = document.getElementById('area_type').value;
+    let capacity = document.getElementById('capacity').value;
+    
+    if (!name || !areaType || !capacity) {
+        e.preventDefault();
+        alert('يرجى ملء جميع الحقول المطلوبة');
+        return false;
+    }
+    
+    if (parseInt(capacity) < 1) {
+        e.preventDefault();
+        alert('يجب أن تكون السعة أكبر من صفر');
+        return false;
+    }
+});
+</script>
+{% endblock %}

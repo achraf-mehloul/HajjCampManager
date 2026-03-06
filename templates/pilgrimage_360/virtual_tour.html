@@ -1,0 +1,458 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-play-circle me-2"></i>
+                الجولة الافتراضية 360°
+            </h1>
+            <p class="lead">اكتشف الأماكن المقدسة والمرافق من خلال جولة تفاعلية شاملة</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('pilgrimage_index') }}">تجربة الحجاج 360°</a></li>
+                    <li class="breadcrumb-item active">الجولة الافتراضية</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Tour Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">التحكم في الجولة</h5>
+                            <small class="text-muted">اختر نوع الجولة أو موقع محدد</small>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-primary" onclick="startGuidedTour()">
+                                <i class="fas fa-route me-2"></i>جولة مرشدة
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="startFreeTour()">
+                                <i class="fas fa-hand-pointer me-2"></i>جولة حرة
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="toggleFullscreen()">
+                                <i class="fas fa-expand me-2"></i>ملء الشاشة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tour Categories -->
+    <div class="row mb-4">
+        {% for category, locations in tour_sequence.items() %}
+        {% if locations %}
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-{% if category == 'holy_sites' %}mosque{% elif category == 'services' %}concierge-bell{% elif category == 'shopping' %}shopping-bag{% elif category == 'transport' %}bus{% else %}ambulance{% endif %} me-2"></i>
+                        {% if category == 'holy_sites' %}الأماكن المقدسة
+                        {% elif category == 'services' %}الخدمات
+                        {% elif category == 'shopping' %}التسوق
+                        {% elif category == 'transport' %}النقل
+                        {% else %}الطوارئ
+                        {% endif %}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for location in locations[:4] %}
+                        <div class="col-md-6 mb-2">
+                            <button class="btn btn-outline-primary btn-sm w-100" onclick="visitLocation({{ location.id }})">
+                                {{ location.location_name }}
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if locations|length > 4 %}
+                    <div class="text-center mt-2">
+                        <button class="btn btn-link btn-sm" onclick="showAllInCategory('{{ category }}')">
+                            عرض جميع المواقع ({{ locations|length }})
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- 360° Viewer -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0" id="current-location-title">
+                            <i class="fas fa-eye me-2"></i>اختر موقعاً لبدء الجولة
+                        </h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary" onclick="previousLocation()" id="prev-btn" disabled>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="nextLocation()" id="next-btn" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="tour-viewer" style="height: 600px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <div class="text-center text-white">
+                                <i class="fas fa-kaaba fa-4x mb-4"></i>
+                                <h3>مرحباً بك في الجولة الافتراضية</h3>
+                                <p class="lead">اختر موقعاً من الأعلى لبدء التجربة التفاعلية</p>
+                                <button class="btn btn-light btn-lg me-3" onclick="startGuidedTour()">
+                                    <i class="fas fa-play me-2"></i>بدء الجولة المرشدة
+                                </button>
+                                <a href="{{ url_for('pilgrimage_viewer_3d') }}" class="btn btn-success btn-lg">
+                                    <i class="fas fa-cube me-2"></i>عرض ثلاثي الأبعاد
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Info Panel -->
+    <div class="row mt-4" id="location-info-panel" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 id="info-title">عنوان الموقع</h5>
+                            <p id="info-description">وصف الموقع</p>
+                            <div id="info-amenities"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" onclick="reportIssueForLocation()">
+                                    <i class="fas fa-comment-dots me-2"></i>تقديم بلاغ
+                                </button>
+                                <button class="btn btn-success" onclick="shareCurrentLocation()">
+                                    <i class="fas fa-share me-2"></i>مشاركة
+                                </button>
+                                <button class="btn btn-info" onclick="getDirectionsToLocation()">
+                                    <i class="fas fa-directions me-2"></i>الاتجاهات
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- A-Frame for 360° -->
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+
+<script>
+// بيانات المواقع
+const allLocations = {{ all_locations | tojson | safe }};
+const tourSequence = {{ tour_sequence | tojson | safe }};
+
+// متغيرات الجولة
+let currentLocationIndex = 0;
+let currentTourType = 'free'; // 'guided' or 'free'
+let currentCategory = 'holy_sites';
+let isFullscreen = false;
+
+// بدء الجولة المرشدة
+function startGuidedTour() {
+    currentTourType = 'guided';
+    currentLocationIndex = 0;
+    
+    // البدء بالأماكن المقدسة
+    if (tourSequence.holy_sites && tourSequence.holy_sites.length > 0) {
+        visitLocation(tourSequence.holy_sites[0].id);
+        updateNavigationButtons();
+    }
+}
+
+// بدء الجولة الحرة
+function startFreeTour() {
+    currentTourType = 'free';
+    document.getElementById('current-location-title').innerHTML = '<i class="fas fa-hand-pointer me-2"></i>اختر أي موقع للزيارة';
+}
+
+// زيارة موقع محدد
+function visitLocation(locationId) {
+    const location = allLocations.find(loc => loc.id === locationId);
+    if (!location) return;
+    
+    // تحديث العنوان
+    document.getElementById('current-location-title').innerHTML = `<i class="fas fa-eye me-2"></i>${location.location_name}`;
+    
+    // إنشاء مشهد 360°
+    create360Scene(location);
+    
+    // عرض معلومات الموقع
+    showLocationInfo(location);
+    
+    // تسجيل التفاعل
+    recordInteraction(locationId, 'virtual_visit');
+    
+    // تحديث أزرار التنقل
+    updateNavigationButtons();
+}
+
+// إنشاء مشهد 360°
+function create360Scene(location) {
+    const viewer = document.getElementById('tour-viewer');
+
+    // تحديد الصورة البانورامية حسب نوع الموقع
+    let panoramaImage = '/static/360_images/kaaba_360.jpg'; // افتراضي
+
+    if (location.location_name.includes('الكعبة') || location.location_name.includes('kaaba')) {
+        panoramaImage = '/static/360_images/kaaba_360.jpg';
+    } else if (location.location_name.includes('المسجد الحرام') || location.location_name.includes('masjid')) {
+        panoramaImage = '/static/360_images/masjid_360.jpg';
+    } else if (location.location_name.includes('منى') || location.location_name.includes('mina')) {
+        panoramaImage = '/static/360_images/mina_360.jpg';
+    } else if (location.location_name.includes('عرفات') || location.location_name.includes('arafat')) {
+        panoramaImage = '/static/360_images/arafat_360.jpg';
+    } else if (location.location_name.includes('مزدلفة') || location.location_name.includes('muzdalifah')) {
+        panoramaImage = '/static/360_images/muzdalifah_360.jpg';
+    } else if (location.location_name.includes('الجمرات') || location.location_name.includes('jamarat')) {
+        panoramaImage = '/static/360_images/jamarat_360.jpg';
+    } else if (location.location_name.includes('الصفا والمروة') || location.location_name.includes('safa')) {
+        panoramaImage = '/static/360_images/safa_marwa_360.jpg';
+    } else if (location.type === 'service' || location.type === 'shopping') {
+        panoramaImage = '/static/360_images/hotel_360.jpg';
+    } else if (location.type === 'transport') {
+        panoramaImage = '/static/360_images/transport_360.jpg';
+    }
+
+    // إنشاء مشهد A-Frame مع الصورة البانورامية
+    let sceneHTML = `
+        <a-scene embedded style="height: 600px;">
+            <a-sky src="${panoramaImage}" rotation="0 -130 0"></a-sky>
+            <a-text value="${location.location_name}" position="0 3 -4" color="#fff" align="center" scale="2 2 2"
+                    geometry="primitive: plane; width: auto; height: auto"
+                    material="color: rgba(0,0,0,0.7); transparent: true"></a-text>
+            <a-text value="${location.description || ''}" position="0 2 -4" color="#fff" align="center" scale="1 1 1"
+                    geometry="primitive: plane; width: auto; height: auto"
+                    material="color: rgba(0,0,0,0.5); transparent: true"></a-text>
+    `;
+    
+    // إضافة عناصر تفاعلية حسب نوع الموقع
+    if (location.location_type === 'holy_site') {
+        sceneHTML += `
+            <a-box position="-2 1 -4" rotation="0 45 0" color="#8B4513" scale="0.5 2 0.5"></a-box>
+            <a-box position="2 1 -4" rotation="0 45 0" color="#8B4513" scale="0.5 2 0.5"></a-box>
+            <a-sphere position="0 1.5 -5" radius="0.3" color="#D4AF37"></a-sphere>
+        `;
+    } else if (location.location_type === 'shopping') {
+        sceneHTML += `
+            <a-box position="-1 0.5 -3" color="#4CC3D9" scale="0.5 1 0.5"></a-box>
+            <a-box position="0 0.5 -3" color="#EF2D5E" scale="0.5 1 0.5"></a-box>
+            <a-box position="1 0.5 -3" color="#FFC65D" scale="0.5 1 0.5"></a-box>
+        `;
+    } else if (location.location_type === 'transport') {
+        sceneHTML += `
+            <a-cylinder position="0 0.5 -4" radius="1" height="0.2" color="#FFC65D"></a-cylinder>
+            <a-box position="0 1 -4" color="#4CC3D9" scale="2 0.5 1"></a-box>
+        `;
+    }
+    
+    sceneHTML += `
+            <a-camera look-controls wasd-controls position="0 1.6 0"></a-camera>
+        </a-scene>
+    `;
+    
+    viewer.innerHTML = sceneHTML;
+}
+
+// عرض معلومات الموقع
+function showLocationInfo(location) {
+    const panel = document.getElementById('location-info-panel');
+    const title = document.getElementById('info-title');
+    const description = document.getElementById('info-description');
+    const amenities = document.getElementById('info-amenities');
+    
+    title.textContent = location.location_name;
+    description.textContent = location.description || 'لا يوجد وصف متاح';
+    
+    // عرض المرافق
+    if (location.amenities) {
+        try {
+            const amenitiesList = JSON.parse(location.amenities);
+            amenities.innerHTML = '<h6>المرافق المتاحة:</h6><ul class="list-unstyled">' + 
+                amenitiesList.map(amenity => `<li><i class="fas fa-check text-success me-2"></i>${amenity}</li>`).join('') + 
+                '</ul>';
+        } catch (e) {
+            amenities.innerHTML = '';
+        }
+    } else {
+        amenities.innerHTML = '';
+    }
+    
+    panel.style.display = 'block';
+    window.currentLocation = location;
+}
+
+// التنقل للموقع التالي
+function nextLocation() {
+    if (currentTourType === 'guided') {
+        // البحث عن الموقع التالي في الجولة المرشدة
+        const allGuidedLocations = [
+            ...tourSequence.holy_sites || [],
+            ...tourSequence.services || [],
+            ...tourSequence.shopping || [],
+            ...tourSequence.transport || [],
+            ...tourSequence.emergency || []
+        ];
+        
+        if (currentLocationIndex < allGuidedLocations.length - 1) {
+            currentLocationIndex++;
+            visitLocation(allGuidedLocations[currentLocationIndex].id);
+        }
+    }
+}
+
+// التنقل للموقع السابق
+function previousLocation() {
+    if (currentTourType === 'guided') {
+        const allGuidedLocations = [
+            ...tourSequence.holy_sites || [],
+            ...tourSequence.services || [],
+            ...tourSequence.shopping || [],
+            ...tourSequence.transport || [],
+            ...tourSequence.emergency || []
+        ];
+        
+        if (currentLocationIndex > 0) {
+            currentLocationIndex--;
+            visitLocation(allGuidedLocations[currentLocationIndex].id);
+        }
+    }
+}
+
+// تحديث أزرار التنقل
+function updateNavigationButtons() {
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    
+    if (currentTourType === 'guided') {
+        const allGuidedLocations = [
+            ...tourSequence.holy_sites || [],
+            ...tourSequence.services || [],
+            ...tourSequence.shopping || [],
+            ...tourSequence.transport || [],
+            ...tourSequence.emergency || []
+        ];
+        
+        prevBtn.disabled = currentLocationIndex === 0;
+        nextBtn.disabled = currentLocationIndex === allGuidedLocations.length - 1;
+    } else {
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+    }
+}
+
+// تبديل ملء الشاشة
+function toggleFullscreen() {
+    const viewer = document.getElementById('tour-viewer');
+    
+    if (!isFullscreen) {
+        if (viewer.requestFullscreen) {
+            viewer.requestFullscreen();
+        } else if (viewer.webkitRequestFullscreen) {
+            viewer.webkitRequestFullscreen();
+        } else if (viewer.msRequestFullscreen) {
+            viewer.msRequestFullscreen();
+        }
+        isFullscreen = true;
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+        isFullscreen = false;
+    }
+}
+
+// عرض جميع المواقع في فئة معينة
+function showAllInCategory(category) {
+    alert(`عرض جميع مواقع: ${category}`);
+}
+
+// تقديم بلاغ للموقع الحالي
+function reportIssueForLocation() {
+    if (window.currentLocation) {
+        window.location.href = `{{ url_for('pilgrimage_report_issue') }}?location_id=${window.currentLocation.id}`;
+    }
+}
+
+// مشاركة الموقع الحالي
+function shareCurrentLocation() {
+    if (window.currentLocation) {
+        if (navigator.share) {
+            navigator.share({
+                title: window.currentLocation.location_name,
+                text: window.currentLocation.description,
+                url: window.location.href
+            });
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert('تم نسخ رابط الجولة');
+        }
+    }
+}
+
+// الحصول على الاتجاهات للموقع الحالي
+function getDirectionsToLocation() {
+    if (window.currentLocation && window.currentLocation.center_lat && window.currentLocation.center_lng) {
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${window.currentLocation.center_lat},${window.currentLocation.center_lng}`;
+        window.open(url, '_blank');
+    } else {
+        alert('إحداثيات الموقع غير متوفرة');
+    }
+}
+
+// تسجيل التفاعل
+function recordInteraction(locationId, type) {
+    fetch(`/pilgrimage-360/api/location/${locationId}/interaction`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            type: type,
+            data: {
+                tour_type: currentTourType,
+                timestamp: new Date().toISOString()
+            }
+        })
+    });
+}
+
+// بدء الجولة المرشدة تلقائياً إذا كانت هناك مواقع متاحة
+document.addEventListener('DOMContentLoaded', function() {
+    if (tourSequence.holy_sites && tourSequence.holy_sites.length > 0) {
+        // عرض أول موقع مقدس كمعاينة
+        setTimeout(() => {
+            visitLocation(tourSequence.holy_sites[0].id);
+        }, 1000);
+    }
+});
+</script>
+{% endblock %}

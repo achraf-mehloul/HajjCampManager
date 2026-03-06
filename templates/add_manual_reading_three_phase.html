@@ -1,0 +1,763 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">إضافة قراءة يدوية للوحة: {{ panel.mdb }}</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('readings.add_manual_reading', panel_id=panel.id) }}" method="post">
+                        <!-- حقول مخفية للبدء التلقائي -->
+                        {% if auto_start %}
+                            <input type="hidden" name="auto_start" value="true">
+                        {% endif %}
+                        {% if issue_id %}
+                            <input type="hidden" name="issue_id" value="{{ issue_id }}">
+                        {% endif %}
+                        {% if request_id %}
+                            <input type="hidden" name="request_id" value="{{ request_id }}">
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="timestamp" class="form-label">وقت القراءة</label>
+                                    <input type="datetime-local" class="form-control" id="timestamp" name="timestamp" value="{{ now.strftime('%Y-%m-%dT%H:%M') }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="reading_type" class="form-label">نوع القراءة</label>
+                                    <select class="form-select" id="reading_type" name="reading_type">
+                                        <option value="manual">قراءة يدوية</option>
+                                        <option value="imported">قراءة مستوردة</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="panel_status" class="form-label">حالة اللوحة</label>
+                                    <select class="form-select" id="panel_status" name="panel_status">
+                                        <option value="عامل">عامل</option>
+                                        <option value="معطل">معطل</option>
+                                        <option value="تحت الصيانة">تحت الصيانة</option>
+                                        <option value="مفصول">مفصول (Trip)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="breaker_capacity" class="form-label">سعة القاطع (A)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="breaker_capacity" name="breaker_capacity" step="0.01" value="{{ default_values.breaker_capacity }}" {{ 'readonly' if panel.breaker_capacity else '' }}>
+                                        <span class="input-group-text">A</span>
+                                    </div>
+                                    {% if panel.breaker_capacity %}
+                                    <small class="text-muted">سعة القاطع معرفة مسبقاً. <a href="#" id="edit-breaker-capacity" class="text-primary">تعديل</a></small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- القوائم المنسدلة الديناميكية -->
+                        <div class="row">
+                            {% for dropdown in dropdowns %}
+                                {% if dropdown.is_active %}
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="dropdown_{{ dropdown.id }}" class="form-label">{{ dropdown.display_name }}</label>
+                                        <select class="form-select" id="dropdown_{{ dropdown.id }}" name="dropdown_{{ dropdown.id }}">
+                                            <option value="">-- اختر {{ dropdown.display_name }} --</option>
+                                            {% for item in dropdown.items %}
+                                                {% if item.is_active %}
+                                                <option value="{{ item.value }}">{{ item.display_text }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if dropdown.field_type == 'breaker_capacity' %}
+                                <script>
+                                    $(document).ready(function() {
+                                        $('#dropdown_{{ dropdown.id }}').change(function() {
+                                            var selectedValue = $(this).val();
+                                            if (selectedValue) {
+                                                $('#breaker_capacity').val(selectedValue);
+                                            }
+                                        });
+                                    });
+                                </script>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <h5 class="mt-4 mb-3">قراءات التيار (I)</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="current_l1" class="form-label">التيار L1 (I)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="current_l1" name="current_l1" step="0.01" value="{{ default_values.current }}">
+                                        <select class="form-select" id="current_unit_id" name="current_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'current' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="current_l2" class="form-label">التيار L2 (I)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="current_l2" name="current_l2" step="0.01" value="{{ default_values.current }}">
+                                        <span class="input-group-text current-unit-display">A</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="current_l3" class="form-label">التيار L3 (I)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="current_l3" name="current_l3" step="0.01" value="{{ default_values.current }}">
+                                        <span class="input-group-text current-unit-display">A</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3">قراءات الجهد (V)</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="voltage_l1_l2" class="form-label">الجهد L1-L2 (V)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="voltage_l1_l2" name="voltage_l1_l2" step="0.01" value="{{ default_values.voltage }}">
+                                        <select class="form-select" id="voltage_unit_id" name="voltage_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'voltage' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="voltage_l2_l3" class="form-label">الجهد L2-L3 (V)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="voltage_l2_l3" name="voltage_l2_l3" step="0.01" value="{{ default_values.voltage }}">
+                                        <span class="input-group-text voltage-unit-display">V</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="voltage_l3_l1" class="form-label">الجهد L3-L1 (V)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="voltage_l3_l1" name="voltage_l3_l1" step="0.01" value="{{ default_values.voltage }}">
+                                        <span class="input-group-text voltage-unit-display">V</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="voltage_l1_n" class="form-label">الجهد L1-N (V)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="voltage_l1_n" name="voltage_l1_n" step="0.01" value="{{ default_values.voltage }}">
+                                        <span class="input-group-text voltage-unit-display">V</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="voltage_l2_n" class="form-label">الجهد L2-N (V)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="voltage_l2_n" name="voltage_l2_n" step="0.01" value="{{ default_values.voltage }}">
+                                        <span class="input-group-text voltage-unit-display">V</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="voltage_l3_n" class="form-label">الجهد L3-N (V)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="voltage_l3_n" name="voltage_l3_n" step="0.01" value="{{ default_values.voltage }}">
+                                        <span class="input-group-text voltage-unit-display">V</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3">قراءات القدرة الفعالة (P)</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="active_power_l1" class="form-label">القدرة الفعالة L1 (P)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="active_power_l1" name="active_power_l1" step="0.01" value="{{ default_values.power }}">
+                                        <select class="form-select" id="active_power_unit_id" name="active_power_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'power' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="active_power_l2" class="form-label">القدرة الفعالة L2 (P)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="active_power_l2" name="active_power_l2" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text active-power-unit-display">W</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="active_power_l3" class="form-label">القدرة الفعالة L3 (P)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="active_power_l3" name="active_power_l3" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text active-power-unit-display">W</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="active_power_total" class="form-label">إجمالي القدرة الفعالة (P)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="active_power_total" name="active_power_total" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text active-power-unit-display">W</span>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="auto_calculate_active_power" checked>
+                                        <label class="form-check-label" for="auto_calculate_active_power">
+                                            حساب تلقائي (مجموع L1+L2+L3)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3">قراءات القدرة الظاهرية (S)</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="apparent_power_l1" class="form-label">القدرة الظاهرية L1 (S)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="apparent_power_l1" name="apparent_power_l1" step="0.01" value="{{ default_values.power }}">
+                                        <select class="form-select" id="apparent_power_unit_id" name="apparent_power_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'power' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="apparent_power_l2" class="form-label">القدرة الظاهرية L2 (S)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="apparent_power_l2" name="apparent_power_l2" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text apparent-power-unit-display">VA</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="apparent_power_l3" class="form-label">القدرة الظاهرية L3 (S)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="apparent_power_l3" name="apparent_power_l3" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text apparent-power-unit-display">VA</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="apparent_power_total" class="form-label">إجمالي القدرة الظاهرية (S)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="apparent_power_total" name="apparent_power_total" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text apparent-power-unit-display">VA</span>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="auto_calculate_apparent_power" checked>
+                                        <label class="form-check-label" for="auto_calculate_apparent_power">
+                                            حساب تلقائي (مجموع L1+L2+L3)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3">قراءات القدرة غير الفعالة (Q)</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="reactive_power_l1" class="form-label">القدرة غير الفعالة L1 (Q)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="reactive_power_l1" name="reactive_power_l1" step="0.01" value="{{ default_values.power }}">
+                                        <select class="form-select" id="reactive_power_unit_id" name="reactive_power_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'power' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="reactive_power_l2" class="form-label">القدرة غير الفعالة L2 (Q)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="reactive_power_l2" name="reactive_power_l2" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text reactive-power-unit-display">VAR</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="reactive_power_l3" class="form-label">القدرة غير الفعالة L3 (Q)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="reactive_power_l3" name="reactive_power_l3" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text reactive-power-unit-display">VAR</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="reactive_power_total" class="form-label">إجمالي القدرة غير الفعالة (Q)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="reactive_power_total" name="reactive_power_total" step="0.01" value="{{ default_values.power }}">
+                                        <span class="input-group-text reactive-power-unit-display">VAR</span>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="auto_calculate_reactive_power" checked>
+                                        <label class="form-check-label" for="auto_calculate_reactive_power">
+                                            حساب تلقائي (مجموع L1+L2+L3)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3">معامل القدرة (P.F)</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="power_factor_l1" class="form-label">معامل القدرة L1 (P.F)</label>
+                                    <input type="number" class="form-control" id="power_factor_l1" name="power_factor_l1" step="0.01" min="0" max="1" value="{{ default_values.power_factor }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="power_factor_l2" class="form-label">معامل القدرة L2 (P.F)</label>
+                                    <input type="number" class="form-control" id="power_factor_l2" name="power_factor_l2" step="0.01" min="0" max="1" value="{{ default_values.power_factor }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="power_factor_l3" class="form-label">معامل القدرة L3 (P.F)</label>
+                                    <input type="number" class="form-control" id="power_factor_l3" name="power_factor_l3" step="0.01" min="0" max="1" value="{{ default_values.power_factor }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="power_factor_total" class="form-label">إجمالي معامل القدرة (P.F)</label>
+                                    <input type="number" class="form-control" id="power_factor_total" name="power_factor_total" step="0.01" min="0" max="1" value="{{ default_values.power_factor }}">
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="auto_calculate_power_factor" checked>
+                                        <label class="form-check-label" for="auto_calculate_power_factor">
+                                            حساب تلقائي (متوسط L1+L2+L3)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3">قراءات الطاقة (E)</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="active_energy" class="form-label">الطاقة الفعالة (Ep)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="active_energy" name="active_energy" step="0.01" value="{{ default_values.energy }}">
+                                        <select class="form-select" id="energy_unit_id" name="energy_unit_id">
+                                            {% for unit in units %}
+                                                {% if unit.category == 'energy' and unit.is_active %}
+                                                <option value="{{ unit.id }}" {% if unit.is_default %}selected{% endif %}>{{ unit.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="apparent_energy" class="form-label">الطاقة الظاهرية (Es)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="apparent_energy" name="apparent_energy" step="0.01" value="{{ default_values.energy }}">
+                                        <span class="input-group-text energy-unit-display">kVAh</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="reactive_energy" class="form-label">الطاقة التفاعلية (Eq)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="reactive_energy" name="reactive_energy" step="0.01" value="{{ default_values.energy }}">
+                                        <span class="input-group-text energy-unit-display">kVARh</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="frequency" class="form-label">التردد (Hz)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="frequency" name="frequency" step="0.01" value="{{ default_values.frequency }}">
+                                        <span class="input-group-text">Hz</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- للتوافق مع الإصدارات السابقة -->
+                        <input type="hidden" id="energy" name="energy" value="{{ default_values.energy }}">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="mutawif_name" class="form-label">اسم المطوف</label>
+                                    <input type="text" class="form-control" id="mutawif_name" name="mutawif_name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">ملاحظات</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('readings.search_panel_for_reading') }}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-primary">حفظ القراءة</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تحديث وحدات القياس في العناصر الأخرى عند تغيير وحدة القياس الرئيسية
+        $('#current_unit_id').change(function() {
+            var selectedText = $(this).find('option:selected').text();
+            $('.current-unit-display').text(selectedText);
+        });
+
+        $('#voltage_unit_id').change(function() {
+            var selectedText = $(this).find('option:selected').text();
+            $('.voltage-unit-display').text(selectedText);
+        });
+
+        $('#active_power_unit_id').change(function() {
+            var selectedText = $(this).find('option:selected').text();
+            $('.active-power-unit-display').text(selectedText);
+        });
+
+        $('#apparent_power_unit_id').change(function() {
+            var selectedText = $(this).find('option:selected').text();
+            $('.apparent-power-unit-display').text(selectedText);
+        });
+
+        $('#reactive_power_unit_id').change(function() {
+            var selectedText = $(this).find('option:selected').text();
+            $('.reactive-power-unit-display').text(selectedText);
+        });
+
+        // تحديث وحدات القياس عند تحميل الصفحة
+        var currentUnitText = $('#current_unit_id').find('option:selected').text();
+        $('.current-unit-display').text(currentUnitText);
+
+        var voltageUnitText = $('#voltage_unit_id').find('option:selected').text();
+        $('.voltage-unit-display').text(voltageUnitText);
+
+        // إضافة معالج حدث لتعديل سعة القاطع
+        $('#edit-breaker-capacity').click(function(e) {
+            e.preventDefault();
+            $('#breaker_capacity').prop('readonly', false).focus();
+            $(this).parent().hide();
+        });
+
+        // إضافة معالج حدث لحساب نسبة الحمل وعرض حالة اللوحة
+        function calculateLoadStatus() {
+            var breaker_capacity = parseFloat($('#breaker_capacity').val());
+            if (!breaker_capacity || isNaN(breaker_capacity) || breaker_capacity <= 0) return;
+
+            // الحصول على قيم التيار للأطوار الثلاثة
+            var current_l1 = parseFloat($('#current_l1').val()) || 0;
+            var current_l2 = parseFloat($('#current_l2').val()) || 0;
+            var current_l3 = parseFloat($('#current_l3').val()) || 0;
+
+            // حساب نسبة الحمل لكل فاز
+            var load_percentage_l1 = (current_l1 / breaker_capacity) * 100;
+            var load_percentage_l2 = (current_l2 / breaker_capacity) * 100;
+            var load_percentage_l3 = (current_l3 / breaker_capacity) * 100;
+
+            // استخدام أعلى نسبة حمل من الفازات الثلاثة
+            var calculated_load = Math.max(load_percentage_l1, load_percentage_l2, load_percentage_l3);
+
+            // عرض نسبة الحمل
+            if (!isNaN(calculated_load)) {
+                var status = '';
+                var color = '';
+
+                // تحديد حالة الحمل
+                if (calculated_load >= 80) {
+                    status = 'خطر';
+                    color = '#dc3545'; // أحمر
+                } else if (calculated_load >= 70) {
+                    status = 'تحذير';
+                    color = '#ffc107'; // أصفر
+                } else {
+                    status = 'طبيعي';
+                    color = '#28a745'; // أخضر
+                }
+
+                // إضافة أو تحديث عنصر لعرض نسبة الحمل
+                var load_info = $('#load_status_info');
+                if (load_info.length === 0) {
+                    $('#breaker_capacity').parent().after(
+                        '<div id="load_status_info" class="mt-2">' +
+                        '<span>نسبة الحمل: <strong style="color:' + color + '">' + calculated_load.toFixed(1) + '%</strong> (' + status + ')</span><br>' +
+                        '<small>الفاز 1: ' + load_percentage_l1.toFixed(1) + '% | الفاز 2: ' + load_percentage_l2.toFixed(1) + '% | الفاز 3: ' + load_percentage_l3.toFixed(1) + '%</small>' +
+                        '</div>'
+                    );
+                } else {
+                    load_info.html(
+                        '<span>نسبة الحمل: <strong style="color:' + color + '">' + calculated_load.toFixed(1) + '%</strong> (' + status + ')</span><br>' +
+                        '<small>الفاز 1: ' + load_percentage_l1.toFixed(1) + '% | الفاز 2: ' + load_percentage_l2.toFixed(1) + '% | الفاز 3: ' + load_percentage_l3.toFixed(1) + '%</small>'
+                    );
+                }
+            }
+        }
+
+        // حساب نسبة الحمل عند تغيير قيم التيار أو سعة القاطع
+        $('#current_l1, #current_l2, #current_l3, #breaker_capacity').on('input', calculateLoadStatus);
+
+        // حساب نسبة الحمل عند تحميل الصفحة
+        calculateLoadStatus();
+
+        var activePowerUnitText = $('#active_power_unit_id').find('option:selected').text();
+        $('.active-power-unit-display').text(activePowerUnitText);
+
+        var apparentPowerUnitText = $('#apparent_power_unit_id').find('option:selected').text();
+        $('.apparent-power-unit-display').text(apparentPowerUnitText);
+
+        var reactivePowerUnitText = $('#reactive_power_unit_id').find('option:selected').text();
+        $('.reactive-power-unit-display').text(reactivePowerUnitText);
+
+        // حساب متوسط القيم تلقائيًا
+        function calculateAverages() {
+            // حساب متوسط التيار
+            var current_l1 = parseFloat($('#current_l1').val()) || 0;
+            var current_l2 = parseFloat($('#current_l2').val()) || 0;
+            var current_l3 = parseFloat($('#current_l3').val()) || 0;
+            var avg_current = (current_l1 + current_l2 + current_l3) / 3;
+
+            // حساب متوسط الجهد (L-L)
+            var voltage_l1_l2 = parseFloat($('#voltage_l1_l2').val()) || 0;
+            var voltage_l2_l3 = parseFloat($('#voltage_l2_l3').val()) || 0;
+            var voltage_l3_l1 = parseFloat($('#voltage_l3_l1').val()) || 0;
+            var avg_voltage_ll = (voltage_l1_l2 + voltage_l2_l3 + voltage_l3_l1) / 3;
+
+            // حساب الجهد L-N
+            var voltage_l1_n = parseFloat($('#voltage_l1_n').val()) || 0;
+            var voltage_l2_n = parseFloat($('#voltage_l2_n').val()) || 0;
+            var voltage_l3_n = parseFloat($('#voltage_l3_n').val()) || 0;
+
+            // حساب القدرة الفعالة (P) لكل طور باستخدام التيار والجهد ومعامل القدرة
+            if ($('#auto_calculate_active_power').is(':checked')) {
+                var pf_l1 = parseFloat($('#power_factor_l1').val()) || 0;
+                var pf_l2 = parseFloat($('#power_factor_l2').val()) || 0;
+                var pf_l3 = parseFloat($('#power_factor_l3').val()) || 0;
+
+                // حساب القدرة الفعالة لكل طور (P = V * I * PF)
+                var active_power_l1 = voltage_l1_n * current_l1 * pf_l1;
+                var active_power_l2 = voltage_l2_n * current_l2 * pf_l2;
+                var active_power_l3 = voltage_l3_n * current_l3 * pf_l3;
+
+                // تحديث قيم القدرة الفعالة
+                $('#active_power_l1').val(active_power_l1.toFixed(2));
+                $('#active_power_l2').val(active_power_l2.toFixed(2));
+                $('#active_power_l3').val(active_power_l3.toFixed(2));
+
+                // حساب إجمالي القدرة الفعالة
+                var total_active_power = active_power_l1 + active_power_l2 + active_power_l3;
+                $('#active_power_total').val(total_active_power.toFixed(2));
+            }
+
+            // حساب القدرة الظاهرية (S) لكل طور باستخدام التيار والجهد
+            if ($('#auto_calculate_apparent_power').is(':checked')) {
+                // حساب القدرة الظاهرية لكل طور (S = V * I)
+                var apparent_power_l1 = voltage_l1_n * current_l1;
+                var apparent_power_l2 = voltage_l2_n * current_l2;
+                var apparent_power_l3 = voltage_l3_n * current_l3;
+
+                // تحديث قيم القدرة الظاهرية
+                $('#apparent_power_l1').val(apparent_power_l1.toFixed(2));
+                $('#apparent_power_l2').val(apparent_power_l2.toFixed(2));
+                $('#apparent_power_l3').val(apparent_power_l3.toFixed(2));
+
+                // حساب إجمالي القدرة الظاهرية
+                var total_apparent_power = apparent_power_l1 + apparent_power_l2 + apparent_power_l3;
+                $('#apparent_power_total').val(total_apparent_power.toFixed(2));
+            }
+
+            // حساب القدرة غير الفعالة (Q) لكل طور باستخدام القدرة الفعالة والظاهرية
+            if ($('#auto_calculate_reactive_power').is(':checked')) {
+                var active_power_l1 = parseFloat($('#active_power_l1').val()) || 0;
+                var active_power_l2 = parseFloat($('#active_power_l2').val()) || 0;
+                var active_power_l3 = parseFloat($('#active_power_l3').val()) || 0;
+
+                var apparent_power_l1 = parseFloat($('#apparent_power_l1').val()) || 0;
+                var apparent_power_l2 = parseFloat($('#apparent_power_l2').val()) || 0;
+                var apparent_power_l3 = parseFloat($('#apparent_power_l3').val()) || 0;
+
+                // حساب القدرة غير الفعالة لكل طور (Q = sqrt(S^2 - P^2))
+                var reactive_power_l1 = Math.sqrt(Math.max(0, Math.pow(apparent_power_l1, 2) - Math.pow(active_power_l1, 2)));
+                var reactive_power_l2 = Math.sqrt(Math.max(0, Math.pow(apparent_power_l2, 2) - Math.pow(active_power_l2, 2)));
+                var reactive_power_l3 = Math.sqrt(Math.max(0, Math.pow(apparent_power_l3, 2) - Math.pow(active_power_l3, 2)));
+
+                // تحديث قيم القدرة غير الفعالة
+                $('#reactive_power_l1').val(reactive_power_l1.toFixed(2));
+                $('#reactive_power_l2').val(reactive_power_l2.toFixed(2));
+                $('#reactive_power_l3').val(reactive_power_l3.toFixed(2));
+
+                // حساب إجمالي القدرة غير الفعالة
+                var total_reactive_power = reactive_power_l1 + reactive_power_l2 + reactive_power_l3;
+                $('#reactive_power_total').val(total_reactive_power.toFixed(2));
+            }
+
+            // حساب معامل القدرة (P.F) لكل طور باستخدام القدرة الفعالة والظاهرية
+            if ($('#auto_calculate_power_factor').is(':checked')) {
+                var active_power_l1 = parseFloat($('#active_power_l1').val()) || 0;
+                var active_power_l2 = parseFloat($('#active_power_l2').val()) || 0;
+                var active_power_l3 = parseFloat($('#active_power_l3').val()) || 0;
+
+                var apparent_power_l1 = parseFloat($('#apparent_power_l1').val()) || 0;
+                var apparent_power_l2 = parseFloat($('#apparent_power_l2').val()) || 0;
+                var apparent_power_l3 = parseFloat($('#apparent_power_l3').val()) || 0;
+
+                // حساب معامل القدرة لكل طور (PF = P / S)
+                var pf_l1 = (apparent_power_l1 > 0) ? (active_power_l1 / apparent_power_l1) : 0;
+                var pf_l2 = (apparent_power_l2 > 0) ? (active_power_l2 / apparent_power_l2) : 0;
+                var pf_l3 = (apparent_power_l3 > 0) ? (active_power_l3 / apparent_power_l3) : 0;
+
+                // تأكد من أن معامل القدرة بين 0 و 1
+                pf_l1 = Math.min(1, Math.max(0, pf_l1));
+                pf_l2 = Math.min(1, Math.max(0, pf_l2));
+                pf_l3 = Math.min(1, Math.max(0, pf_l3));
+
+                // تحديث قيم معامل القدرة
+                $('#power_factor_l1').val(pf_l1.toFixed(2));
+                $('#power_factor_l2').val(pf_l2.toFixed(2));
+                $('#power_factor_l3').val(pf_l3.toFixed(2));
+
+                // حساب متوسط معامل القدرة
+                var avg_pf = (pf_l1 + pf_l2 + pf_l3) / 3;
+                $('#power_factor_total').val(avg_pf.toFixed(2));
+            }
+
+            // تحديث قيمة الطاقة للتوافق مع الإصدارات السابقة
+            var active_energy = parseFloat($('#active_energy').val()) || 0;
+            $('#energy').val(active_energy);
+        }
+
+        // تفعيل حساب المتوسطات عند تغيير أي قيمة
+        $('.form-control').change(calculateAverages);
+
+        // تفعيل/تعطيل الحقول عند تغيير خيارات الحساب التلقائي
+        $('#auto_calculate_active_power').change(function() {
+            if ($(this).is(':checked')) {
+                $('#active_power_total').prop('readonly', true);
+                calculateAverages();
+            } else {
+                $('#active_power_total').prop('readonly', false);
+            }
+        });
+
+        $('#auto_calculate_apparent_power').change(function() {
+            if ($(this).is(':checked')) {
+                $('#apparent_power_total').prop('readonly', true);
+                calculateAverages();
+            } else {
+                $('#apparent_power_total').prop('readonly', false);
+            }
+        });
+
+        $('#auto_calculate_reactive_power').change(function() {
+            if ($(this).is(':checked')) {
+                $('#reactive_power_total').prop('readonly', true);
+                calculateAverages();
+            } else {
+                $('#reactive_power_total').prop('readonly', false);
+            }
+        });
+
+        $('#auto_calculate_power_factor').change(function() {
+            if ($(this).is(':checked')) {
+                $('#power_factor_total').prop('readonly', true);
+                calculateAverages();
+            } else {
+                $('#power_factor_total').prop('readonly', false);
+            }
+        });
+
+        // تعيين الحقول للقراءة فقط عند التحميل
+        if ($('#auto_calculate_active_power').is(':checked')) {
+            $('#active_power_total').prop('readonly', true);
+        }
+
+        if ($('#auto_calculate_apparent_power').is(':checked')) {
+            $('#apparent_power_total').prop('readonly', true);
+        }
+
+        if ($('#auto_calculate_reactive_power').is(':checked')) {
+            $('#reactive_power_total').prop('readonly', true);
+        }
+
+        if ($('#auto_calculate_power_factor').is(':checked')) {
+            $('#power_factor_total').prop('readonly', true);
+        }
+
+        // تحديث وحدة الطاقة
+        $('#energy_unit_id').change(function() {
+            var selectedText = $(this).find('option:selected').text();
+            $('.energy-unit-display').text(selectedText);
+        });
+
+        var energyUnitText = $('#energy_unit_id').find('option:selected').text();
+        $('.energy-unit-display').text(energyUnitText);
+    });
+</script>
+{% endblock %}

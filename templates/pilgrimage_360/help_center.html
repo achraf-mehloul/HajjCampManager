@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-question-circle me-2"></i>
+                مركز المساعدة والدعم
+            </h1>
+            <p class="lead">نحن هنا لمساعدتك في الحصول على أفضل تجربة في الحرمين الشريفين</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('pilgrimage_index') }}">تجربة الحجاج 360°</a></li>
+                    <li class="breadcrumb-item active">مركز المساعدة</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Quick Help Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-play-circle fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">الجولة الافتراضية</h5>
+                    <p class="card-text">تعلم كيفية استخدام الجولة التفاعلية 360°</p>
+                    <a href="{{ url_for('pilgrimage_virtual_tour') }}" class="btn btn-primary">بدء الجولة</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-map fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">الخريطة التفاعلية</h5>
+                    <p class="card-text">اكتشف المواقع والخدمات على الخريطة</p>
+                    <a href="{{ url_for('pilgrimage_interactive_map') }}" class="btn btn-success">عرض الخريطة</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-comment-dots fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">تقديم بلاغ</h5>
+                    <p class="card-text">أبلغ عن مشكلة أو قدم استفساراً</p>
+                    <a href="{{ url_for('pilgrimage_report_issue') }}" class="btn btn-warning">تقديم بلاغ</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-phone fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">اتصل بنا</h5>
+                    <p class="card-text">تواصل مع فريق الدعم مباشرة</p>
+                    <a href="tel:920001234" class="btn btn-info">920001234</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-question-circle me-2"></i>الأسئلة الشائعة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        {% for faq in faqs %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}" aria-expanded="{% if loop.first %}true{% else %}false{% endif %}" aria-controls="collapse{{ loop.index }}">
+                                    {{ faq.question }}
+                                </button>
+                            </h2>
+                            <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading{{ loop.index }}" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>العربية:</strong> {{ faq.answer }}</p>
+                                    {% if faq.answer_en %}
+                                    <p><strong>English:</strong> {{ faq.answer_en }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Additional FAQs -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingExtra1">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExtra1" aria-expanded="false" aria-controls="collapseExtra1">
+                                    كيف يمكنني الوصول إلى الحرم المكي؟
+                                </button>
+                            </h2>
+                            <div id="collapseExtra1" class="accordion-collapse collapse" aria-labelledby="headingExtra1" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>يمكنك الوصول إلى الحرم المكي عبر عدة وسائل:</p>
+                                    <ul>
+                                        <li>الحافلات المجانية من جميع أنحاء مكة</li>
+                                        <li>المشي من الفنادق القريبة</li>
+                                        <li>استخدام تطبيقات النقل المعتمدة</li>
+                                        <li>المترو (قطار المشاعر) خلال موسم الحج</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingExtra2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExtra2" aria-expanded="false" aria-controls="collapseExtra2">
+                                    ما هي أوقات الزيارة المناسبة؟
+                                </button>
+                            </h2>
+                            <div id="collapseExtra2" class="accordion-collapse collapse" aria-labelledby="headingExtra2" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>أفضل أوقات الزيارة:</p>
+                                    <ul>
+                                        <li><strong>الحرم المكي:</strong> مفتوح 24/7، أقل ازدحاماً بين الفجر والشروق</li>
+                                        <li><strong>المسجد النبوي:</strong> مفتوح 24/7، أقل ازدحاماً بعد العشاء</li>
+                                        <li><strong>الأسواق:</strong> من 9 صباحاً حتى 11 مساءً</li>
+                                        <li><strong>المتاحف:</strong> من 8 صباحاً حتى 8 مساءً</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingExtra3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExtra3" aria-expanded="false" aria-controls="collapseExtra3">
+                                    كيف يمكنني الحصول على المساعدة في حالة الطوارئ؟
+                                </button>
+                            </h2>
+                            <div id="collapseExtra3" class="accordion-collapse collapse" aria-labelledby="headingExtra3" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>في حالة الطوارئ:</p>
+                                    <ul>
+                                        <li><strong>الطوارئ العامة:</strong> 911</li>
+                                        <li><strong>الدفاع المدني:</strong> 998</li>
+                                        <li><strong>الشرطة:</strong> 999</li>
+                                        <li><strong>الهلال الأحمر:</strong> 997</li>
+                                        <li><strong>خدمة الحجاج:</strong> 920001234</li>
+                                    </ul>
+                                    <p>كما يمكنك استخدام نظام البلاغات في هذا التطبيق للحصول على المساعدة السريعة.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-phone me-2"></i>معلومات الاتصال
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>خط المساعدة الرئيسي:</strong><br>
+                        <a href="tel:920001234" class="text-decoration-none">920001234</a>
+                    </div>
+                    <div class="mb-3">
+                        <strong>واتساب:</strong><br>
+                        <a href="https://wa.me/966920001234" class="text-decoration-none" target="_blank">
+                            <i class="fab fa-whatsapp text-success me-1"></i>966920001234
+                        </a>
+                    </div>
+                    <div class="mb-3">
+                        <strong>البريد الإلكتروني:</strong><br>
+                        <a href="mailto:support@pilgrimage360.sa" class="text-decoration-none">support@pilgrimage360.sa</a>
+                    </div>
+                    <div class="mb-0">
+                        <strong>ساعات العمل:</strong><br>
+                        24/7 خلال موسم الحج والعمرة<br>
+                        8:00 - 20:00 في الأوقات العادية
+                    </div>
+                </div>
+            </div>
+
+            <!-- Language Support -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-language me-2"></i>الدعم متعدد اللغات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p>نوفر الدعم باللغات التالية:</p>
+                    <div class="row">
+                        <div class="col-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>العربية</li>
+                                <li><i class="fas fa-check text-success me-2"></i>English</li>
+                                <li><i class="fas fa-check text-success me-2"></i>اردو</li>
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>Français</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Bahasa Indonesia</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Türkçe</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Tips -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>نصائح سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            احتفظ بنسخة من جواز السفر معك دائماً
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            اشرب الماء بكثرة خاصة في الطقس الحار
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            استخدم الخريطة التفاعلية لتجنب الازدحام
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            احفظ أرقام الطوارئ في هاتفك
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            تابع التحديثات عبر التطبيق
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-comment me-2"></i>تقييم مركز المساعدة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>هل وجدت المعلومات التي تبحث عنها؟</p>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-success" onclick="submitFeedback('helpful')">
+                            <i class="fas fa-thumbs-up me-2"></i>مفيد
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" onclick="submitFeedback('somewhat')">
+                            <i class="fas fa-meh me-2"></i>إلى حد ما
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="submitFeedback('not_helpful')">
+                            <i class="fas fa-thumbs-down me-2"></i>غير مفيد
+                        </button>
+                    </div>
+                    <div class="mt-3">
+                        <textarea class="form-control" placeholder="اترك تعليقاً أو اقتراحاً لتحسين الخدمة..." rows="3" id="feedback-text"></textarea>
+                        <button class="btn btn-primary mt-2" onclick="submitDetailedFeedback()">
+                            <i class="fas fa-paper-plane me-2"></i>إرسال التعليق
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitFeedback(rating) {
+    // إرسال تقييم سريع
+    fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            type: 'help_center_rating',
+            rating: rating,
+            page: 'help_center'
+        })
+    }).then(() => {
+        alert('شكراً لك على تقييمك!');
+    }).catch(() => {
+        alert('حدث خطأ، يرجى المحاولة مرة أخرى');
+    });
+}
+
+function submitDetailedFeedback() {
+    const feedbackText = document.getElementById('feedback-text').value;
+    if (!feedbackText.trim()) {
+        alert('يرجى كتابة تعليق قبل الإرسال');
+        return;
+    }
+    
+    fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            type: 'help_center_comment',
+            comment: feedbackText,
+            page: 'help_center'
+        })
+    }).then(() => {
+        alert('شكراً لك على تعليقك! سنأخذه في الاعتبار لتحسين خدماتنا');
+        document.getElementById('feedback-text').value = '';
+    }).catch(() => {
+        alert('حدث خطأ، يرجى المحاولة مرة أخرى');
+    });
+}
+
+// إضافة بحث في الأسئلة الشائعة
+function searchFAQ() {
+    const searchTerm = document.getElementById('faq-search').value.toLowerCase();
+    const accordionItems = document.querySelectorAll('.accordion-item');
+    
+    accordionItems.forEach(item => {
+        const question = item.querySelector('.accordion-button').textContent.toLowerCase();
+        const answer = item.querySelector('.accordion-body').textContent.toLowerCase();
+        
+        if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = searchTerm ? 'none' : 'block';
+        }
+    });
+}
+
+// إضافة مربع البحث
+document.addEventListener('DOMContentLoaded', function() {
+    const faqCard = document.querySelector('.card-header h5');
+    if (faqCard) {
+        const searchHTML = `
+            <div class="mt-3">
+                <input type="text" class="form-control" id="faq-search" placeholder="ابحث في الأسئلة الشائعة..." onkeyup="searchFAQ()">
+            </div>
+        `;
+        faqCard.parentElement.insertAdjacentHTML('beforeend', searchHTML);
+    }
+});
+</script>
+{% endblock %}

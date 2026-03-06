@@ -1,0 +1,491 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل القراءة اليدوية{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">تفاصيل القراءة اليدوية للوحة: {{ panel.mdb }}</h5>
+                    <div>
+                        <a href="{{ url_for('panel_details', panel_id=panel.id) }}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> العودة إلى تفاصيل اللوحة
+                        </a>
+                        {% if current_user.role == 'admin' or reading.created_by == current_user.id %}
+                        <a href="{{ url_for('readings.delete_manual_reading', reading_id=reading.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من حذف هذه القراءة؟')">
+                            <i class="fas fa-trash me-1"></i> حذف القراءة
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">معلومات القراءة</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>وقت القراءة:</strong> {{ reading.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>نوع القراءة:</strong>
+                                        {% if reading.reading_type == 'manual' %}
+                                            يدوية
+                                        {% elif reading.reading_type == 'imported' %}
+                                            مستوردة
+                                        {% else %}
+                                            {{ reading.reading_type }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>حالة اللوحة:</strong>
+                                        {% if reading.panel_status %}
+                                            {% if reading.panel_status == 'عامل' %}
+                                                <span class="badge bg-success">{{ reading.panel_status }}</span>
+                                            {% elif reading.panel_status == 'معطل' %}
+                                                <span class="badge bg-danger">{{ reading.panel_status }}</span>
+                                            {% elif reading.panel_status == 'تحت الصيانة' %}
+                                                <span class="badge bg-warning text-dark">{{ reading.panel_status }}</span>
+                                            {% elif reading.panel_status == 'مفصول' %}
+                                                <span class="badge bg-secondary">{{ reading.panel_status }}</span>
+                                            {% else %}
+                                                <span class="badge bg-info">{{ reading.panel_status }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-success">عامل</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>تم الإضافة بواسطة:</strong> {{ reading.user.name if reading.user else 'غير معروف' }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>تاريخ الإضافة:</strong> {{ reading.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">معلومات اللوحة</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>رقم اللوحة:</strong> {{ panel.mdb }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>المنطقة:</strong> {{ panel.area_name }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>النوع:</strong> {{ panel.panel_type }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>سعة القاطع:</strong> {{ reading.breaker_capacity if reading.breaker_capacity is not none else panel.breaker_capacity if panel.breaker_capacity is not none else '-' }} A
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>الموقع:</strong>
+                                        {% if panel.x_coordinate and panel.y_coordinate %}
+                                            <a href="https://www.google.com/maps?q={{ panel.y_coordinate }},{{ panel.x_coordinate }}" target="_blank" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-map-marker-alt me-1"></i> عرض في خرائط جوجل
+                                            </a>
+                                            {% if current_user.role == 'admin' or current_user.has_edit_location_permission %}
+                                            <a href="{{ url_for('edit_panel_location', panel_id=panel.id) }}" class="btn btn-sm btn-warning ms-1">
+                                                <i class="fas fa-edit me-1"></i> تعديل الموقع
+                                            </a>
+                                            {% endif %}
+                                        {% else %}
+                                            غير محدد
+                                            {% if current_user.role == 'admin' or current_user.has_edit_location_permission %}
+                                            <a href="{{ url_for('edit_panel_location', panel_id=panel.id) }}" class="btn btn-sm btn-warning ms-1">
+                                                <i class="fas fa-plus-circle me-1"></i> إضافة موقع
+                                            </a>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">قراءات التيار (I)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="mb-2">
+                                                <strong>التيار L1 (I):</strong>
+                                                {% if reading.current_l1 is not none %}
+                                                    {{ reading.current_l1 }} {{ reading.current_unit.name if reading.current_unit else 'A' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-2">
+                                                <strong>التيار L2 (I):</strong>
+                                                {% if reading.current_l2 is not none %}
+                                                    {{ reading.current_l2 }} {{ reading.current_unit.name if reading.current_unit else 'A' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-2">
+                                                <strong>التيار L3 (I):</strong>
+                                                {% if reading.current_l3 is not none %}
+                                                    {{ reading.current_l3 }} {{ reading.current_unit.name if reading.current_unit else 'A' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-2">
+                                                <strong>متوسط التيار (I):</strong>
+                                                {% if reading.current is not none %}
+                                                    {{ reading.current }} {{ reading.current_unit.name if reading.current_unit else 'A' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">قراءات الجهد (V)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-2">
+                                                <strong>الجهد L1-L2 (V):</strong>
+                                                {% if reading.voltage_l1_l2 is not none %}
+                                                    {{ reading.voltage_l1_l2 }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-2">
+                                                <strong>الجهد L2-L3 (V):</strong>
+                                                {% if reading.voltage_l2_l3 is not none %}
+                                                    {{ reading.voltage_l2_l3 }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-2">
+                                                <strong>الجهد L3-L1 (V):</strong>
+                                                {% if reading.voltage_l3_l1 is not none %}
+                                                    {{ reading.voltage_l3_l1 }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-4">
+                                            <div class="mb-2">
+                                                <strong>الجهد L1-N (V):</strong>
+                                                {% if reading.voltage_l1_n is not none %}
+                                                    {{ reading.voltage_l1_n }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-2">
+                                                <strong>الجهد L2-N (V):</strong>
+                                                {% if reading.voltage_l2_n is not none %}
+                                                    {{ reading.voltage_l2_n }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-2">
+                                                <strong>الجهد L3-N (V):</strong>
+                                                {% if reading.voltage_l3_n is not none %}
+                                                    {{ reading.voltage_l3_n }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">القدرة الفعالة (P)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>القدرة الفعالة L1 (P):</strong>
+                                        {% if reading.active_power_l1 is not none %}
+                                            {{ reading.active_power_l1 }} {{ reading.active_power_unit.name if reading.active_power_unit else 'W' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>القدرة الفعالة L2 (P):</strong>
+                                        {% if reading.active_power_l2 is not none %}
+                                            {{ reading.active_power_l2 }} {{ reading.active_power_unit.name if reading.active_power_unit else 'W' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>القدرة الفعالة L3 (P):</strong>
+                                        {% if reading.active_power_l3 is not none %}
+                                            {{ reading.active_power_l3 }} {{ reading.active_power_unit.name if reading.active_power_unit else 'W' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>إجمالي القدرة الفعالة (P):</strong>
+                                        {% if reading.active_power_total is not none %}
+                                            {{ reading.active_power_total }} {{ reading.active_power_unit.name if reading.active_power_unit else 'W' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">القدرة الظاهرية (S)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>القدرة الظاهرية L1 (S):</strong>
+                                        {% if reading.apparent_power_l1 is not none %}
+                                            {{ reading.apparent_power_l1 }} {{ reading.apparent_power_unit.name if reading.apparent_power_unit else 'VA' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>القدرة الظاهرية L2 (S):</strong>
+                                        {% if reading.apparent_power_l2 is not none %}
+                                            {{ reading.apparent_power_l2 }} {{ reading.apparent_power_unit.name if reading.apparent_power_unit else 'VA' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>القدرة الظاهرية L3 (S):</strong>
+                                        {% if reading.apparent_power_l3 is not none %}
+                                            {{ reading.apparent_power_l3 }} {{ reading.apparent_power_unit.name if reading.apparent_power_unit else 'VA' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>إجمالي القدرة الظاهرية (S):</strong>
+                                        {% if reading.apparent_power_total is not none %}
+                                            {{ reading.apparent_power_total }} {{ reading.apparent_power_unit.name if reading.apparent_power_unit else 'VA' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">القدرة غير الفعالة (Q)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>القدرة غير الفعالة L1 (Q):</strong>
+                                        {% if reading.reactive_power_l1 is not none %}
+                                            {{ reading.reactive_power_l1 }} {{ reading.reactive_power_unit.name if reading.reactive_power_unit else 'VAR' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>القدرة غير الفعالة L2 (Q):</strong>
+                                        {% if reading.reactive_power_l2 is not none %}
+                                            {{ reading.reactive_power_l2 }} {{ reading.reactive_power_unit.name if reading.reactive_power_unit else 'VAR' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>القدرة غير الفعالة L3 (Q):</strong>
+                                        {% if reading.reactive_power_l3 is not none %}
+                                            {{ reading.reactive_power_l3 }} {{ reading.reactive_power_unit.name if reading.reactive_power_unit else 'VAR' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>إجمالي القدرة غير الفعالة (Q):</strong>
+                                        {% if reading.reactive_power_total is not none %}
+                                            {{ reading.reactive_power_total }} {{ reading.reactive_power_unit.name if reading.reactive_power_unit else 'VAR' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">معامل القدرة (P.F)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-2">
+                                                <strong>معامل القدرة L1 (P.F):</strong>
+                                                {% if reading.power_factor_l1 is not none %}
+                                                    {{ reading.power_factor_l1 }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-2">
+                                                <strong>معامل القدرة L2 (P.F):</strong>
+                                                {% if reading.power_factor_l2 is not none %}
+                                                    {{ reading.power_factor_l2 }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-2">
+                                                <strong>معامل القدرة L3 (P.F):</strong>
+                                                {% if reading.power_factor_l3 is not none %}
+                                                    {{ reading.power_factor_l3 }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-2">
+                                                <strong>إجمالي معامل القدرة (P.F):</strong>
+                                                {% if reading.power_factor_total is not none %}
+                                                    {{ reading.power_factor_total }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">قراءات أخرى</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>الطاقة (E):</strong>
+                                        {% if reading.energy is not none %}
+                                            {{ reading.energy }} {{ reading.energy_unit.name if reading.energy_unit else 'kWh' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>التردد (Hz):</strong>
+                                        {% if reading.frequency is not none %}
+                                            {{ reading.frequency }} Hz
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    {% if reading.mutawif_name %}
+                                    <div class="mb-2">
+                                        <strong>اسم المطوف:</strong>
+                                        <p>{{ reading.mutawif_name }}</p>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if reading.notes %}
+                                    <div class="mb-2">
+                                        <strong>ملاحظات:</strong>
+                                        <p>{{ reading.notes }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if dropdown_values %}
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">قيم إضافية</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for key, value in dropdown_values.items() %}
+                                        <div class="col-md-4">
+                                            <div class="mb-2">
+                                                <strong>{{ key }}:</strong> {{ value }}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

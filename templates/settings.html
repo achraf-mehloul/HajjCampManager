@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">إعدادات النظام</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('settings') }}">
+                        <div class="row">
+                            <!-- إعدادات الحدود -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">إعدادات الحدود</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="default_warning_threshold" class="form-label">نسبة التحذير الافتراضية (%)</label>
+                                            <input type="number" class="form-control" id="default_warning_threshold" name="default_warning_threshold" value="{{ settings.default_warning_threshold }}" min="0" max="100" step="1" required>
+                                            <small class="form-text text-muted">النسبة المئوية للتيار التي تؤدي إلى تحذير</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="default_danger_threshold" class="form-label">نسبة الخطر الافتراضية (%)</label>
+                                            <input type="number" class="form-control" id="default_danger_threshold" name="default_danger_threshold" value="{{ settings.default_danger_threshold }}" min="0" max="100" step="1" required>
+                                            <small class="form-text text-muted">النسبة المئوية للتيار التي تؤدي إلى تنبيه خطر</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="default_min_voltage" class="form-label">الحد الأدنى الافتراضي للجهد (فولت)</label>
+                                            <input type="number" class="form-control" id="default_min_voltage" name="default_min_voltage" value="{{ settings.default_min_voltage }}" min="0" step="1" required>
+                                            <small class="form-text text-muted">الحد الأدنى للجهد الكهربائي</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="default_max_voltage" class="form-label">الحد الأقصى الافتراضي للجهد (فولت)</label>
+                                            <input type="number" class="form-control" id="default_max_voltage" name="default_max_voltage" value="{{ settings.default_max_voltage }}" min="0" step="1" required>
+                                            <small class="form-text text-muted">الحد الأقصى للجهد الكهربائي</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات التنبيهات -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">إعدادات التنبيهات</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="alert_check_interval" class="form-label">الفاصل الزمني للتحقق من التنبيهات (دقيقة)</label>
+                                            <input type="number" class="form-control" id="alert_check_interval" name="alert_check_interval" value="{{ settings.alert_check_interval }}" min="1" step="1" required>
+                                            <small class="form-text text-muted">الفاصل الزمني بين عمليات التحقق من التنبيهات</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="alert_method" class="form-label">طريقة التنبيه</label>
+                                            <select class="form-select" id="alert_method" name="alert_method" required>
+                                                <option value="peak" {% if settings.alert_method == 'peak' %}selected{% endif %}>القيمة القصوى</option>
+                                                <option value="average" {% if settings.alert_method == 'average' %}selected{% endif %}>المتوسط</option>
+                                            </select>
+                                            <small class="form-text text-muted">طريقة حساب التنبيهات (القيمة القصوى أو المتوسط)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="alert_calculation_period" class="form-label">فترة حساب التنبيهات (دقيقة)</label>
+                                            <input type="number" class="form-control" id="alert_calculation_period" name="alert_calculation_period" value="{{ settings.alert_calculation_period }}" min="1" step="1" required>
+                                            <small class="form-text text-muted">فترة حساب متوسط القراءات للتنبيهات</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="analysis_period" class="form-label">مدة التحليل الافتراضية</label>
+                                            <select class="form-select" id="analysis_period" name="analysis_period" required>
+                                                <option value="15" {% if settings.analysis_period == '15' %}selected{% endif %}>آخر 15 دقيقة</option>
+                                                <option value="60" {% if settings.analysis_period == '60' %}selected{% endif %}>ساعة</option>
+                                                <option value="120" {% if settings.analysis_period == '120' %}selected{% endif %}>ساعتين</option>
+                                                <option value="1440" {% if settings.analysis_period == '1440' %}selected{% endif %}>يوم كامل</option>
+                                                <option value="custom" {% if settings.analysis_period == 'custom' %}selected{% endif %}>مخصص</option>
+                                            </select>
+                                            <small class="form-text text-muted">مدة التحليل الافتراضية للقراءات</small>
+                                        </div>
+                                        <div class="mb-3 form-check">
+                                            <input type="checkbox" class="form-check-input" id="send_notifications" name="send_notifications" value="true" {% if settings.send_notifications == 'true' %}checked{% endif %}>
+                                            <label class="form-check-label" for="send_notifications">إرسال إشعارات للمقاولين</label>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="notification_method" class="form-label">طريقة إرسال الإشعارات</label>
+                                            <select class="form-select" id="notification_method" name="notification_method" required>
+                                                <option value="email" {% if settings.notification_method == 'email' %}selected{% endif %}>بريد إلكتروني</option>
+                                                <option value="sms" {% if settings.notification_method == 'sms' %}selected{% endif %}>رسالة نصية</option>
+                                                <option value="both" {% if settings.notification_method == 'both' %}selected{% endif %}>كلاهما</option>
+                                            </select>
+                                            <small class="form-text text-muted">طريقة إرسال الإشعارات للمقاولين</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات الخارطة -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">إعدادات الخارطة</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="default_map_center" class="form-label">مركز الخارطة الافتراضي</label>
+                                            <input type="text" class="form-control" id="default_map_center" name="default_map_center" value="{{ settings.default_map_center }}" required>
+                                            <small class="form-text text-muted">إحداثيات مركز الخارطة الافتراضي (خط العرض، خط الطول)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="default_map_zoom" class="form-label">مستوى تكبير الخارطة الافتراضي</label>
+                                            <input type="number" class="form-control" id="default_map_zoom" name="default_map_zoom" value="{{ settings.default_map_zoom }}" min="1" max="20" step="1" required>
+                                            <small class="form-text text-muted">مستوى تكبير الخارطة الافتراضي (1-20)</small>
+                                        </div>
+                                        <div class="mb-3 form-check">
+                                            <input type="checkbox" class="form-check-input" id="enable_hotspots" name="enable_hotspots" value="true" {% if settings.enable_hotspots == 'true' %}checked{% endif %}>
+                                            <label class="form-check-label" for="enable_hotspots">تفعيل النقاط الساخنة على الخارطة</label>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="hotspot_threshold" class="form-label">حد النقاط الساخنة (%)</label>
+                                            <input type="number" class="form-control" id="hotspot_threshold" name="hotspot_threshold" value="{{ settings.hotspot_threshold }}" min="0" max="100" step="1" required>
+                                            <small class="form-text text-muted">النسبة المئوية لاعتبار المنطقة نقطة ساخنة</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات الألوان -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">إعدادات الألوان</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="normal_color" class="form-label">لون الحالة الطبيعية</label>
+                                            <input type="color" class="form-control form-control-color" id="normal_color" name="normal_color" value="{{ settings.normal_color|default('#28a745') }}">
+                                            <small class="form-text text-muted">لون الحالة الطبيعية (أقل من حد التحذير)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="warning_color" class="form-label">لون التحذير</label>
+                                            <input type="color" class="form-control form-control-color" id="warning_color" name="warning_color" value="{{ settings.warning_color|default('#ffc107') }}">
+                                            <small class="form-text text-muted">لون حالة التحذير (بين حد التحذير وحد الخطر)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="danger_color" class="form-label">لون الخطر</label>
+                                            <input type="color" class="form-control form-control-color" id="danger_color" name="danger_color" value="{{ settings.danger_color|default('#dc3545') }}">
+                                            <small class="form-text text-muted">لون حالة الخطر (أعلى من حد الخطر)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="trip_color" class="form-label">لون الفصل</label>
+                                            <input type="color" class="form-control form-control-color" id="trip_color" name="trip_color" value="{{ settings.trip_color|default('#6c757d') }}">
+                                            <small class="form-text text-muted">لون حالة الفصل (Trip)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات البريد الإلكتروني -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">إعدادات البريد الإلكتروني</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="smtp_server" class="form-label">خادم SMTP</label>
+                                            <input type="text" class="form-control" id="smtp_server" name="smtp_server" value="{{ settings.smtp_server|default('') }}">
+                                            <small class="form-text text-muted">عنوان خادم SMTP (مثال: smtp.gmail.com)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="smtp_port" class="form-label">منفذ SMTP</label>
+                                            <input type="number" class="form-control" id="smtp_port" name="smtp_port" value="{{ settings.smtp_port|default('587') }}">
+                                            <small class="form-text text-muted">منفذ خادم SMTP (عادة 587 أو 465)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="smtp_username" class="form-label">اسم المستخدم</label>
+                                            <input type="text" class="form-control" id="smtp_username" name="smtp_username" value="{{ settings.smtp_username|default('') }}">
+                                            <small class="form-text text-muted">اسم المستخدم لخادم SMTP</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="smtp_password" class="form-label">كلمة المرور</label>
+                                            <input type="password" class="form-control" id="smtp_password" name="smtp_password" value="{{ settings.smtp_password|default('') }}">
+                                            <small class="form-text text-muted">كلمة المرور لخادم SMTP</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="sender_email" class="form-label">البريد الإلكتروني للمرسل</label>
+                                            <input type="email" class="form-control" id="sender_email" name="sender_email" value="{{ settings.sender_email|default('') }}">
+                                            <small class="form-text text-muted">عنوان البريد الإلكتروني الذي سيظهر كمرسل</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات الرسائل النصية -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">إعدادات الرسائل النصية</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="sms_provider" class="form-label">مزود خدمة الرسائل النصية</label>
+                                            <select class="form-select" id="sms_provider" name="sms_provider">
+                                                <option value="none" {% if settings.sms_provider == 'none' %}selected{% endif %}>لا يوجد</option>
+                                                <option value="twilio" {% if settings.sms_provider == 'twilio' %}selected{% endif %}>Twilio</option>
+                                                <option value="vonage" {% if settings.sms_provider == 'vonage' %}selected{% endif %}>Vonage (Nexmo)</option>
+                                            </select>
+                                            <small class="form-text text-muted">مزود خدمة الرسائل النصية</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="sms_api_key" class="form-label">مفتاح API</label>
+                                            <input type="text" class="form-control" id="sms_api_key" name="sms_api_key" value="{{ settings.sms_api_key|default('') }}">
+                                            <small class="form-text text-muted">مفتاح API لخدمة الرسائل النصية</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="sms_api_secret" class="form-label">كلمة سر API</label>
+                                            <input type="password" class="form-control" id="sms_api_secret" name="sms_api_secret" value="{{ settings.sms_api_secret|default('') }}">
+                                            <small class="form-text text-muted">كلمة سر API لخدمة الرسائل النصية</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="sms_from" class="form-label">المرسل</label>
+                                            <input type="text" class="form-control" id="sms_from" name="sms_from" value="{{ settings.sms_from|default('') }}">
+                                            <small class="form-text text-muted">اسم أو رقم المرسل الذي سيظهر في الرسائل النصية</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                حفظ الإعدادات
+                            </button>
+                            <a href="{{ url_for('column_mapping') }}" class="btn btn-info">
+                                <i class="fas fa-table me-1"></i>
+                                تخصيص أسماء الأعمدة
+                            </a>
+                            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

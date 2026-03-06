@@ -1,0 +1,650 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة المواقع التفاعلية{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    .admin-map {
+        height: 500px;
+        border-radius: 10px;
+        border: 2px solid #ddd;
+    }
+    
+    .location-form {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .image-preview {
+        max-width: 200px;
+        max-height: 150px;
+        border-radius: 5px;
+        margin: 5px;
+    }
+    
+    .category-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 15px;
+        color: white;
+        font-size: 12px;
+        margin: 2px;
+    }
+    
+    .location-card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: white;
+    }
+    
+    .location-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .upload-area:hover {
+        border-color: #007bff;
+        background-color: #f8f9ff;
+    }
+    
+    .upload-area.dragover {
+        border-color: #28a745;
+        background-color: #f0fff0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-map-marked-alt me-2"></i>
+                إدارة المواقع التفاعلية
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('pilgrimage_index') }}">تجربة الحجاج 360°</a></li>
+                    <li class="breadcrumb-item active">إدارة المواقع</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-map-marker-alt fa-2x text-primary mb-2"></i>
+                    <h5 class="card-title">{{ total_locations }}</h5>
+                    <p class="card-text">إجمالي المواقع</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-utensils fa-2x text-success mb-2"></i>
+                    <h5 class="card-title">{{ restaurants_count }}</h5>
+                    <p class="card-text">المطاعم</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-mosque fa-2x text-info mb-2"></i>
+                    <h5 class="card-title">{{ mosques_count }}</h5>
+                    <p class="card-text">المساجد</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-concierge-bell fa-2x text-warning mb-2"></i>
+                    <h5 class="card-title">{{ services_count }}</h5>
+                    <p class="card-text">الخدمات</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Location Form -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>
+                        إضافة موقع جديد
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="locationForm" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">اسم الموقع *</label>
+                                    <input type="text" class="form-control" name="name" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">الاسم بالإنجليزية</label>
+                                    <input type="text" class="form-control" name="name_en">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">فئة الخدمة *</label>
+                                    <select class="form-select" name="category_id" required>
+                                        <option value="">اختر الفئة</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">الوصف</label>
+                                    <textarea class="form-control" name="description" rows="3"></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">رقم الهاتف</label>
+                                    <input type="tel" class="form-control" name="phone">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">العنوان</label>
+                                    <input type="text" class="form-control" name="address">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">ساعات العمل</label>
+                                    <input type="text" class="form-control" name="operating_hours" 
+                                           placeholder="مثال: 6:00 ص - 12:00 م">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">نطاق الأسعار</label>
+                                    <select class="form-select" name="price_range">
+                                        <option value="">غير محدد</option>
+                                        <option value="$">اقتصادي ($)</option>
+                                        <option value="$$">متوسط ($$)</option>
+                                        <option value="$$$">مرتفع ($$$)</option>
+                                        <option value="$$$$">فاخر ($$$$)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Location Selection -->
+                        <div class="mb-3">
+                            <label class="form-label">الموقع على الخريطة *</label>
+                            <div id="admin-map" class="admin-map"></div>
+                            <small class="form-text text-muted">انقر على الخريطة لتحديد الموقع</small>
+                            <input type="hidden" name="latitude" id="latitude">
+                            <input type="hidden" name="longitude" id="longitude">
+                        </div>
+                        
+                        <!-- Image Upload -->
+                        <div class="mb-3">
+                            <label class="form-label">الصورة الرئيسية</label>
+                            <div class="upload-area" id="mainImageUpload">
+                                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                <p>اسحب الصورة هنا أو انقر للاختيار</p>
+                                <input type="file" name="main_image" accept="image/*" style="display: none;">
+                            </div>
+                            <div id="mainImagePreview"></div>
+                        </div>
+                        
+                        <!-- 360° Images Upload -->
+                        <div class="mb-3">
+                            <label class="form-label">صور 360 درجة</label>
+                            <div class="upload-area" id="panoramaUpload">
+                                <i class="fas fa-globe fa-2x text-muted mb-2"></i>
+                                <p>اسحب صور 360° هنا أو انقر للاختيار</p>
+                                <input type="file" name="panorama_images" accept="image/*" multiple style="display: none;">
+                            </div>
+                            <div id="panoramaPreview"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>حفظ الموقع
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                                <i class="fas fa-undo me-2"></i>إعادة تعيين
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Locations -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        المواقع الموجودة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="locationsList">
+                        {% for location in locations %}
+                        <div class="location-card" data-id="{{ location.id }}">
+                            <div class="row">
+                                <div class="col-md-2">
+                                    {% if location.main_image %}
+                                    <img src="{{ location.main_image }}" class="image-preview" alt="{{ location.name }}">
+                                    {% else %}
+                                    <div class="image-preview bg-light d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-image text-muted"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-8">
+                                    <h6>{{ location.name }}</h6>
+                                    <p class="text-muted mb-1">{{ location.description or 'لا يوجد وصف' }}</p>
+                                    <p class="mb-1">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        {{ location.address or 'العنوان غير محدد' }}
+                                    </p>
+                                    <span class="category-badge" style="background-color: {{ location.category.color if location.category else '#6c757d' }}">
+                                        <i class="fas {{ location.category.icon if location.category else 'fa-tag' }} me-1"></i>
+                                        {{ location.category.name if location.category else 'غير مصنف' }}
+                                    </span>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="location-actions">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editLocation({{ location.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteLocation({{ location.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+let adminMap;
+let currentMarker;
+let selectedLat, selectedLng;
+
+// تهيئة الخريطة
+document.addEventListener('DOMContentLoaded', function() {
+    initAdminMap();
+    initFileUploads();
+    initForm();
+});
+
+function initAdminMap() {
+    adminMap = L.map('admin-map').setView([21.4225, 39.8262], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(adminMap);
+
+    // إضافة معالج النقر على الخريطة
+    adminMap.on('click', function(e) {
+        setLocationMarker(e.latlng.lat, e.latlng.lng);
+    });
+}
+
+function setLocationMarker(lat, lng) {
+    if (currentMarker) {
+        adminMap.removeLayer(currentMarker);
+    }
+
+    currentMarker = L.marker([lat, lng]).addTo(adminMap);
+    selectedLat = lat;
+    selectedLng = lng;
+
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+}
+
+function initFileUploads() {
+    // رفع الصورة الرئيسية
+    const mainImageUpload = document.getElementById('mainImageUpload');
+    const mainImageInput = mainImageUpload.querySelector('input[type="file"]');
+
+    mainImageUpload.addEventListener('click', () => mainImageInput.click());
+    mainImageInput.addEventListener('change', handleMainImageUpload);
+
+    // رفع صور 360°
+    const panoramaUpload = document.getElementById('panoramaUpload');
+    const panoramaInput = panoramaUpload.querySelector('input[type="file"]');
+
+    panoramaUpload.addEventListener('click', () => panoramaInput.click());
+    panoramaInput.addEventListener('change', handlePanoramaUpload);
+
+    // Drag and drop
+    setupDragAndDrop(mainImageUpload, mainImageInput);
+    setupDragAndDrop(panoramaUpload, panoramaInput);
+}
+
+function setupDragAndDrop(uploadArea, input) {
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event('change'));
+    });
+}
+
+function handleMainImageUpload(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('mainImagePreview').innerHTML =
+                `<img src="${e.target.result}" class="image-preview" alt="معاينة">`;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function handlePanoramaUpload(e) {
+    const files = e.target.files;
+    const preview = document.getElementById('panoramaPreview');
+    preview.innerHTML = '';
+
+    for (let file of files) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'image-preview';
+            img.alt = '360° معاينة';
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function initForm() {
+    document.getElementById('locationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (!selectedLat || !selectedLng) {
+            alert('يرجى تحديد الموقع على الخريطة');
+            return;
+        }
+
+        const formData = new FormData(this);
+
+        fetch('{{ url_for("pilgrimage_admin_add_location") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('تم حفظ الموقع بنجاح!');
+                location.reload();
+            } else {
+                alert('حدث خطأ: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء حفظ الموقع');
+        });
+    });
+}
+
+function resetForm() {
+    document.getElementById('locationForm').reset();
+    document.getElementById('mainImagePreview').innerHTML = '';
+    document.getElementById('panoramaPreview').innerHTML = '';
+
+    if (currentMarker) {
+        adminMap.removeLayer(currentMarker);
+        currentMarker = null;
+    }
+
+    selectedLat = null;
+    selectedLng = null;
+    document.getElementById('latitude').value = '';
+    document.getElementById('longitude').value = '';
+}
+
+function editLocation(locationId) {
+    // TODO: تنفيذ تعديل الموقع
+    alert('ميزة التعديل قيد التطوير');
+}
+
+function deleteLocation(locationId) {
+    if (confirm('هل أنت متأكد من حذف هذا الموقع؟')) {
+        fetch(`{{ url_for("pilgrimage_admin_delete_location", location_id=0) }}`.replace('0', locationId), {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('تم حذف الموقع بنجاح!');
+                location.reload();
+            } else {
+                alert('حدث خطأ: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء حذف الموقع');
+        });
+    }
+}
+
+function initAdminMap() {
+    adminMap = L.map('admin-map').setView([21.4225, 39.8262], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(adminMap);
+    
+    // إضافة معالج النقر على الخريطة
+    adminMap.on('click', function(e) {
+        setLocationMarker(e.latlng.lat, e.latlng.lng);
+    });
+}
+
+function setLocationMarker(lat, lng) {
+    if (currentMarker) {
+        adminMap.removeLayer(currentMarker);
+    }
+    
+    currentMarker = L.marker([lat, lng]).addTo(adminMap);
+    selectedLat = lat;
+    selectedLng = lng;
+    
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+}
+
+function initFileUploads() {
+    // رفع الصورة الرئيسية
+    const mainImageUpload = document.getElementById('mainImageUpload');
+    const mainImageInput = mainImageUpload.querySelector('input[type="file"]');
+    
+    mainImageUpload.addEventListener('click', () => mainImageInput.click());
+    mainImageInput.addEventListener('change', handleMainImageUpload);
+    
+    // رفع صور 360°
+    const panoramaUpload = document.getElementById('panoramaUpload');
+    const panoramaInput = panoramaUpload.querySelector('input[type="file"]');
+    
+    panoramaUpload.addEventListener('click', () => panoramaInput.click());
+    panoramaInput.addEventListener('change', handlePanoramaUpload);
+    
+    // Drag and drop
+    setupDragAndDrop(mainImageUpload, mainImageInput);
+    setupDragAndDrop(panoramaUpload, panoramaInput);
+}
+
+function setupDragAndDrop(uploadArea, input) {
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event('change'));
+    });
+}
+
+function handleMainImageUpload(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('mainImagePreview').innerHTML = 
+                `<img src="${e.target.result}" class="image-preview" alt="معاينة">`;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function handlePanoramaUpload(e) {
+    const files = e.target.files;
+    const preview = document.getElementById('panoramaPreview');
+    preview.innerHTML = '';
+    
+    for (let file of files) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'image-preview';
+            img.alt = '360° معاينة';
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function initForm() {
+    document.getElementById('locationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!selectedLat || !selectedLng) {
+            alert('يرجى تحديد الموقع على الخريطة');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        
+        fetch('{{ url_for("pilgrimage_admin_add_location") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('تم حفظ الموقع بنجاح!');
+                location.reload();
+            } else {
+                alert('حدث خطأ: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء حفظ الموقع');
+        });
+    });
+}
+
+function resetForm() {
+    document.getElementById('locationForm').reset();
+    document.getElementById('mainImagePreview').innerHTML = '';
+    document.getElementById('panoramaPreview').innerHTML = '';
+    
+    if (currentMarker) {
+        adminMap.removeLayer(currentMarker);
+        currentMarker = null;
+    }
+    
+    selectedLat = null;
+    selectedLng = null;
+    document.getElementById('latitude').value = '';
+    document.getElementById('longitude').value = '';
+}
+
+function editLocation(locationId) {
+    // TODO: تنفيذ تعديل الموقع
+    alert('ميزة التعديل قيد التطوير');
+}
+
+function deleteLocation(locationId) {
+    if (confirm('هل أنت متأكد من حذف هذا الموقع؟')) {
+        fetch(`{{ url_for("pilgrimage_admin_delete_location", location_id=0) }}`.replace('0', locationId), {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('تم حذف الموقع بنجاح!');
+                location.reload();
+            } else {
+                alert('حدث خطأ: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء حذف الموقع');
+        });
+    }
+}
+</script>
+{% endblock %}

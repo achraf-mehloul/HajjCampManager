@@ -1,0 +1,674 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم لوحة المعلومات الكهربائية -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-bolt me-2 icon-primary"></i>
+        لوحة المعلومات الكهربائية
+    </h2>
+
+    <div class="row">
+        <!-- إحصائيات التنبيهات -->
+        <div class="col-md-12 mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="dashboard-card primary">
+                        <div class="title">إجمالي التنبيهات</div>
+                        <div class="number">{{ total_alerts }}</div>
+                        <div><i class="fas fa-bell fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card" style="background-color: #FFF3CD; color: #856404;">
+                        <div class="title">تنبيهات تحذيرية</div>
+                        <div class="number">{{ warning_alerts }}</div>
+                        <div><i class="fas fa-exclamation-triangle fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card" style="background-color: #F8D7DA; color: #721C24;">
+                        <div class="title">تنبيهات خطرة</div>
+                        <div class="number">{{ danger_alerts }}</div>
+                        <div><i class="fas fa-radiation fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card" style="background-color: #D1ECF1; color: #0C5460;">
+                        <div class="title">لوحات بحمل عالي</div>
+                        <div class="number">{{ high_load_panels }}</div>
+                        <div><i class="fas fa-bolt fa-2x"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- داشبورد اللوحات ذات الحمل العالي -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-fire me-2"></i>
+                اللوحات ذات الحمل العالي ({{ high_load_panels }})
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary active" id="show-all-high-load">الكل</button>
+                <button type="button" class="btn btn-sm btn-outline-warning" id="show-warning-high-load">تحذير</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="show-danger-high-load">خطر</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <canvas id="highLoadChart" width="400" height="300"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="high-load-table">
+                            <thead>
+                                <tr>
+                                    <th>MDB</th>
+                                    <th>المنطقة</th>
+                                    <th>نسبة الحمل</th>
+                                    <th>نوع القراءة</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for panel in high_load_panels_list %}
+                                    {% if panel.id in latest_readings and panel.breaker_capacity %}
+                                        {% if latest_readings[panel.id].load and panel.breaker_capacity %}
+                                            {% set load_percentage = (latest_readings[panel.id].load / panel.breaker_capacity) * 100 %}
+                                            {% set load_value = latest_readings[panel.id].load %}
+                                        {% else %}
+                                            {% set load_percentage = (latest_readings[panel.id].current / panel.breaker_capacity) * 100 %}
+                                            {% set load_value = latest_readings[panel.id].current %}
+                                        {% endif %}
+
+                                        {% if load_percentage >= danger_threshold %}
+                                            {% set status_class = "danger" %}
+                                            {% set status_color = danger_color %}
+                                            {% set status_text = "خطر" %}
+                                        {% elif load_percentage >= warning_threshold %}
+                                            {% set status_class = "warning" %}
+                                            {% set status_color = warning_color %}
+                                            {% set status_text = "تحذير" %}
+                                        {% else %}
+                                            {% set status_class = "normal" %}
+                                            {% set status_color = normal_color %}
+                                            {% set status_text = "طبيعي" %}
+                                        {% endif %}
+
+                                        <tr class="high-load-row {{ status_class }}-row" data-status="{{ status_class }}">
+                                            <td>{{ panel.mdb|safe }}</td>
+                                            <td>{{ panel.area_name }}</td>
+                                            <td>
+                                                <div class="progress">
+                                                    <div class="progress-bar"
+                                                        role="progressbar"
+                                                        style="width: {{ load_percentage }}%; background-color: {{ status_color }};"
+                                                        aria-valuenow="{{ load_percentage }}"
+                                                        aria-valuemin="0"
+                                                        aria-valuemax="100">
+                                                        {{ "%.1f"|format(load_percentage) }}%
+                                                    </div>
+                                                </div>
+                                                <small>{{ "%.1f"|format(load_value) }}/{{ panel.breaker_capacity }}A</small>
+                                            </td>
+                                            <td>
+                                                {% if latest_readings[panel.id].reading_type %}
+                                                    <span class="badge {% if latest_readings[panel.id].reading_type == 'manual' %}bg-info{% else %}bg-secondary{% endif %}">
+                                                        {% if latest_readings[panel.id].reading_type == 'manual' %}
+                                                            يدوية
+                                                        {% else %}
+                                                            تلقائية
+                                                        {% endif %}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">تلقائية</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ status_color }}; {% if status_class == 'warning' %}color: #000;{% endif %}">
+                                                    {{ status_text }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('panel_readings', panel_id=panel.id) }}" class="btn btn-primary">
+                                                        <i class="fas fa-chart-line"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('panel_details', panel_id=panel.id) }}" class="btn btn-info">
+                                                        <i class="fas fa-info-circle"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- خارطة حرارية للمناطق ذات الحمل العالي -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-map-marked-alt me-2"></i>
+                خارطة المناطق ذات الحمل العالي
+            </div>
+            <div>
+                <a href="{{ url_for('map_view') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-expand me-1"></i>
+                    عرض الخارطة الكاملة
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="map-responsive">
+                <div id="heatmap"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قسم استيراد البيانات -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-file-import me-2"></i>
+            استيراد قراءات الكهرباء
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <form action="{{ url_for('import_readings') }}" method="post" enctype="multipart/form-data" class="row g-3">
+                        <div class="col-md-8">
+                            <label for="file" class="form-label">اختر ملف Excel/CSV</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls,.csv" required>
+                            <div class="form-text">يجب أن يحتوي الملف على الأعمدة المطلوبة: MDB، وقت القراءة، التيار (أمبير)، الجهد (فولت)</div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>
+                                استيراد القراءات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6 d-flex align-items-end justify-content-end">
+                    <a href="{{ url_for('download_readings_template') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-download me-2"></i>
+                        تحميل قالب الاستيراد
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- التنبيهات الأخيرة -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-bell me-2"></i>
+                آخر التنبيهات
+            </div>
+            <div>
+                <a href="{{ url_for('alerts') }}" class="btn btn-sm btn-outline-primary">
+                    عرض جميع التنبيهات
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if unread_alerts %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>اللوحة</th>
+                                <th>نوع التنبيه</th>
+                                <th>الرسالة</th>
+                                <th>الخطورة</th>
+                                <th>الوقت</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in unread_alerts[:5] %}
+                                <tr>
+                                    <td>{{ alert.panel.mdb }}</td>
+                                    <td>
+                                        {% if alert.alert_type == 'current' %}
+                                            <span class="badge bg-primary">التيار</span>
+                                        {% elif alert.alert_type == 'voltage' %}
+                                            <span class="badge bg-info">الجهد</span>
+                                        {% elif alert.alert_type == 'power' %}
+                                            <span class="badge bg-secondary">القدرة</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ alert.message }}</td>
+                                    <td>
+                                        <span class="badge {% if alert.severity == 'danger' %}bg-danger{% else %}bg-warning{% endif %}">
+                                            {{ alert.severity }}
+                                        </span>
+                                    </td>
+                                    <td>{{ alert.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('panel_readings', panel_id=alert.panel_id) }}" class="btn btn-info">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
+                                            <a href="{{ url_for('toggle_alert_read', alert_id=alert.id) }}" class="btn btn-success">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    لا توجد تنبيهات غير مقروءة.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- قائمة اللوحات مع آخر القراءات -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-server me-2"></i>
+                حالة اللوحات الكهربائية
+            </div>
+            <div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-success" id="export-excel-btn">
+                        <i class="fas fa-file-excel me-1"></i>
+                        تصدير Excel
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" id="export-pdf-btn">
+                        <i class="fas fa-file-pdf me-1"></i>
+                        تصدير PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="panels-table">
+                    <thead>
+                        <tr>
+                            <th>MDB</th>
+                            <th>المنطقة</th>
+                            <th>آخر قراءة</th>
+                            <th>التيار (أمبير)</th>
+                            <th>الجهد (فولت)</th>
+                            <th>القدرة (واط)</th>
+                            <th>نسبة الحمل</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for panel in panels %}
+                            <tr>
+                                <td>{{ panel.mdb }}</td>
+                                <td>{{ panel.area_name }}</td>
+                                <td>
+                                    {% if panel.id in latest_readings %}
+                                        {{ latest_readings[panel.id].timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                        {% if latest_readings[panel.id].reading_type %}
+                                            <span class="badge {% if latest_readings[panel.id].reading_type == 'manual' %}bg-info{% else %}bg-secondary{% endif %}" style="margin-right: 5px;">
+                                                {% if latest_readings[panel.id].reading_type == 'manual' %}
+                                                    يدوية
+                                                {% else %}
+                                                    تلقائية
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">لا توجد قراءات</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if panel.id in latest_readings and latest_readings[panel.id].current %}
+                                        {{ "%.1f"|format(latest_readings[panel.id].current) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if panel.id in latest_readings and latest_readings[panel.id].voltage %}
+                                        {{ "%.1f"|format(latest_readings[panel.id].voltage) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if panel.id in latest_readings and latest_readings[panel.id].power %}
+                                        {{ "%.1f"|format(latest_readings[panel.id].power) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if panel.id in latest_readings and latest_readings[panel.id].current and panel.breaker_capacity %}
+                                        {% if latest_readings[panel.id].load is not none %}
+                                            {% set load_percentage = latest_readings[panel.id].load %}
+                                            {% set load_value = latest_readings[panel.id].current %}
+                                        {% else %}
+                                            {% set load_percentage = (latest_readings[panel.id].current / panel.breaker_capacity) * 100 %}
+                                            {% set load_value = latest_readings[panel.id].current %}
+                                        {% endif %}
+                                        {% set warning_threshold = warning_threshold|default(70) %}
+                                        {% set danger_threshold = danger_threshold|default(80) %}
+                                        {% set normal_color = normal_color|default('#28A745') %}
+                                        {% set warning_color = warning_color|default('#FFC107') %}
+                                        {% set danger_color = danger_color|default('#DC3545') %}
+                                        {% set trip_color = trip_color|default('#6C757D') %}
+
+                                        <div class="progress">
+                                            <div class="progress-bar"
+                                                role="progressbar"
+                                                style="width: {{ load_percentage }}%; background-color:
+                                                {% if load_percentage >= danger_threshold %}
+                                                    {{ danger_color }}
+                                                {% elif load_percentage >= warning_threshold %}
+                                                    {{ warning_color }}
+                                                {% else %}
+                                                    {{ normal_color }}
+                                                {% endif %};"
+                                                aria-valuenow="{{ load_percentage }}"
+                                                aria-valuemin="0"
+                                                aria-valuemax="100">
+                                                {{ "%.1f"|format(load_percentage) }}% ({{ "%.1f"|format(load_value) }}/{{ panel.breaker_capacity }}A)
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if panel.id in latest_readings %}
+                                        {% if latest_readings[panel.id].current is not none and latest_readings[panel.id].current == 0 and latest_readings[panel.id].voltage is not none and latest_readings[panel.id].voltage > 0 %}
+                                            <span class="badge" style="background-color: {{ trip_color }}">فصل (Trip)</span>
+                                        {% elif latest_readings[panel.id].current_status == 'danger' or latest_readings[panel.id].voltage_status == 'danger' %}
+                                            <span class="badge" style="background-color: {{ danger_color }}">خطر</span>
+                                        {% elif latest_readings[panel.id].current_status == 'warning' or latest_readings[panel.id].voltage_status == 'warning' %}
+                                            <span class="badge" style="background-color: {{ warning_color }}; color: #000;">تحذير</span>
+                                        {% elif latest_readings[panel.id].current_status == 'normal' %}
+                                            <span class="badge" style="background-color: {{ normal_color }}">طبيعي</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">غير معروف</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">غير معروف</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('panel_readings', panel_id=panel.id) }}" class="btn btn-primary">
+                                            <i class="fas fa-chart-line"></i>
+                                        </a>
+                                        <a href="{{ url_for('panel_details', panel_id=panel.id) }}" class="btn btn-info">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تهيئة جدول اللوحات مع تحسين الأداء
+        const table = $('#panels-table').DataTable({
+            "order": [[7, 'desc'], [6, 'desc']],
+            "pageLength": 25,
+            "stateSave": true,
+            "responsive": {
+                details: {
+                    display: $.fn.dataTable.Responsive.display.modal({
+                        header: function(row) {
+                            var data = row.data();
+                            return 'تفاصيل اللوحة: ' + data[0];
+                        }
+                    }),
+                    renderer: $.fn.dataTable.Responsive.renderer.tableAll({
+                        tableClass: 'table table-striped'
+                    })
+                }
+            }
+        });
+
+        // تهيئة جدول اللوحات ذات الحمل العالي مع تحسين الأداء
+        const highLoadTable = $('#high-load-table').DataTable({
+            "order": [[2, 'desc']],
+            "pageLength": 10,
+            "responsive": {
+                details: {
+                    display: $.fn.dataTable.Responsive.display.modal({
+                        header: function(row) {
+                            var data = row.data();
+                            return 'تفاصيل اللوحة: ' + data[0];
+                        }
+                    }),
+                    renderer: $.fn.dataTable.Responsive.renderer.tableAll({
+                        tableClass: 'table table-striped'
+                    })
+                }
+            }
+        });
+
+        // إضافة وظائف تصفية اللوحات ذات الحمل العالي
+        $('#show-all-high-load').on('click', function() {
+            $('.high-load-row').show();
+            $('.btn-group button').removeClass('active');
+            $(this).addClass('active');
+            highLoadTable.draw();
+        });
+
+        $('#show-warning-high-load').on('click', function() {
+            $('.high-load-row').hide();
+            $('.warning-row').show();
+            $('.btn-group button').removeClass('active');
+            $(this).addClass('active');
+            highLoadTable.draw();
+        });
+
+        $('#show-danger-high-load').on('click', function() {
+            $('.high-load-row').hide();
+            $('.danger-row').show();
+            $('.btn-group button').removeClass('active');
+            $(this).addClass('active');
+            highLoadTable.draw();
+        });
+
+        // إضافة نماذج التصدير مباشرة في الصفحة
+        if (!document.getElementById('export-excel-form')) {
+            // إزالة النماذج القديمة إذا كانت موجودة
+            $('#export-excel-form, #export-pdf-form').remove();
+
+            // إضافة النماذج الجديدة
+            const exportForms = `
+                <form id="export-excel-form" action="/export/excel" method="post" style="display: none;">
+                    <input type="hidden" name="area" value="all">
+                    <input type="hidden" name="panel_type" value="all">
+                    <input type="hidden" name="year" value="all">
+                    <input type="hidden" name="export_type" value="electrical">
+                </form>
+                <form id="export-pdf-form" action="/export/pdf" method="post" style="display: none;">
+                    <input type="hidden" name="area" value="all">
+                    <input type="hidden" name="panel_type" value="all">
+                    <input type="hidden" name="year" value="all">
+                    <input type="hidden" name="export_type" value="electrical">
+                </form>
+            `;
+            $('body').append(exportForms);
+
+            console.log('تم إضافة نماذج التصدير');
+        }
+
+        // معالجة أزرار التصدير
+        $('#export-excel-btn').off('click').on('click', function(e) {
+            e.preventDefault();
+            console.log('تم النقر على زر تصدير Excel');
+
+            // التأكد من وجود النموذج
+            if ($('#export-excel-form').length === 0) {
+                console.error('نموذج تصدير Excel غير موجود!');
+                alert('حدث خطأ في تصدير البيانات. يرجى المحاولة مرة أخرى.');
+                return;
+            }
+
+            // إرسال النموذج
+            $('#export-excel-form').submit();
+        });
+
+        $('#export-pdf-btn').off('click').on('click', function(e) {
+            e.preventDefault();
+            console.log('تم النقر على زر تصدير PDF');
+
+            // التأكد من وجود النموذج
+            if ($('#export-pdf-form').length === 0) {
+                console.error('نموذج تصدير PDF غير موجود!');
+                alert('حدث خطأ في تصدير البيانات. يرجى المحاولة مرة أخرى.');
+                return;
+            }
+
+            // إرسال النموذج
+            $('#export-pdf-form').submit();
+        });
+
+        // إنشاء رسم بياني للوحات ذات الحمل العالي
+        const highLoadCtx = document.getElementById('highLoadChart').getContext('2d');
+        const highLoadChart = new Chart(highLoadCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ high_load_labels|safe }},
+                datasets: [{
+                    label: 'نسبة الحمل (%)',
+                    data: {{ high_load_values|safe }},
+                    backgroundColor: {{ high_load_colors|safe }},
+                    borderColor: {{ high_load_borders|safe }},
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'نسبة الحمل (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'اللوحات'
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'اللوحات ذات الحمل العالي',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `نسبة الحمل: ${context.raw}%`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // إنشاء خارطة حرارية للمناطق ذات الحمل العالي
+        const mapElement = document.getElementById('heatmap');
+        if (mapElement) {
+            // تعيين مركز الخارطة على منطقة عرفة
+            const map = L.map('heatmap').setView([21.3583, 39.9719], 13);
+
+            // إضافة طبقة الخارطة
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // بيانات الخارطة الحرارية
+            const heatData = {{ heat_map_data|safe }};
+
+            // إضافة طبقة الخارطة الحرارية
+            if (heatData && heatData.length > 0) {
+                // إضافة طبقة الحرارة
+                L.heatLayer(heatData, {
+                    radius: 25,
+                    blur: 15,
+                    maxZoom: 17,
+                    gradient: {
+                        0.4: 'blue',
+                        0.6: 'lime',
+                        0.7: 'yellow',
+                        0.8: 'orange',
+                        0.9: 'red'
+                    }
+                }).addTo(map);
+
+                // إضافة علامات للوحات ذات الحمل العالي
+                const highLoadMarkers = {{ high_load_markers|safe }};
+                if (highLoadMarkers) {
+                    eval(highLoadMarkers);
+                }
+
+                // تعيين حدود الخارطة لتشمل جميع النقاط
+                if (heatData.length > 0) {
+                    const bounds = [];
+                    heatData.forEach(point => bounds.push([point[0], point[1]]));
+                    map.fitBounds(bounds);
+                }
+            } else {
+                // إضافة رسالة إذا لم تكن هناك بيانات كافية
+                mapElement.innerHTML = '<div class="alert alert-info text-center my-5">لا توجد بيانات كافية للخارطة الحرارية</div>';
+                console.log('لا توجد بيانات كافية للخارطة الحرارية');
+            }
+
+            // إعادة ضبط حجم الخارطة عند تغيير حجم النافذة
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
+
+            window.addEventListener('resize', function() {
+                map.invalidateSize();
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-edit me-2"></i>
+                تعديل نموذج ذكاء اصطناعي
+            </h1>
+            <p class="lead">تعديل إعدادات نموذج الذكاء الاصطناعي: {{ model.model_name }}</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('trips_ai.index') }}">الرحلات والذكاء الاصطناعي</a>
+                    </li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('trips_ai.ai_models') }}">إدارة نماذج الذكاء
+                            الاصطناعي</a></li>
+                    <li class="breadcrumb-item active">تعديل نموذج</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot me-2"></i>معلومات النموذج
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="ai-model-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <!-- Basic Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>المعلومات الأساسية
+                                </h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="model_name" class="form-label">اسم النموذج *</label>
+                                <input type="text" class="form-control" id="model_name" name="model_name" required
+                                    value="{{ model.model_name }}" placeholder="مثال: GPT-4 للرحلات">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="model_type" class="form-label">نوع النموذج *</label>
+                                <select class="form-select" id="model_type" name="model_type" required>
+                                    <option value="">اختر النوع</option>
+                                    <option value="chatbot" {% if model.model_type=='chatbot' %}selected{% endif %}>شات
+                                        بوت / مساعد عام</option>
+                                    <option value="trip_planner" {% if model.model_type=='trip_planner' %}selected{%
+                                        endif %}>مخطط رحلات الحج والعمرة</option>
+                                    <option value="issue_analyzer" {% if model.model_type=='issue_analyzer' %}selected{%
+                                        endif %}>محلل البلاغات والتقارير</option>
+                                    <option value="voice_assistant" {% if model.model_type=='voice_assistant'
+                                        %}selected{% endif %}>مساعد صوتي (Voice)</option>
+                                    <option value="translator" {% if model.model_type=='translator' %}selected{% endif
+                                        %}>مترجم</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- API Configuration -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-plug me-2"></i>إعدادات API
+                                </h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="api_provider" class="form-label">مزود الخدمة *</label>
+                                <select class="form-select" id="api_provider" name="api_provider" required
+                                    onchange="updateProviderInfo()">
+                                    <option value="">اختر المزود</option>
+                                    <option value="openai" {% if model.api_provider=='openai' %}selected{% endif %}>
+                                        OpenAI</option>
+                                    <option value="openrouter" {% if model.api_provider=='openrouter' %}selected{% endif
+                                        %}>OpenRouter (شات وصوت)</option>
+                                    <option value="aimlapi" {% if model.api_provider=='aimlapi' %}selected{% endif %}>
+                                        AI/ML API (أكثر من 400 موديل)</option>
+                                    <option value="google" {% if model.api_provider=='google' %}selected{% endif %}>
+                                        Google (Gemini)</option>
+                                    <option value="anthropic" {% if model.api_provider=='anthropic' %}selected{% endif
+                                        %}>Anthropic (Claude)</option>
+                                    <option value="azure" {% if model.api_provider=='azure' %}selected{% endif %}>
+                                        Microsoft Azure</option>
+                                    <option value="custom" {% if model.api_provider=='custom' %}selected{% endif %}>مخصص
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="model_version" class="form-label">إصدار النموذج</label>
+                                <select class="form-select" id="model_version" name="model_version">
+                                    <option value="{{ model.model_version }}">{{ model.model_version }}</option>
+                                </select>
+                                <div class="form-text" id="version-help">اختر مزود الخدمة أولاً إذا أردت التغيير</div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="api_key" class="form-label">مفتاح API *</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="api_key" name="api_key" required
+                                        value="{{ model.api_key }}" placeholder="أدخل مفتاح API الخاص بك">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleApiKey()">
+                                        <i class="fas fa-eye" id="api-key-icon"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    <i class="fas fa-lock me-1"></i>سيتم تشفير المفتاح وحفظه بشكل آمن
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Model Parameters -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-sliders-h me-2"></i>معاملات النموذج
+                                </h6>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="temperature" class="form-label">درجة الحرارة</label>
+                                <input type="range" class="form-range" id="temperature" name="temperature" min="0"
+                                    max="2" step="0.1" value="{{ model.temperature }}"
+                                    oninput="updateTemperatureValue()">
+                                <div class="d-flex justify-content-between">
+                                    <small>محافظ (0)</small>
+                                    <small id="temperature-value">{{ model.temperature }}</small>
+                                    <small>إبداعي (2)</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="max_tokens" class="form-label">الحد الأقصى للرموز</label>
+                                <input type="number" class="form-control" id="max_tokens" name="max_tokens"
+                                    value="{{ model.max_tokens }}" min="1" max="4000">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="timeout" class="form-label">مهلة الاستجابة (ثانية)</label>
+                                <input type="number" class="form-control" id="timeout" name="timeout" value="30" min="5"
+                                    max="120">
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="system_prompt" class="form-label">التعليمات الأساسية</label>
+                                <textarea class="form-control" id="system_prompt" name="system_prompt" rows="4"
+                                    placeholder="أنت مساعد ذكي متخصص في الحج والعمرة...">{{ model.system_prompt }}</textarea>
+                                <div class="form-text">التعليمات التي تحدد سلوك النموذج</div>
+                            </div>
+                        </div>
+
+                        <!-- Settings -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-cogs me-2"></i>الإعدادات
+                                </h6>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {%
+                                        if model.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        تفعيل النموذج
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="is_default" name="is_default" {%
+                                        if model.is_default %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_default">
+                                        جعله النموذج الافتراضي
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('trips_ai.ai_models') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>حفظ التعديلات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Stats -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>إحصائيات الاستخدام
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block">عدد الاستخدامات:</small>
+                        <span class="h4">{{ model.usage_count or 0 }}</span>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">آخر استخدام:</small>
+                        <span>{% if model.last_used %}{{ model.last_used.strftime('%Y-%m-%d %H:%M') }}{% else %}لم
+                            يستخدم بعد{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>نصائح
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            تغيير الإعدادات سيؤثر فوراً على أداء النظام
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            تأكد من صحة مفتاح API قبل الحفظ
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const providerModels = {
+        'openai': [
+            { value: 'gpt-4o', text: 'GPT-4o' },
+            { value: 'gpt-4o-mini', text: 'GPT-4o Mini (أسرع)' },
+            { value: 'gpt-4', text: 'GPT-4' },
+            { value: 'gpt-3.5-turbo', text: 'GPT-3.5 Turbo' }
+        ],
+        'anthropic': [
+            { value: 'claude-3-opus-20240229', text: 'Claude 3 Opus' },
+            { value: 'claude-3-sonnet-20240229', text: 'Claude 3 Sonnet' },
+            { value: 'claude-3-haiku-20240307', text: 'Claude 3 Haiku' }
+        ],
+        'google': [
+            { value: 'gemini-1.5-flash', text: 'Gemini 1.5 Flash (أسرع - موصى به)' },
+            { value: 'gemini-1.5-pro', text: 'Gemini 1.5 Pro' },
+            { value: 'gemini-pro', text: 'Gemini Pro' }
+        ],
+        'openrouter': [
+            { value: 'openai/gpt-4o-mini', text: 'GPT-4o Mini (أفضل اختيار)' },
+            { value: 'openai/gpt-4o-mini-audio', text: 'GPT-4o Mini Audio (للصوت والمحادثة)' },
+            { value: 'openai/gpt-4o', text: 'GPT-4o (الأقوى)' },
+            { value: 'meta-llama/llama-3.1-8b-instruct:free', text: 'Llama 3.1 8B (مجاني ممتاز)' },
+            { value: 'google/gemini-flash-1.5', text: 'Gemini Flash (عبر OpenRouter)' }
+        ],
+        'aimlapi': [
+            { value: 'gpt-4o-mini', text: 'GPT-4o Mini (عن طريق AIML)' },
+            { value: 'gpt-4o', text: 'GPT-4o (الأصلي)' },
+            { value: 'mistralai/mistral-large', text: 'Mistral Large' },
+            { value: 'anthropic/claude-3-haiku', text: 'Claude 3 Haiku' }
+        ],
+        'azure': [
+            { value: 'gpt-4', text: 'GPT-4 (Azure)' },
+            { value: 'gpt-35-turbo', text: 'GPT-3.5 Turbo (Azure)' }
+        ]
+    };
+
+    function updateProviderInfo() {
+        const provider = document.getElementById('api_provider').value;
+        const versionSelect = document.getElementById('model_version');
+
+        // Store current value
+        const currentVersion = versionSelect.value;
+
+        // Clear version options
+        versionSelect.innerHTML = '<option value="">اختر الإصدار</option>';
+
+        if (provider && providerModels[provider]) {
+            // Add version options
+            providerModels[provider].forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.value;
+                option.textContent = model.text;
+                if (model.value === currentVersion) option.selected = true;
+                versionSelect.appendChild(option);
+            });
+        }
+    }
+
+    function updateTemperatureValue() {
+        const temp = document.getElementById('temperature').value;
+        document.getElementById('temperature-value').textContent = temp;
+    }
+
+    function toggleApiKey() {
+        const input = document.getElementById('api_key');
+        const icon = document.getElementById('api-key-icon');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fas fa-eye';
+        }
+    }
+
+    // Initialize provider info on load
+    window.onload = updateProviderInfo;
+
+    // Form validation
+    document.getElementById('ai-model-form').addEventListener('submit', function (e) {
+        const requiredFields = this.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+
+        if (!isValid) {
+            e.preventDefault();
+            alert('يرجى ملء جميع الحقول المطلوبة');
+        }
+    });
+</script>
+{% endblock %}

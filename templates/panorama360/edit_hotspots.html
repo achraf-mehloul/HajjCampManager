@@ -1,0 +1,725 @@
+{% extends 'base.html' %}
+
+{% block title %}محرر النقاط - {{ panorama.title }}{% endblock %}
+
+{% block head %}
+<!-- Pannellum CSS & JS (محلي) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='libs/pannellum/pannellum.css') }}?v=2" />
+<script src="{{ url_for('static', filename='libs/pannellum/pannellum.js') }}?v=2"></script>
+<script>
+    // التحقق من تحميل Pannellum
+    window.addEventListener('load', function () {
+        if (typeof pannellum === 'undefined') {
+            document.body.innerHTML = '<div style="padding:50px;text-align:center;color:red;font-size:20px;">❌ خطأ: فشل تحميل مكتبة Pannellum!<br><br>الحلول:<br>1. حدّث الصفحة (Ctrl+Shift+R)<br>2. امسح الكاش<br>3. تحقق من المسار: /static/libs/pannellum/</div>';
+        }
+    });
+</script>
+
+<style>
+    #panorama {
+        width: 100%;
+        height: 600px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        cursor: grab;
+    }
+
+    #panorama:active {
+        cursor: grabbing;
+    }
+
+    #panorama canvas {
+        cursor: grab !important;
+    }
+
+    #panorama:active canvas {
+        cursor: grabbing !important;
+    }
+
+    .add-mode {
+        border: 3px dashed #28a745;
+        animation: pulse 2s infinite;
+        cursor: crosshair !important;
+    }
+
+    .add-mode canvas {
+        cursor: crosshair !important;
+    }
+
+    .add-mode * {
+        cursor: crosshair !important;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            border-color: #28a745;
+        }
+
+        50% {
+            border-color: #20c997;
+        }
+    }
+
+    .asset-item {
+        cursor: grab;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .asset-item:hover {
+        background-color: #f8f9fa;
+        border-color: #007bff;
+        transform: translateX(-5px);
+    }
+
+    .asset-item.dragging {
+        opacity: 0.5;
+    }
+
+    .hotspot-marker {
+        background: #dc3545;
+        border: 3px solid white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        animation: pulse-marker 2s infinite;
+    }
+
+    /* النقطة الموجودة (existing) */
+    .custom-hotspot {
+        background: #dc3545 !important;
+        border: 3px solid white !important;
+        border-radius: 50% !important;
+        width: 30px !important;
+        height: 30px !important;
+        cursor: pointer !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+        animation: pulse-marker 2s infinite !important;
+        margin: -15px 0 0 -15px !important;
+    }
+
+    .custom-hotspot:hover {
+        transform: scale(1.3);
+        z-index: 999;
+    }
+
+    .custom-hotspot .hotspot-label {
+        position: absolute;
+        bottom: -22px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, .8);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        white-space: nowrap;
+        font-family: Tahoma, sans-serif;
+        pointer-events: none;
+    }
+
+    /* النقطة الحمراء المؤقتة */
+    .custom-hotspot-temp {
+        background: #ffc107 !important;
+        border: 3px solid white !important;
+        border-radius: 50% !important;
+        width: 25px !important;
+        height: 25px !important;
+        animation: pulse-temp 0.5s infinite !important;
+    }
+
+    @keyframes pulse-temp {
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        50% {
+            transform: scale(1.3);
+            opacity: 0.7;
+        }
+    }
+
+    @keyframes pulse-marker {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+        }
+
+        50% {
+            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2>
+                        <i class="fas fa-edit me-2"></i>
+                        محرر النقاط التفاعلية
+                    </h2>
+                    <p class="text-muted mb-0">{{ panorama.title }}</p>
+                </div>
+                <a href="{{ url_for('panorama360.manage_panoramas') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-right me-2"></i>رجوع
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- البانوراما -->
+        <div class="col-lg-8">
+            <!-- تعليمات الاستخدام -->
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>كيفية إضافة نقطة:</h5>
+                <ol class="mb-0">
+                    <li><strong>اختر أصل</strong> من القائمة اليمنى (اضغط على زر <i class="fas fa-plus"></i>)</li>
+                    <li><strong>اضغط</strong> على زر "إضافة نقطة" الأخضر أسفل البانوراما</li>
+                    <li><strong>انقر</strong> على موقع الأصل في البانوراما</li>
+                    <li><strong>ستظهر</strong> نقطة حمراء نابضة 🔴 في المكان الذي نقرت عليه</li>
+                </ol>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-image me-2"></i>
+                        {{ panorama.title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="panorama"></div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-success" id="addModeBtn" onclick="enableAddMode()" disabled>
+                        <i class="fas fa-plus-circle me-2"></i>
+                        إضافة نقطة
+                    </button>
+                    <button class="btn btn-danger d-none" id="cancelModeBtn" onclick="cancelAddMode()">
+                        <i class="fas fa-times me-2"></i>
+                        إلغاء
+                    </button>
+                    <span class="text-muted ms-3" id="statusText">
+                        <i class="fas fa-arrow-right me-1"></i>اختر أصل أولاً من القائمة
+                    </span>
+                    <div class="float-end">
+                        <span class="badge bg-info">
+                            {{ existing_hotspots|length }} نقطة موجودة
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- تخصيص النقطة -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-warning">
+                    <h6 class="mb-0"><i class="fas fa-paint-brush me-2"></i>تخصيص النقطة</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="form-label form-label-sm">التسمية (اختياري)</label>
+                        <input id="hs_label" type="text" class="form-control form-control-sm"
+                            placeholder="مثال: لوحة توزيع رئيسية">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label form-label-sm">الأيقونة (اختياري)</label>
+                        <div class="input-group input-group-sm">
+                            <input id="hs_icon_key" type="text" class="form-control form-control-sm"
+                                placeholder="مثال: fas fa-info-circle">
+                            <button class="btn btn-outline-secondary" type="button" id="openIconPicker">
+                                <i class="fas fa-icons"></i> اختر أيقونة
+                            </button>
+                        </div>
+                        <small class="text-muted">أمثلة: fas fa-bolt, fas fa-wrench, fas fa-exclamation-circle</small>
+                        <div class="mt-2" id="iconPreview" style="display:none;">
+                            <span class="badge bg-light text-dark p-2"><i id="iconPreviewI"></i> معاينة</span>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label form-label-sm">اللون</label>
+                            <input id="hs_color" type="color" class="form-control form-control-color" value="#dc3545">
+                            <div class="mt-2 d-flex gap-1 flex-wrap" id="quickColors">
+                                <button type="button" class="btn btn-sm"
+                                    style="background:#dc3545;width:24px;height:24px" data-color="#dc3545"></button>
+                                <button type="button" class="btn btn-sm"
+                                    style="background:#0d6efd;width:24px;height:24px" data-color="#0d6efd"></button>
+                                <button type="button" class="btn btn-sm"
+                                    style="background:#198754;width:24px;height:24px" data-color="#198754"></button>
+                                <button type="button" class="btn btn-sm"
+                                    style="background:#fd7e14;width:24px;height:24px" data-color="#fd7e14"></button>
+                                <button type="button" class="btn btn-sm"
+                                    style="background:#6f42c1;width:24px;height:24px" data-color="#6f42c1"></button>
+                                <button type="button" class="btn btn-sm"
+                                    style="background:#20c997;width:24px;height:24px" data-color="#20c997"></button>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label form-label-sm">الحجم (px)</label>
+                            <input id="hs_size_px" type="number" class="form-control form-control-sm" min="12" max="64"
+                                value="24">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة الأصول -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        الأصول المتاحة
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    <!-- بحث -->
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm" id="searchAssets"
+                            placeholder="🔍 بحث عن أصل...">
+                    </div>
+
+                    <!-- قائمة الأصول -->
+                    <div id="assetsList">
+                        {% if available_assets %}
+                        {% for asset in available_assets %}
+                        <div class="asset-item card mb-2" data-asset-id="{{ asset.id }}"
+                            data-asset-number="{{ asset.asset_number }}" data-asset-desc="{{ asset.description }}">
+                            <div class="card-body p-2">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-box text-primary me-1"></i>
+                                    {{ asset.asset_number }}
+                                </h6>
+                                <p class="small text-muted mb-1">{{ asset.description[:50] }}...</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i>{{ asset.area }}
+                                    </small>
+                                    <button class="btn btn-sm btn-primary"
+                                        onclick="selectAsset({{ asset.id }}, '{{ asset.asset_number }}', '{{ asset.description }}')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            لا توجد أصول متاحة في هذه المنطقة
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- النقاط الموجودة -->
+            {% if existing_hotspots %}
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        النقاط المضافة
+                    </h5>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    {% for hotspot in existing_hotspots %}
+                    <div class="card mb-2">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ hotspot.asset.asset_number }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ hotspot.asset.description[:30] }}...</small>
+                                </div>
+                                <button class="btn btn-sm btn-danger" onclick="deleteHotspot({{ hotspot.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    let viewer;
+    let addingMode = false;
+    let selectedAssetId = null;
+    let selectedAssetNumber = '';
+    let selectedAssetDesc = '';
+    const panoramaId = {{ panorama.id }};
+    const csrfToken = "{{ csrf_token() }}";
+
+    // تهيئة البانوراما
+    console.log("🚀 Script loaded!");
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("📄 DOM ready!");
+        const imagePath = "{{ url_for('static', filename=panorama.image_path) }}";
+        console.log("🔍 Loading panorama from:", imagePath);
+
+        // التحقق من وجود Pannellum
+        if (typeof pannellum === 'undefined') {
+            alert('❌ خطأ: مكتبة Pannellum غير محملة!\nتحقق من اتصال الإنترنت.');
+            return;
+        }
+
+        try {
+            viewer = pannellum.viewer('panorama', {
+                "type": "equirectangular",
+                "panorama": imagePath,
+                "autoLoad": true,
+                "showControls": true,
+                "mouseZoom": true,
+                "autoRotate": -2,
+                "hfov": 110,
+                "pitch": 0,
+            });
+
+
+            // إضافة النقاط بعد تحميل البانوراما
+            viewer.on('load', function () {
+                console.log("✅ Panorama loaded successfully!");
+                document.getElementById('panorama').style.border = '3px solid #28a745';
+
+                // إضافة النقاط الموجودة بعد تحميل البانوراما
+                try {
+                    const existingHotspots = {{ existing_hotspots| tojson | safe
+                }};
+            console.log("📊 Total existing hotspots:", existingHotspots.length);
+            console.log("📍 Hotspots data:", existingHotspots);
+
+            existingHotspots.forEach((hotspot, index) => {
+                try {
+                    console.log(`Adding hotspot #${index + 1}: pitch=${hotspot.pitch}, yaw=${hotspot.yaw}`);
+
+                    const sizePx = hotspot.size_px || 24;
+                    const colorHex = hotspot.color_hex || '#dc3545';
+                    const labelText = hotspot.label || `Asset ${hotspot.asset_id}`;
+                    const iconClass = hotspot.icon_key || '';
+
+                    viewer.addHotSpot({
+                        pitch: hotspot.pitch,
+                        yaw: hotspot.yaw,
+                        cssClass: 'custom-hotspot',
+                        clickHandlerFunc: function () {
+                            alert('النقطة: ' + labelText + '\nAsset ID: ' + hotspot.asset_id + '\nالموقع: Pitch=' + hotspot.pitch.toFixed(2) + ', Yaw=' + hotspot.yaw.toFixed(2));
+                        }
+                    });
+
+                } catch (e) {
+                    console.error(`Error adding hotspot #${index + 1}:`, e);
+                }
+            });
+        } catch (e) {
+            console.error("❌ Error loading hotspots:", e);
+        }
+    });
+
+    viewer.on('error', function (err) {
+        console.error("❌ Error loading panorama:", err);
+        alert("خطأ في تحميل البانوراما:\n" + err + "\n\nتأكد من:\n1. الصورة موجودة\n2. الصورة بصيغة 360°");
+        document.getElementById('panorama').innerHTML = '<div style="padding:50px;text-align:center;color:red;">❌ فشل تحميل البانوراما</div>';
+    });
+    } catch (e) {
+        console.error("❌ Exception:", e);
+        alert("خطأ في إنشاء العارض: " + e.message);
+    }
+});
+
+    // تفعيل وضع الإضافة
+    function enableAddMode() {
+        if (!selectedAssetId) {
+            alert('الرجاء اختيار أصل أولاً من القائمة');
+            return;
+        }
+
+        if (!viewer) {
+            alert('❌ العارض غير جاهز بعد، انتظر لحظات ثم حاول مرة أخرى.');
+            return;
+        }
+
+        addingMode = true;
+        document.getElementById('panorama').classList.add('add-mode');
+        document.getElementById('addModeBtn').classList.add('d-none');
+        document.getElementById('cancelModeBtn').classList.remove('d-none');
+        document.getElementById('statusText').innerHTML = `<i class="fas fa-crosshairs me-1"></i>اضغط على موقع "${selectedAssetNumber}" في البانوراما`;
+
+        // تغيير المؤشر لشكل crosshair
+        document.getElementById('panorama').style.cursor = 'crosshair';
+
+        // أثناء وضع الإضافة نوقف الدوران التلقائي حتى لا تتحرك الكاميرا أثناء اختيار النقطة
+        try {
+            viewer.stopAutoRotate();
+            viewer.stopMovement();
+        } catch (e) {
+            console.warn('Auto-rotate control not available:', e);
+        }
+
+        // إضافة مستمع للنقر على نفس عنصر العارض الذي يستخدمه Pannellum
+        // لضمان دقة mouseEventToCoords وعدم الاعتماد على أي حواف / padding خارجية
+        const panoramaContainer = viewer.getContainer();
+        panoramaContainer.addEventListener('click', handlePanoramaClick);
+    }
+
+    // إلغاء وضع الإضافة
+    function cancelAddMode() {
+        addingMode = false;
+        document.getElementById('panorama').classList.remove('add-mode');
+        document.getElementById('addModeBtn').classList.remove('d-none');
+        document.getElementById('cancelModeBtn').classList.add('d-none');
+        document.getElementById('statusText').textContent = '';
+
+        // إرجاع المؤشر للوضع الطبيعي
+        document.getElementById('panorama').style.cursor = 'grab';
+
+        const panoramaContainer = viewer ? viewer.getContainer() : document.getElementById('panorama');
+        panoramaContainer.removeEventListener('click', handlePanoramaClick);
+
+        // استئناف الدوران التلقائي بعد الانتهاء من الإضافة (اختياري)
+        try {
+            viewer.startAutoRotate(-2, viewer.getPitch());
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    // معالجة النقر على البانوراما
+    function handlePanoramaClick(event) {
+        if (!addingMode || !selectedAssetId) return;
+        if (!viewer) { alert("❌ العارض غير جاهز!"); return; }
+
+        // حساب إحداثيات النقطة من مكان النقر الفعلي على البانوراما
+        // باستخدام Pannellum: mouseEventToCoords(MouseEvent) -> [pitch, yaw] بالدرجات
+        var pitch, yaw;
+        try {
+            var coords = viewer.mouseEventToCoords(event);
+            if (!coords || coords.length < 2) {
+                throw new Error('mouseEventToCoords returned invalid coords: ' + JSON.stringify(coords));
+            }
+            pitch = Number(coords[0]);
+            yaw = Number(coords[1]);
+        } catch (err) {
+            console.error('❌ Failed to compute hotspot coords from click:', err);
+            alert('❌ تعذر حساب إحداثيات النقطة من مكان النقر. جرّب مرة أخرى.');
+            return;
+        }
+
+        if (!Number.isFinite(pitch) || !Number.isFinite(yaw)) {
+            console.warn('⚠️ Ignoring hotspot: non-finite coords', { pitch: pitch, yaw: yaw });
+            return;
+        }
+        pitch = Math.max(-89.999, Math.min(89.999, pitch));
+        yaw = ((yaw + 180) % 360 + 360) % 360 - 180;
+
+        console.log("📍 using click coords:", { pitch: pitch, yaw: yaw });
+
+        // نقطة مؤقتة صفراء
+        viewer.addHotSpot({
+            pitch: pitch,
+            yaw: yaw,
+            cssClass: 'custom-hotspot-temp'
+        });
+
+        // إرسال البيانات للسيرفر
+
+        fetch('{{ url_for("panorama360.api_add_hotspot") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                panorama_id: panoramaId,
+                asset_id: selectedAssetId,
+                pitch: pitch,
+                yaw: yaw,
+                hotspot_type: 'asset',
+                icon_key: document.getElementById('hs_icon_key').value || null,
+                color_hex: document.getElementById('hs_color').value || null,
+                size_px: (function () {
+                    const v = parseInt(document.getElementById('hs_size_px').value, 10);
+                    return isNaN(v) ? null : v;
+                })(),
+                label: document.getElementById('hs_label').value || null,
+                icon_style: 'default',
+                icon_size: 'medium'
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('✅ Hotspot saved successfully!');
+                    // النقطة المحفوظة — cssClass فقط بدون createTooltipFunc لضمان الثبات
+                    viewer.addHotSpot({
+                        pitch: pitch,
+                        yaw: yaw,
+                        cssClass: 'custom-hotspot'
+                    });
+                    alert('✅ تم إضافة النقطة بنجاح!');
+                    setTimeout(() => location.reload(), 1000);
+
+                } else {
+                    alert('❌ خطأ: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error:', error);
+                alert('حدث خطأ أثناء الإضافة');
+            });
+
+        cancelAddMode();
+    }
+
+    // اختيار أصل
+    function selectAsset(assetId, assetNumber, assetDesc) {
+        selectedAssetId = assetId;
+        selectedAssetNumber = assetNumber;
+        selectedAssetDesc = assetDesc;
+
+        console.log("✅ تم اختيار الأصل:", { assetId, assetNumber, assetDesc });
+
+        // تحديد العنصر المختار
+        document.querySelectorAll('.asset-item').forEach(item => {
+            item.style.borderColor = 'transparent';
+            item.style.backgroundColor = 'white';
+        });
+        const selectedItem = event.target.closest('.asset-item');
+        selectedItem.style.borderColor = '#28a745';
+        selectedItem.style.backgroundColor = '#d4edda';
+
+        // تفعيل زر "إضافة نقطة"
+        document.getElementById('addModeBtn').disabled = false;
+        document.getElementById('statusText').innerHTML = `<i class="fas fa-check-circle text-success me-1"></i>تم اختيار: ${assetNumber} - اضغط "إضافة نقطة"`;
+
+        // تفعيل وضع الإضافة مباشرة
+        enableAddMode();
+    }
+
+    // حذف نقطة
+    function deleteHotspot(hotspotId) {
+        if (!confirm('هل أنت متأكد من حذف هذه النقطة؟')) return;
+
+        fetch(`/panorama360/api/hotspots/${hotspotId}/delete`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('تم الحذف بنجاح!');
+                    location.reload();
+                } else {
+                    alert('خطأ: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء الحذف');
+            });
+    }
+
+    // بحث في الأصول
+    document.getElementById('searchAssets').addEventListener('input', function (e) {
+        const searchTerm = e.target.value.toLowerCase();
+        document.querySelectorAll('.asset-item').forEach(item => {
+            const assetNumber = item.dataset.assetNumber.toLowerCase();
+            const assetDesc = item.dataset.assetDesc.toLowerCase();
+
+            if (assetNumber.includes(searchTerm) || assetDesc.includes(searchTerm)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+
+    // أيقونة: فتح نافذة الاختيار
+    document.getElementById('openIconPicker').addEventListener('click', function () {
+        const modal = new bootstrap.Modal(document.getElementById('iconPickerModal'));
+        modal.show();
+    });
+
+    // أيقونة: اختيار من الشبكة
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-icon]');
+        if (!btn) return;
+        const cls = btn.getAttribute('data-icon');
+        document.getElementById('hs_icon_key').value = cls;
+        const prev = document.getElementById('iconPreview');
+        const i = document.getElementById('iconPreviewI');
+        i.className = cls;
+        prev.style.display = 'inline-block';
+        const modalEl = document.getElementById('iconPickerModal');
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        if (inst) inst.hide();
+    });
+
+    // ألوان سريعة
+    document.getElementById('quickColors').addEventListener('click', function (e) {
+        const c = e.target.getAttribute('data-color');
+        if (!c) return;
+        document.getElementById('hs_color').value = c;
+    });
+</script>
+
+<!-- Modal: Icon Picker -->
+<div class="modal fade" id="iconPickerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-icons me-2"></i>اختيار الأيقونة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    {% set icons = [
+                    'fas fa-exclamation-circle',
+                    'fas fa-wrench',
+                    'fas fa-bolt',
+                    'fas fa-thermometer-half',
+                    'fas fa-fire-extinguisher',
+                    'fas fa-info-circle',
+                    'fas fa-question',
+                    'fas fa-check-circle',
+                    'fas fa-lightbulb',
+                    'fas fa-plug',
+                    'fas fa-water'
+                    ] %}
+                    {% for ic in icons %}
+                    <div class="col-3">
+                        <button type="button" class="btn btn-light w-100 py-3" data-icon="{{ ic }}">
+                            <i class="{{ ic }} fa-2x"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}إنشاء بانوراما جديدة{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="mb-4">
+                <h2>
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إنشاء بانوراما جديدة
+                </h2>
+                <p class="text-muted">رفع صورة بانوراما 360 درجة</p>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <!-- العنوان -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                عنوان البانوراما <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="title" 
+                                   placeholder="مثال: منى - المخيم 5"
+                                   required>
+                        </div>
+
+                        <!-- الوصف -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">الوصف</label>
+                            <textarea class="form-control" 
+                                      name="description" 
+                                      rows="3"
+                                      placeholder="وصف مختصر للبانوراما..."></textarea>
+                        </div>
+
+                        <!-- اسم الموقع -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">اسم الموقع</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="location_name" 
+                                   placeholder="مثال: المخيم 5 - منطقة أ">
+                        </div>
+
+                        <!-- المنطقة -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">المنطقة</label>
+                            <select class="form-select" name="area">
+                                <option value="">اختر المنطقة...</option>
+                                {% for area in areas %}
+                                <option value="{{ area }}">{{ area }}</option>
+                                {% endfor %}
+                                <option value="منى">منى</option>
+                                <option value="عرفات">عرفات</option>
+                                <option value="مزدلفة">مزدلفة</option>
+                                <option value="مكة">مكة</option>
+                            </select>
+                            <div class="form-text">
+                                اختر المنطقة لتسهيل ربط الأصول لاحقاً
+                            </div>
+                        </div>
+
+                        <!-- صورة البانوراما -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                صورة البانوراما 360° <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" 
+                                   class="form-control form-control-lg" 
+                                   name="panorama_image" 
+                                   accept="image/*"
+                                   id="panoramaImage"
+                                   required>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                يفضل استخدام صور بنسبة 2:1 (مثل 4096x2048 أو 8192x4096)
+                            </div>
+                            
+                            <!-- معاينة الصورة -->
+                            <div id="imagePreview" class="mt-3" style="display: none;">
+                                <img id="previewImg" class="img-fluid rounded" style="max-height: 300px;">
+                            </div>
+                        </div>
+
+                        <!-- الأزرار -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save me-2"></i>
+                                حفظ والانتقال لإضافة النقاط
+                            </button>
+                            <a href="{{ url_for('panorama360.admin_dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-right me-2"></i>
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- نصائح -->
+            <div class="alert alert-info mt-4">
+                <h6 class="alert-heading">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    نصائح للحصول على أفضل نتيجة:
+                </h6>
+                <ul class="mb-0">
+                    <li>استخدم كاميرا 360° أو تطبيق متخصص لالتقاط الصور</li>
+                    <li>تأكد من جودة الإضاءة عند التصوير</li>
+                    <li>التقط الصورة من موقع مركزي في المكان</li>
+                    <li>حجم الملف الأمثل: 2-10 ميجابايت</li>
+                    <li>بعد الحفظ، ستنتقل مباشرة لإضافة النقاط التفاعلية</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// معاينة الصورة قبل الرفع
+document.getElementById('panoramaImage').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

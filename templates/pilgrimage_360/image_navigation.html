@@ -1,0 +1,590 @@
+{% extends 'base.html' %}
+
+{% block title %}التنقل بين الصور 360°{% endblock %}
+
+{% block extra_css %}
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<style>
+    .navigation-container {
+        position: relative;
+        height: 90vh;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .vr-scene {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .navigation-ui {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px 20px;
+        border-radius: 25px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .nav-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .location-info {
+        color: white;
+        font-size: 14px;
+        margin-left: 20px;
+    }
+    
+    .location-name {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .location-category {
+        font-size: 12px;
+        opacity: 0.8;
+    }
+    
+    .nav-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .nav-btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+    
+    .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .nav-btn.active {
+        background: #007bff;
+    }
+    
+    .hotspot-menu {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        max-width: 250px;
+    }
+    
+    .hotspot-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .hotspot-item {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        margin-bottom: 5px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 13px;
+    }
+    
+    .hotspot-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .hotspot-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 10px;
+        font-size: 10px;
+        color: white;
+    }
+    
+    .mode-toggle {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+        display: flex;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    
+    .mode-btn {
+        padding: 10px 15px;
+        border: none;
+        background: transparent;
+        color: white;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .mode-btn.active {
+        background: #007bff;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        color: white;
+        font-size: 16px;
+    }
+    
+    .loading-spinner {
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .compass {
+        position: absolute;
+        bottom: 100px;
+        right: 20px;
+        z-index: 1000;
+        width: 60px;
+        height: 60px;
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .navigation-ui {
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            transform: none;
+            padding: 10px 15px;
+        }
+        
+        .nav-controls {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .location-info {
+            margin-left: 0;
+            text-align: center;
+        }
+        
+        .hotspot-menu {
+            top: 10px;
+            right: 10px;
+            max-width: 200px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="h4 mb-2">
+                <i class="fas fa-route me-2"></i>
+                التنقل بين المواقع 360°
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('pilgrimage_index') }}">تجربة الحجاج 360°</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('pilgrimage_enhanced_map') }}">الخريطة التفاعلية</a></li>
+                    <li class="breadcrumb-item active">التنقل 360°</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Navigation Container -->
+    <div class="row">
+        <div class="col-12">
+            <div class="navigation-container">
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="text-center">
+                        <div class="loading-spinner"></div>
+                        <div>جاري تحميل المشهد...</div>
+                    </div>
+                </div>
+                
+                <!-- Mode Toggle -->
+                <div class="mode-toggle">
+                    <button class="mode-btn active" onclick="setMode('360')">
+                        <i class="fas fa-globe me-1"></i>
+                        360°
+                    </button>
+                    <button class="mode-btn" onclick="setMode('map')">
+                        <i class="fas fa-map me-1"></i>
+                        خريطة
+                    </button>
+                </div>
+                
+                <!-- Compass -->
+                <div class="compass" id="compass">
+                    <i class="fas fa-compass"></i>
+                </div>
+                
+                <!-- Hotspot Menu -->
+                <div class="hotspot-menu" id="hotspotMenu">
+                    <div class="hotspot-title">المواقع المتاحة</div>
+                    <div id="hotspotList">
+                        <!-- سيتم ملؤها بـ JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- A-Frame Scene -->
+                <a-scene 
+                    class="vr-scene" 
+                    id="vrScene"
+                    embedded
+                    style="height: 100%; width: 100%;"
+                    vr-mode-ui="enabled: false"
+                    device-orientation-permission-ui="enabled: false">
+                    
+                    <!-- Assets -->
+                    <a-assets>
+                        <img id="panorama1" src="{{ url_for('static', filename='360_images/kaaba_interior.jpg') }}">
+                        <img id="panorama2" src="{{ url_for('static', filename='360_images/masjid_haram.jpg') }}">
+                        <img id="panorama3" src="{{ url_for('static', filename='360_images/arafat.jpg') }}">
+                        <img id="panorama4" src="{{ url_for('static', filename='360_images/mina.jpg') }}">
+                        <img id="panorama5" src="{{ url_for('static', filename='360_images/muzdalifah.jpg') }}">
+                    </a-assets>
+                    
+                    <!-- Sky (Panorama) -->
+                    <a-sky 
+                        id="panoramaSky" 
+                        src="#panorama1"
+                        rotation="0 -90 0">
+                    </a-sky>
+                    
+                    <!-- Navigation Hotspots -->
+                    <a-entity id="hotspotsContainer">
+                        <!-- سيتم إضافة النقاط الساخنة بـ JavaScript -->
+                    </a-entity>
+                    
+                    <!-- Camera -->
+                    <a-camera 
+                        id="camera"
+                        look-controls="enabled: true"
+                        wasd-controls="enabled: false"
+                        position="0 1.6 0">
+                        
+                        <!-- Cursor for interaction -->
+                        <a-cursor
+                            id="cursor"
+                            animation__click="property: scale; startEvents: click; from: 0.1 0.1 0.1; to: 1 1 1; dur: 150"
+                            animation__fusing="property: scale; startEvents: fusing; from: 1 1 1; to: 0.1 0.1 0.1; dur: 1500"
+                            raycaster="objects: .hotspot"
+                            geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                            material="color: white; shader: flat">
+                        </a-cursor>
+                    </a-camera>
+                    
+                    <!-- Lighting -->
+                    <a-light type="ambient" color="#404040"></a-light>
+                </a-scene>
+                
+                <!-- Navigation UI -->
+                <div class="navigation-ui">
+                    <div class="nav-controls">
+                        <div class="location-info">
+                            <div class="location-name" id="currentLocationName">الكعبة المشرفة</div>
+                            <div class="location-category" id="currentLocationCategory">مواقع مقدسة</div>
+                        </div>
+                        
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="previousLocation()">
+                                <i class="fas fa-chevron-right me-1"></i>
+                                السابق
+                            </button>
+                            <button class="nav-btn" onclick="nextLocation()">
+                                <i class="fas fa-chevron-left me-1"></i>
+                                التالي
+                            </button>
+                            <button class="nav-btn" onclick="resetView()">
+                                <i class="fas fa-undo me-1"></i>
+                                إعادة تعيين
+                            </button>
+                            <button class="nav-btn" onclick="toggleFullscreen()">
+                                <i class="fas fa-expand me-1"></i>
+                                ملء الشاشة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentLocationIndex = 0;
+let locations = [];
+let scene, sky, camera, hotspotsContainer;
+let isLoading = false;
+
+// بيانات المواقع مع الصور والنقاط الساخنة
+const locationData = [
+    {
+        id: 1,
+        name: 'الكعبة المشرفة',
+        category: 'مواقع مقدسة',
+        panorama: 'panorama1',
+        hotspots: [
+            { position: '2 2 -3', target: 2, label: 'المسجد الحرام', icon: 'fa-mosque' },
+            { position: '-2 1 -3', target: 3, label: 'عرفات', icon: 'fa-mountain' }
+        ]
+    },
+    {
+        id: 2,
+        name: 'المسجد الحرام',
+        category: 'مساجد',
+        panorama: 'panorama2',
+        hotspots: [
+            { position: '3 1 -2', target: 1, label: 'الكعبة المشرفة', icon: 'fa-kaaba' },
+            { position: '-3 2 -1', target: 4, label: 'منى', icon: 'fa-campground' }
+        ]
+    },
+    {
+        id: 3,
+        name: 'عرفات',
+        category: 'مواقع الحج',
+        panorama: 'panorama3',
+        hotspots: [
+            { position: '2 1 -4', target: 5, label: 'مزدلفة', icon: 'fa-moon' },
+            { position: '-2 2 -3', target: 1, label: 'الكعبة المشرفة', icon: 'fa-kaaba' }
+        ]
+    },
+    {
+        id: 4,
+        name: 'منى',
+        category: 'مواقع الحج',
+        panorama: 'panorama4',
+        hotspots: [
+            { position: '1 2 -4', target: 2, label: 'المسجد الحرام', icon: 'fa-mosque' },
+            { position: '-1 1 -4', target: 5, label: 'مزدلفة', icon: 'fa-moon' }
+        ]
+    },
+    {
+        id: 5,
+        name: 'مزدلفة',
+        category: 'مواقع الحج',
+        panorama: 'panorama5',
+        hotspots: [
+            { position: '3 1 -2', target: 3, label: 'عرفات', icon: 'fa-mountain' },
+            { position: '-3 2 -2', target: 4, label: 'منى', icon: 'fa-campground' }
+        ]
+    }
+];
+
+// تهيئة المشهد
+document.addEventListener('DOMContentLoaded', function() {
+    initScene();
+    loadLocation(0);
+    updateHotspotMenu();
+});
+
+function initScene() {
+    scene = document.querySelector('#vrScene');
+    sky = document.querySelector('#panoramaSky');
+    camera = document.querySelector('#camera');
+    hotspotsContainer = document.querySelector('#hotspotsContainer');
+    
+    // إخفاء شاشة التحميل بعد تحميل المشهد
+    scene.addEventListener('loaded', function() {
+        setTimeout(() => {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }, 1000);
+    });
+}
+
+function loadLocation(index) {
+    if (isLoading || index < 0 || index >= locationData.length) return;
+    
+    isLoading = true;
+    currentLocationIndex = index;
+    const location = locationData[index];
+    
+    // عرض شاشة التحميل
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    
+    // تحديث معلومات الموقع
+    document.getElementById('currentLocationName').textContent = location.name;
+    document.getElementById('currentLocationCategory').textContent = location.category;
+    
+    // تغيير الصورة البانورامية
+    sky.setAttribute('src', `#${location.panorama}`);
+    
+    // إزالة النقاط الساخنة القديمة
+    clearHotspots();
+    
+    // إضافة النقاط الساخنة الجديدة
+    setTimeout(() => {
+        addHotspots(location.hotspots);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        isLoading = false;
+    }, 1500);
+}
+
+function clearHotspots() {
+    while (hotspotsContainer.firstChild) {
+        hotspotsContainer.removeChild(hotspotsContainer.firstChild);
+    }
+}
+
+function addHotspots(hotspots) {
+    hotspots.forEach((hotspot, index) => {
+        const hotspotElement = document.createElement('a-entity');
+        hotspotElement.setAttribute('class', 'hotspot');
+        hotspotElement.setAttribute('position', hotspot.position);
+        hotspotElement.setAttribute('geometry', 'primitive: sphere; radius: 0.1');
+        hotspotElement.setAttribute('material', 'color: #007bff; opacity: 0.8');
+        hotspotElement.setAttribute('animation__mouseenter', 'property: scale; to: 1.3 1.3 1.3; startEvents: mouseenter; dur: 200');
+        hotspotElement.setAttribute('animation__mouseleave', 'property: scale; to: 1 1 1; startEvents: mouseleave; dur: 200');
+        
+        // إضافة نص التسمية
+        const labelElement = document.createElement('a-text');
+        labelElement.setAttribute('value', hotspot.label);
+        labelElement.setAttribute('position', '0 0.2 0');
+        labelElement.setAttribute('align', 'center');
+        labelElement.setAttribute('color', 'white');
+        labelElement.setAttribute('scale', '0.5 0.5 0.5');
+        hotspotElement.appendChild(labelElement);
+        
+        // إضافة معالج النقر
+        hotspotElement.addEventListener('click', function() {
+            navigateToLocation(hotspot.target - 1);
+        });
+        
+        hotspotsContainer.appendChild(hotspotElement);
+    });
+}
+
+function navigateToLocation(targetIndex) {
+    if (targetIndex >= 0 && targetIndex < locationData.length) {
+        loadLocation(targetIndex);
+    }
+}
+
+function updateHotspotMenu() {
+    const hotspotList = document.getElementById('hotspotList');
+    hotspotList.innerHTML = '';
+    
+    locationData.forEach((location, index) => {
+        const item = document.createElement('div');
+        item.className = 'hotspot-item';
+        if (index === currentLocationIndex) {
+            item.style.background = '#e3f2fd';
+        }
+        
+        item.innerHTML = `
+            <div class="hotspot-icon" style="background-color: #007bff;">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div>
+                <div style="font-weight: bold;">${location.name}</div>
+                <div style="font-size: 11px; color: #666;">${location.category}</div>
+            </div>
+        `;
+        
+        item.onclick = () => loadLocation(index);
+        hotspotList.appendChild(item);
+    });
+}
+
+function previousLocation() {
+    const prevIndex = currentLocationIndex > 0 ? currentLocationIndex - 1 : locationData.length - 1;
+    loadLocation(prevIndex);
+    updateHotspotMenu();
+}
+
+function nextLocation() {
+    const nextIndex = currentLocationIndex < locationData.length - 1 ? currentLocationIndex + 1 : 0;
+    loadLocation(nextIndex);
+    updateHotspotMenu();
+}
+
+function resetView() {
+    camera.setAttribute('rotation', '0 0 0');
+}
+
+function toggleFullscreen() {
+    const container = document.querySelector('.navigation-container');
+    if (!document.fullscreenElement) {
+        container.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+function setMode(mode) {
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    if (mode === 'map') {
+        window.location.href = '{{ url_for("pilgrimage_enhanced_map") }}';
+    }
+}
+
+// تحديث البوصلة حسب اتجاه الكاميرا
+setInterval(() => {
+    if (camera) {
+        const rotation = camera.getAttribute('rotation');
+        const compass = document.getElementById('compass');
+        if (compass) {
+            compass.style.transform = `rotate(${-rotation.y}deg)`;
+        }
+    }
+}, 100);
+</script>
+{% endblock %}

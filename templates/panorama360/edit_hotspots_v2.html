@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+
+{% block title %}تحرير النقاط - {{ panorama.title }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/plugins/markers.css"/>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/plugins/markers.js"></script>
+
+<style>
+  #panorama {
+    width: 100%;
+    height: 600px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  }
+
+  .add-mode {
+    border: 3px dashed #28a745;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { border-color: #28a745; }
+    50% { border-color: #20c997; }
+  }
+
+  .asset-item {
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+
+  .asset-item:hover {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+    transform: translateX(-5px);
+  }
+
+  .asset-item.selected {
+    border-color: #28a745;
+    background-color: #d4edda;
+  }
+
+  .hotspot-marker {
+    width: 25px;
+    height: 25px;
+    background: #dc3545;
+    border: 3px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    animation: pulse-marker 2s infinite;
+  }
+
+  @keyframes pulse-marker {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+    50% { box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
+  }
+
+  .hotspot-marker:hover {
+    transform: scale(1.3);
+  }
+
+  .hotspot-temp {
+    background: #ffc107;
+    animation: pulse-temp 0.5s infinite;
+  }
+
+  @keyframes pulse-temp {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2>
+          <i class="fas fa-edit text-primary me-2"></i>
+          تحرير النقاط - {{ panorama.title }}
+        </h2>
+        <a href="{{ url_for('panorama360.manage_panoramas') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-right me-2"></i>
+          رجوع
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-4">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            الأصول المتاحة
+          </h5>
+        </div>
+        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+          {% if assets %}
+            {% for asset in assets %}
+            <div class="asset-item" onclick="selectAsset({{ asset.id }}, '{{ asset.asset_number }}', '{{ asset.description or '' }}')">
+              <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                  <strong>{{ asset.asset_number }}</strong>
+                  <br>
+                  <small class="text-muted">{{ asset.description or 'لا يوجد وصف' }}</small>
+                </div>
+                <i class="fas fa-plus-circle text-success"></i>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              لا توجد أصول متاحة
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-map-marker-alt me-2"></i>
+            النقاط الموجودة ({{ existing_hotspots|length }})
+          </h5>
+        </div>
+        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+          {% if existing_hotspots %}
+            {% for hotspot in existing_hotspots %}
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+              <div>
+                <strong>{{ hotspot.asset.asset_number }}</strong>
+                <br>
+                <small class="text-muted">{{ hotspot.asset.description or '' }}</small>
+              </div>
+              <button class="btn btn-sm btn-danger" onclick="deleteHotspot({{ hotspot.id }})">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted text-center">لا توجد نقاط بعد</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>✨ محرر النقاط المتقدم</h5>
+        <ol class="mb-0">
+          <li><strong>اختر أصل</strong> من القائمة اليمنى</li>
+          <li><strong>اضغط "إضافة نقطة"</strong> الأخضر</li>
+          <li><strong>انقر مباشرة</strong> على المكان المطلوب في البانوراما</li>
+          <li><strong>النقطة ستظهر</strong> بالضبط في مكان النقرة! 🎯</li>
+        </ol>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-image me-2"></i>
+            {{ panorama.title }}
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div id="panorama"></div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-success" id="addModeBtn" onclick="enableAddMode()" disabled>
+            <i class="fas fa-plus-circle me-2"></i>
+            إضافة نقطة
+          </button>
+          <button class="btn btn-danger d-none" id="cancelModeBtn" onclick="cancelAddMode()">
+            <i class="fas fa-times me-2"></i>
+            إلغاء
+          </button>
+          <span class="text-muted ms-3" id="statusText">
+            <i class="fas fa-arrow-right me-1"></i>اختر أصل أولاً من القائمة
+          </span>
+          <div class="float-end">
+            <span class="badge bg-info">
+              {{ existing_hotspots|length }} نقطة موجودة
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const panoramaId = {{ panorama.id }};
+  const csrfToken = "{{ csrf_token() }}";
+  let viewer, markersPlugin;
+  let addingMode = false;
+  let selectedAssetId = null;
+  let selectedAssetNumber = null;
+  let selectedAssetDesc = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      viewer = new PhotoSphereViewer.Viewer({
+        container: 'panorama',
+        panorama: "{{ url_for('static', filename=panorama.image_path) }}",
+        navbar: ['zoom', 'move', 'fullscreen']
+      });
+
+      markersPlugin = new PhotoSphereViewer.MarkersPlugin();
+      viewer.registerPlugin(markersPlugin);
+
+      {% for hotspot in existing_hotspots %}
+      markersPlugin.addMarker({
+        id: 'hotspot-{{ hotspot.id }}',
+        position: { 
+          yaw: {{ hotspot.yaw }} * Math.PI / 180,
+          pitch: {{ hotspot.pitch }} * Math.PI / 180
+        },
+        html: '<div class="hotspot-marker" title="{{ hotspot.asset.asset_number }}"></div>',
+        tooltip: '{{ hotspot.asset.asset_number }}'
+      });
+      {% endfor %}
+
+      viewer.addEventListener('click', handlePanoramaClick);
+    } catch (e) {
+      console.error('PSV Error:', e);
+      alert('خطأ في تحميل المشاهد: ' + e.message);
+    }
+  });
+
+  function selectAsset(assetId, assetNumber, assetDesc) {
+    selectedAssetId = assetId;
+    selectedAssetNumber = assetNumber;
+    selectedAssetDesc = assetDesc;
+
+    document.querySelectorAll('.asset-item').forEach(item => {
+      item.classList.remove('selected');
+    });
+    event.target.closest('.asset-item').classList.add('selected');
+
+    document.getElementById('addModeBtn').disabled = false;
+    document.getElementById('statusText').innerHTML = `<i class="fas fa-check-circle text-success me-1"></i>تم اختيار: ${assetNumber} - اضغط "إضافة نقطة"`;
+  }
+
+  function enableAddMode() {
+    if (!selectedAssetId) {
+      alert('الرجاء اختيار أصل أولاً من القائمة');
+      return;
+    }
+    addingMode = true;
+    document.getElementById('panorama').classList.add('add-mode');
+    document.getElementById('addModeBtn').classList.add('d-none');
+    document.getElementById('cancelModeBtn').classList.remove('d-none');
+    document.getElementById('statusText').innerHTML = `<i class="fas fa-hand-pointer me-1 text-success"></i>انقر على المكان المطلوب في البانوراما`;
+  }
+
+  function cancelAddMode() {
+    addingMode = false;
+    document.getElementById('panorama').classList.remove('add-mode');
+    document.getElementById('addModeBtn').classList.remove('d-none');
+    document.getElementById('cancelModeBtn').classList.add('d-none');
+    document.getElementById('statusText').innerHTML = `<i class="fas fa-check-circle text-success me-1"></i>تم اختيار: ${selectedAssetNumber}`;
+  }
+
+  function handlePanoramaClick(e) {
+    if (!addingMode || !selectedAssetId) return;
+
+    const yaw = e.data.yaw * 180 / Math.PI;
+    const pitch = e.data.pitch * 180 / Math.PI;
+
+    const tempId = 'temp-' + Date.now();
+    markersPlugin.addMarker({
+      id: tempId,
+      position: { yaw: e.data.yaw, pitch: e.data.pitch },
+      html: '<div class="hotspot-marker hotspot-temp"></div>',
+      tooltip: '⏳ جاري الحفظ...'
+    });
+
+    fetch('{{ url_for("panorama360.api_add_hotspot") }}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({
+        panorama_id: panoramaId,
+        asset_id: selectedAssetId,
+        pitch: pitch,
+        yaw: yaw,
+        hotspot_type: 'asset'
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        markersPlugin.removeMarker(tempId);
+        markersPlugin.addMarker({
+          id: 'hotspot-' + data.hotspot_id,
+          position: { yaw: e.data.yaw, pitch: e.data.pitch },
+          html: '<div class="hotspot-marker"></div>',
+          tooltip: selectedAssetNumber
+        });
+        alert('✅ تم إضافة النقطة بنجاح!');
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        alert('❌ خطأ: ' + data.message);
+        markersPlugin.removeMarker(tempId);
+      }
+    })
+    .catch(error => {
+      console.error('❌ Error:', error);
+      alert('حدث خطأ أثناء الإضافة');
+      markersPlugin.removeMarker(tempId);
+    });
+
+    cancelAddMode();
+  }
+
+  function deleteHotspot(hotspotId) {
+    if (!confirm('هل أنت متأكد من حذف هذه النقطة؟')) return;
+
+    fetch(`{{ url_for("panorama360.api_delete_hotspot", hotspot_id=0) }}`.replace('0', hotspotId), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('تم حذف النقطة بنجاح!');
+        location.reload();
+      } else {
+        alert('خطأ: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('حدث خطأ أثناء الحذف');
+    });
+  }
+</script>
+{% endblock %}

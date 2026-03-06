@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة القوائم المنسدلة{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">إدارة القوائم المنسدلة</h5>
+                    <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addDropdownModal">
+                        <i class="fas fa-plus me-1"></i> إضافة قائمة جديدة
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>اسم القائمة</th>
+                                    <th>اسم العرض</th>
+                                    <th>نوع الحقل</th>
+                                    <th>الظهور</th>
+                                    <th>عدد العناصر</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dropdown in dropdowns %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ dropdown.name }}</td>
+                                    <td>{{ dropdown.display_name }}</td>
+                                    <td>
+                                        {% if dropdown.field_type == 'current' %}
+                                            التيار
+                                        {% elif dropdown.field_type == 'voltage' %}
+                                            الجهد
+                                        {% elif dropdown.field_type == 'power' %}
+                                            القدرة
+                                        {% elif dropdown.field_type == 'energy' %}
+                                            الطاقة
+                                        {% else %}
+                                            {{ dropdown.field_type }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if dropdown.visibility == 'all' %}
+                                            <span class="badge bg-info">الجميع</span>
+                                        {% elif dropdown.visibility == 'admin' %}
+                                            <span class="badge bg-primary">المدير</span>
+                                        {% elif dropdown.visibility == 'contractor' %}
+                                            <span class="badge bg-secondary">المقاول</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ dropdown.items|length }}</td>
+                                    <td>
+                                        {% if dropdown.is_active %}
+                                            <span class="badge bg-success">نشط</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">غير نشط</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-primary edit-dropdown-btn" data-id="{{ dropdown.id }}" data-name="{{ dropdown.name }}" data-display-name="{{ dropdown.display_name }}" data-field-type="{{ dropdown.field_type }}" data-visibility="{{ dropdown.visibility }}" data-description="{{ dropdown.description }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-info manage-items-btn" data-id="{{ dropdown.id }}" data-name="{{ dropdown.display_name }}">
+                                                <i class="fas fa-list"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-warning toggle-dropdown-btn" data-id="{{ dropdown.id }}" data-is-active="{{ dropdown.is_active }}">
+                                                {% if dropdown.is_active %}
+                                                    <i class="fas fa-ban"></i>
+                                                {% else %}
+                                                    <i class="fas fa-check"></i>
+                                                {% endif %}
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إضافة قائمة منسدلة جديدة -->
+<div class="modal fade" id="addDropdownModal" tabindex="-1" aria-labelledby="addDropdownModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addDropdownForm" action="{{ url_for('dropdowns.add_dropdown') }}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addDropdownModalLabel">إضافة قائمة منسدلة جديدة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">اسم القائمة</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">اسم فريد للقائمة (بالإنجليزية، بدون مسافات)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="display_name" class="form-label">اسم العرض</label>
+                        <input type="text" class="form-control" id="display_name" name="display_name" required>
+                        <div class="form-text">الاسم الذي سيظهر للمستخدم</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="field_type" class="form-label">نوع الحقل</label>
+                        <select class="form-select" id="field_type" name="field_type" required>
+                            <option value="current">التيار</option>
+                            <option value="voltage">الجهد</option>
+                            <option value="power">القدرة</option>
+                            <option value="energy">الطاقة</option>
+                            <option value="breaker">القاطع</option>
+                            <option value="other">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="visibility" class="form-label">الظهور</label>
+                        <select class="form-select" id="visibility" name="visibility" required>
+                            <option value="all">الجميع</option>
+                            <option value="admin">المدير فقط</option>
+                            <option value="contractor">المقاول فقط</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">الوصف</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تعديل قائمة منسدلة -->
+<div class="modal fade" id="editDropdownModal" tabindex="-1" aria-labelledby="editDropdownModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editDropdownForm" method="post">
+                <input type="hidden" id="edit_dropdown_id" name="dropdown_id">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editDropdownModalLabel">تعديل قائمة منسدلة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">اسم القائمة</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_display_name" class="form-label">اسم العرض</label>
+                        <input type="text" class="form-control" id="edit_display_name" name="display_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_field_type" class="form-label">نوع الحقل</label>
+                        <select class="form-select" id="edit_field_type" name="field_type" required>
+                            <option value="current">التيار</option>
+                            <option value="voltage">الجهد</option>
+                            <option value="power">القدرة</option>
+                            <option value="energy">الطاقة</option>
+                            <option value="breaker">القاطع</option>
+                            <option value="other">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_visibility" class="form-label">الظهور</label>
+                        <select class="form-select" id="edit_visibility" name="visibility" required>
+                            <option value="all">الجميع</option>
+                            <option value="admin">المدير فقط</option>
+                            <option value="contractor">المقاول فقط</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">الوصف</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إدارة عناصر القائمة -->
+<div class="modal fade" id="manageItemsModal" tabindex="-1" aria-labelledby="manageItemsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageItemsModalLabel">إدارة عناصر القائمة: <span id="dropdown_name_display"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addItemForm" action="/dropdowns/items/add" method="post" class="mb-4">
+                    <input type="hidden" id="dropdown_id" name="dropdown_id">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="item_value" class="form-label">القيمة</label>
+                                <input type="text" class="form-control" id="item_value" name="value" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="item_display_text" class="form-label">نص العرض</label>
+                                <input type="text" class="form-control" id="item_display_text" name="display_text" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label for="item_order" class="form-label">الترتيب</label>
+                                <input type="number" class="form-control" id="item_order" name="order" value="0" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary w-100">إضافة</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="items_table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>القيمة</th>
+                                <th>نص العرض</th>
+                                <th>الترتيب</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items_tbody">
+                            <!-- سيتم ملء هذا الجزء بواسطة JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تفعيل زر تعديل القائمة المنسدلة
+        $('.edit-dropdown-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var displayName = $(this).data('display-name');
+            var fieldType = $(this).data('field-type');
+            var visibility = $(this).data('visibility');
+            var description = $(this).data('description');
+
+            // تعيين عنوان النموذج بشكل صحيح
+            var formAction = '/dropdowns/' + id + '/edit';
+            $('#editDropdownForm').attr('action', formAction);
+
+            $('#edit_dropdown_id').val(id);
+            $('#edit_name').val(name);
+            $('#edit_display_name').val(displayName);
+            $('#edit_field_type').val(fieldType);
+            $('#edit_visibility').val(visibility);
+            $('#edit_description').val(description);
+
+            $('#editDropdownModal').modal('show');
+        });
+
+        // تفعيل زر تبديل حالة القائمة المنسدلة
+        $('.toggle-dropdown-btn').click(function() {
+            var id = $(this).data('id');
+            var isActive = $(this).data('is-active');
+
+            if (confirm('هل أنت متأكد من تغيير حالة هذه القائمة؟')) {
+                // استخدام URL كامل بدلاً من استبدال النص
+                var url = '/dropdowns/' + id + '/toggle';
+                window.location.href = url;
+            }
+        });
+
+        // تفعيل زر إدارة عناصر القائمة
+        $('.manage-items-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+
+            $('#dropdown_id').val(id);
+            $('#dropdown_name_display').text(name);
+
+            // جلب عناصر القائمة
+            $.ajax({
+                url: '/dropdowns/' + id + '/items',
+                type: 'GET',
+                success: function(data) {
+                    var tbody = $('#items_tbody');
+                    tbody.empty();
+
+                    $.each(data.items, function(index, item) {
+                        var row = $('<tr>');
+                        row.append($('<td>').text(index + 1));
+                        row.append($('<td>').text(item.value));
+                        row.append($('<td>').text(item.display_text));
+                        row.append($('<td>').text(item.order));
+
+                        var statusBadge = $('<span>').addClass('badge');
+                        if (item.is_active) {
+                            statusBadge.addClass('bg-success').text('نشط');
+                        } else {
+                            statusBadge.addClass('bg-danger').text('غير نشط');
+                        }
+                        row.append($('<td>').append(statusBadge));
+
+                        var actions = $('<div>').addClass('btn-group btn-group-sm');
+
+                        var editBtn = $('<button>')
+                            .attr('type', 'button')
+                            .addClass('btn btn-primary edit-item-btn')
+                            .attr('data-id', item.id)
+                            .attr('data-value', item.value)
+                            .attr('data-display-text', item.display_text)
+                            .attr('data-order', item.order)
+                            .append($('<i>').addClass('fas fa-edit'));
+
+                        var toggleBtn = $('<button>')
+                            .attr('type', 'button')
+                            .addClass('btn btn-warning toggle-item-btn')
+                            .attr('data-id', item.id)
+                            .attr('data-is-active', item.is_active);
+
+                        if (item.is_active) {
+                            toggleBtn.append($('<i>').addClass('fas fa-ban'));
+                        } else {
+                            toggleBtn.append($('<i>').addClass('fas fa-check'));
+                        }
+
+                        actions.append(editBtn).append(toggleBtn);
+                        row.append($('<td>').append(actions));
+
+                        tbody.append(row);
+                    });
+
+                    // تفعيل أزرار العناصر
+                    activateItemButtons();
+                }
+            });
+
+            $('#manageItemsModal').modal('show');
+        });
+
+        // تفعيل أزرار عناصر القائمة
+        function activateItemButtons() {
+            // تفعيل زر تعديل العنصر
+            $('.edit-item-btn').click(function() {
+                var id = $(this).data('id');
+                var value = $(this).data('value');
+                var displayText = $(this).data('display-text');
+                var order = $(this).data('order');
+
+                // إنشاء نموذج تعديل العنصر
+                var form = $('<form>')
+                    .attr('action', '/dropdowns/items/' + id + '/edit')
+                    .attr('method', 'post');
+
+                var valueInput = $('<input>').attr('type', 'text').attr('name', 'value').val(value);
+                var displayTextInput = $('<input>').attr('type', 'text').attr('name', 'display_text').val(displayText);
+                var orderInput = $('<input>').attr('type', 'number').attr('name', 'order').val(order);
+
+                form.append(valueInput).append(displayTextInput).append(orderInput);
+
+                // إرسال النموذج
+                $('body').append(form);
+                form.submit();
+            });
+
+            // تفعيل زر تبديل حالة العنصر
+            $('.toggle-item-btn').click(function() {
+                var id = $(this).data('id');
+                var isActive = $(this).data('is-active');
+
+                if (confirm('هل أنت متأكد من تغيير حالة هذا العنصر؟')) {
+                    window.location.href = '/dropdowns/items/' + id + '/toggle';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

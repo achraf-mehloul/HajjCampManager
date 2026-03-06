@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم تحرير المقاول -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-edit me-2 icon-primary"></i>
+        تحرير المقاول
+    </h2>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-hard-hat me-2"></i>
+                    تحرير المقاول: {{ contractor.name }}
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('edit_contractor', contractor_id=contractor.id) }}" method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">اسم المقاول</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ contractor.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="contact_person" class="form-label">الشخص المسؤول</label>
+                            <input type="text" class="form-control" id="contact_person" name="contact_person" value="{{ contractor.contact_person }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">رقم الهاتف</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{ contractor.phone }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ contractor.email }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="area_responsibility" class="form-label">منطقة المسؤولية</label>
+                            <select class="form-select" id="area_responsibility" name="area_responsibility" required>
+                                <option value="">اختر المنطقة</option>
+                                {% for area in unique_areas %}
+                                    {% if area %}
+                                        <option value="{{ area }}" {% if contractor.area_responsibility == area %}selected{% endif %}>{{ area }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_manager" name="is_manager" {% if contractor.is_manager %}checked{% endif %}>
+                            <label class="form-check-label" for="is_manager">مقاول مدير</label>
+                            <div class="form-text">المقاول المدير يمكنه رؤية جميع المناطق التابعة للمقاولين الذين تحته</div>
+                        </div>
+                        <div class="mb-3 parent-contractor-field" {% if contractor.is_manager %}style="display: none;"{% endif %}>
+                            <label for="parent_contractor_id" class="form-label">المقاول الأب (اختياري)</label>
+                            <select class="form-select" id="parent_contractor_id" name="parent_contractor_id">
+                                <option value="">-- بدون مقاول أب --</option>
+                                {% for manager_contractor in manager_contractors %}
+                                    {% if manager_contractor.id != contractor.id %}
+                                        <option value="{{ manager_contractor.id }}" {% if contractor.parent_contractor_id == manager_contractor.id %}selected{% endif %}>{{ manager_contractor.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اختر المقاول المدير الذي يشرف على هذا المقاول</div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-4">
+                            <div>
+                                <a href="{{ url_for('contractors') }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    العودة
+                                </a>
+                                <a href="{{ url_for('contractor_teams', contractor_id=contractor.id) }}" class="btn btn-info ms-2">
+                                    <i class="fas fa-users-cog me-2"></i>
+                                    إدارة الفرق
+                                </a>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                حفظ التغييرات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- قسم إدارة أعضاء المجموعة -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-users me-2"></i>
+                        أعضاء مجموعة المقاول
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
+                        <i class="fas fa-plus-circle me-1"></i>
+                        إضافة عضو
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if team_members %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>الاسم</th>
+                                        <th>المنصب</th>
+                                        <th>رقم الهاتف</th>
+                                        <th>البريد الإلكتروني</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in team_members %}
+                                        <tr>
+                                            <td>{{ member.name }}</td>
+                                            <td>{{ member.position }}</td>
+                                            <td>{{ member.phone }}</td>
+                                            <td>{{ member.email }}</td>
+                                            <td>
+                                                <span class="badge {% if member.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ 'نشط' if member.is_active else 'غير نشط' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button type="button" class="btn btn-info edit-member-btn"
+                                                            data-id="{{ member.id }}"
+                                                            data-name="{{ member.name }}"
+                                                            data-position="{{ member.position }}"
+                                                            data-phone="{{ member.phone }}"
+                                                            data-email="{{ member.email }}"
+                                                            data-is-active="{{ member.is_active }}"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#editTeamMemberModal">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <a href="{{ url_for('delete_team_member', member_id=member.id, contractor_id=contractor.id) }}"
+                                                       class="btn btn-danger"
+                                                       onclick="return confirm('هل أنت متأكد من حذف هذا العضو؟')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            لا يوجد أعضاء في مجموعة المقاول. يمكنك إضافة أعضاء باستخدام زر "إضافة عضو".
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- نافذة إضافة عضو جديد -->
+<div class="modal fade" id="addTeamMemberModal" tabindex="-1" aria-labelledby="addTeamMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTeamMemberModalLabel">إضافة عضو جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('add_team_member_to_team', contractor_id=contractor.id, team_id=1) }}" method="post">
+                <div class="modal-body">
+                    <!-- حقل مخفي لمعرف الفريق -->
+                    <input type="hidden" id="team_id" name="team_id" value="1">
+                    <div class="mb-3">
+                        <label for="member_name" class="form-label">الاسم</label>
+                        <input type="text" class="form-control" id="member_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="member_position" class="form-label">المنصب</label>
+                        <input type="text" class="form-control" id="member_position" name="position">
+                    </div>
+                    <div class="mb-3">
+                        <label for="member_phone" class="form-label">رقم الهاتف</label>
+                        <input type="text" class="form-control" id="member_phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="member_email" class="form-label">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" id="member_email" name="email">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="member_is_active" name="is_active" value="true" checked>
+                        <label class="form-check-label" for="member_is_active">
+                            نشط
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تعديل عضو -->
+<div class="modal fade" id="editTeamMemberModal" tabindex="-1" aria-labelledby="editTeamMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTeamMemberModalLabel">تعديل بيانات العضو</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('edit_team_member_in_team', contractor_id=contractor.id, team_id=1) }}" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_member_id" name="member_id">
+                    <input type="hidden" id="edit_team_id" name="team_id" value="1">
+                    <div class="mb-3">
+                        <label for="edit_member_name" class="form-label">الاسم</label>
+                        <input type="text" class="form-control" id="edit_member_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_member_position" class="form-label">المنصب</label>
+                        <input type="text" class="form-control" id="edit_member_position" name="position">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_member_phone" class="form-label">رقم الهاتف</label>
+                        <input type="text" class="form-control" id="edit_member_phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_member_email" class="form-label">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" id="edit_member_email" name="email">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="edit_member_is_active" name="is_active" value="true">
+                        <label class="form-check-label" for="edit_member_is_active">
+                            نشط
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // إظهار/إخفاء حقل المقاول الأب عند تغيير حالة المقاول المدير
+        const isManagerCheckbox = document.getElementById('is_manager');
+        const parentContractorField = document.querySelector('.parent-contractor-field');
+
+        if (isManagerCheckbox && parentContractorField) {
+            isManagerCheckbox.addEventListener('change', function() {
+                if (!this.checked) {
+                    parentContractorField.style.display = 'block';
+                } else {
+                    parentContractorField.style.display = 'none';
+                    document.getElementById('parent_contractor_id').value = '';
+                }
+            });
+        }
+
+        // تهيئة أزرار تعديل أعضاء المجموعة
+        const editButtons = document.querySelectorAll('.edit-member-btn');
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // الحصول على بيانات العضو من سمات الزر
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const position = this.getAttribute('data-position');
+                const phone = this.getAttribute('data-phone');
+                const email = this.getAttribute('data-email');
+                const isActive = this.getAttribute('data-is-active') === 'True';
+
+                // تعبئة النموذج ببيانات العضو
+                document.getElementById('edit_member_id').value = id;
+                document.getElementById('edit_member_name').value = name;
+                document.getElementById('edit_member_position').value = position || '';
+                document.getElementById('edit_member_phone').value = phone || '';
+                document.getElementById('edit_member_email').value = email || '';
+                document.getElementById('edit_member_is_active').checked = isActive;
+            });
+        });
+    });
+</script>
+{% endblock %}

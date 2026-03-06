@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-plus me-2"></i>
+                إضافة مخطط حضري جديد
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('smart_city.urban_planning_dashboard') }}">التخطيط الحضري</a></li>
+                    <li class="breadcrumb-item active">إضافة مخطط</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-city me-2"></i>بيانات المخطط الحضري
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="urban-plan-form">
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="plan_name" class="form-label">اسم المخطط *</label>
+                                    <input type="text" class="form-control" id="plan_name" name="plan_name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="plan_type" class="form-label">نوع المخطط *</label>
+                                    <select class="form-select" id="plan_type" name="plan_type" required>
+                                        <option value="">اختر النوع</option>
+                                        <option value="zoning">تنظيمي</option>
+                                        <option value="development">تطويري</option>
+                                        <option value="master_plan">مخطط رئيسي</option>
+                                        <option value="detailed">تفصيلي</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="land_use_category" class="form-label">فئة استخدام الأرض</label>
+                                    <select class="form-select" id="land_use_category" name="land_use_category">
+                                        <option value="">اختر الفئة</option>
+                                        <option value="residential">سكني</option>
+                                        <option value="commercial">تجاري</option>
+                                        <option value="industrial">صناعي</option>
+                                        <option value="mixed">مختلط</option>
+                                        <option value="recreational">ترفيهي</option>
+                                        <option value="educational">تعليمي</option>
+                                        <option value="healthcare">صحي</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="approval_status" class="form-label">حالة الاعتماد</label>
+                                    <select class="form-select" id="approval_status" name="approval_status">
+                                        <option value="pending">معلق</option>
+                                        <option value="approved">معتمد</option>
+                                        <option value="rejected">مرفوض</option>
+                                        <option value="under_review">قيد المراجعة</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dates -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="approval_date" class="form-label">تاريخ الاعتماد</label>
+                                    <input type="date" class="form-control" id="approval_date" name="approval_date">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="expiry_date" class="form-label">تاريخ انتهاء الصلاحية</label>
+                                    <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Authority and Limits -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="planning_authority" class="form-label">السلطة المختصة</label>
+                                    <input type="text" class="form-control" id="planning_authority" name="planning_authority" placeholder="مثال: أمانة العاصمة المقدسة">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="building_height_limit" class="form-label">حد ارتفاع المباني (متر)</label>
+                                    <input type="number" class="form-control" id="building_height_limit" name="building_height_limit" step="0.1" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="density_limit" class="form-label">حد الكثافة</label>
+                                    <input type="number" class="form-control" id="density_limit" name="density_limit" step="0.1" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden coordinates field -->
+                        <input type="hidden" id="coordinates" name="coordinates">
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">وصف المخطط *</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required placeholder="وصف مفصل للمخطط الحضري وأهدافه"></textarea>
+                        </div>
+
+                        <!-- Restrictions -->
+                        <div class="mb-3">
+                            <label for="restrictions" class="form-label">القيود والاشتراطات</label>
+                            <textarea class="form-control" id="restrictions" name="restrictions" rows="3" placeholder="القيود والاشتراطات المطبقة على المخطط (JSON format)"></textarea>
+                        </div>
+
+                        <!-- Setback Requirements -->
+                        <div class="mb-3">
+                            <label for="setback_requirements" class="form-label">متطلبات الارتدادات</label>
+                            <textarea class="form-control" id="setback_requirements" name="setback_requirements" rows="2" placeholder='مثال: {"front": 5, "rear": 3, "side": 2}'></textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('smart_city.urban_planning_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>حفظ المخطط
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>تحديد منطقة المخطط
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="location-map" style="height: 400px;"></div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            ارسم منطقة المخطط على الخريطة
+                        </small>
+                    </div>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="enableDrawing()">
+                            <i class="fas fa-draw-polygon me-1"></i>رسم المنطقة
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearMap()">
+                            <i class="fas fa-trash me-1"></i>مسح
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Info -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>معلومات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li><i class="fas fa-check text-success me-2"></i>يجب رسم منطقة المخطط</li>
+                        <li><i class="fas fa-check text-success me-2"></i>الاسم والوصف مطلوبان</li>
+                        <li><i class="fas fa-check text-success me-2"></i>حدد نوع المخطط</li>
+                        <li><i class="fas fa-check text-success me-2"></i>يمكن إضافة قيود بصيغة JSON</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+<script>
+// Initialize map
+let map = L.map('location-map').setView([21.4225, 39.8262], 13); // Mecca coordinates
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Variables for drawing
+let drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+let drawControl = new L.Control.Draw({
+    edit: {
+        featureGroup: drawnItems
+    },
+    draw: {
+        polygon: true,
+        polyline: false,
+        rectangle: true,
+        circle: false,
+        marker: false,
+        circlemarker: false
+    }
+});
+
+// Drawing events
+let drawingEnabled = false;
+
+function enableDrawing() {
+    drawingEnabled = true;
+    map.addControl(drawControl);
+}
+
+map.on(L.Draw.Event.CREATED, function(e) {
+    let layer = e.layer;
+    drawnItems.addLayer(layer);
+    
+    // Get coordinates
+    let coordinates = [];
+    if (layer instanceof L.Polygon || layer instanceof L.Rectangle) {
+        coordinates = layer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);
+    }
+    
+    // Set coordinates in hidden field
+    document.getElementById('coordinates').value = JSON.stringify(coordinates);
+});
+
+function clearMap() {
+    drawnItems.clearLayers();
+    document.getElementById('coordinates').value = '';
+    drawingEnabled = false;
+    map.removeControl(drawControl);
+}
+
+// Form validation
+document.getElementById('urban-plan-form').addEventListener('submit', function(e) {
+    let planName = document.getElementById('plan_name').value;
+    let planType = document.getElementById('plan_type').value;
+    let description = document.getElementById('description').value;
+    let coordinates = document.getElementById('coordinates').value;
+    
+    if (!planName || !planType || !description) {
+        e.preventDefault();
+        alert('يرجى ملء جميع الحقول المطلوبة');
+        return false;
+    }
+    
+    if (!coordinates) {
+        e.preventDefault();
+        alert('يرجى رسم منطقة المخطط على الخريطة');
+        return false;
+    }
+    
+    // Validate JSON fields
+    let restrictions = document.getElementById('restrictions').value;
+    let setbackRequirements = document.getElementById('setback_requirements').value;
+    
+    if (restrictions && restrictions.trim()) {
+        try {
+            JSON.parse(restrictions);
+        } catch (e) {
+            alert('تنسيق القيود غير صحيح. يجب أن يكون بصيغة JSON صحيحة');
+            return false;
+        }
+    }
+    
+    if (setbackRequirements && setbackRequirements.trim()) {
+        try {
+            JSON.parse(setbackRequirements);
+        } catch (e) {
+            alert('تنسيق متطلبات الارتدادات غير صحيح. يجب أن يكون بصيغة JSON صحيحة');
+            return false;
+        }
+    }
+});
+</script>
+{% endblock %}

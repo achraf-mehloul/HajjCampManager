@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم تحرير المستخدم -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-user-edit me-2 icon-primary"></i>
+        تحرير المستخدم
+    </h2>
+
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-user me-2"></i>
+                    تحرير المستخدم: {{ user.username }}
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('edit_user', user_id=user.id) }}" method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">اسم المستخدم</label>
+                            <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" readonly>
+                            <div class="form-text text-warning">لا يمكن تغيير اسم المستخدم بعد الإنشاء</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">الاسم الكامل</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">الدور</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>مدير</option>
+                                <option value="user" {% if user.role == 'user' %}selected{% endif %}>مستخدم</option>
+                                <option value="contractor" {% if user.role == 'contractor' %}selected{% endif %}>مقاول</option>
+                                <option value="regular_contractor" {% if user.role == 'regular_contractor' %}selected{% endif %}>مقاول عادي</option>
+                                <option value="readings_recorder" {% if user.role == 'readings_recorder' %}selected{% endif %}>مسجل قراءات</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 contractor-field" {% if user.role != 'contractor' %}style="display: none;"{% endif %}>
+                            <label for="contractor_id" class="form-label">المقاول</label>
+                            <select class="form-select" id="contractor_id" name="contractor_id">
+                                <option value="">اختر المقاول</option>
+                                {% for contractor in contractors %}
+                                    <option value="{{ contractor.id }}" {% if user.contractor_id == contractor.id %}selected{% endif %}>{{ contractor.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3 contractor-field" {% if user.role != 'contractor' %}style="display: none;"{% endif %}>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_manager" name="is_manager" {% if user.is_manager %}checked{% endif %}>
+                                <label class="form-check-label" for="is_manager">
+                                    مقاول مدير (يمكنه مشاهدة بيانات جميع الفرق التابعة له)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="assigned_areas" class="form-label">المناطق المخصصة للمستخدم</label>
+                            <select class="form-select" id="assigned_areas" name="assigned_areas" multiple>
+                                {% set user_areas = user.get_assigned_areas() %}
+                                {% for area in unique_areas %}
+                                    {% if area %}
+                                        <option value="{{ area }}" {% if area in user_areas %}selected{% endif %}>{{ area }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اترك فارغاً للسماح برؤية جميع المناطق (للمدير فقط). يمكنك اختيار أكثر من منطقة باستخدام مفتاح Ctrl</div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('users') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                العودة
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                حفظ التغييرات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // إظهار/إخفاء حقل المقاول عند تغيير الدور
+        const roleSelect = document.getElementById('role');
+        const contractorField = document.querySelector('.contractor-field');
+
+        if (roleSelect && contractorField) {
+            roleSelect.addEventListener('change', function() {
+                if (this.value === 'contractor' || this.value === 'regular_contractor') {
+                    document.querySelectorAll('.contractor-field').forEach(field => {
+                        field.style.display = 'block';
+                    });
+                } else {
+                    document.querySelectorAll('.contractor-field').forEach(field => {
+                        field.style.display = 'none';
+                    });
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

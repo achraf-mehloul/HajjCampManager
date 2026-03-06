@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل موقع اللوحة{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    #map {
+        height: 500px;
+        width: 100%;
+        border-radius: 5px;
+    }
+    .coordinates-display {
+        background-color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">تعديل موقع اللوحة: {{ panel.mdb }}</h5>
+                    <a href="{{ url_for('panel_details', panel_id=panel.id) }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> العودة إلى تفاصيل اللوحة
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">معلومات اللوحة</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>رقم اللوحة:</strong> {{ panel.mdb }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>رقم تاج ماكسيمو:</strong> {{ panel.maximo_tag }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>المنطقة:</strong> {{ panel.area_name }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>النوع:</strong> {{ panel.panel_type }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>الإحداثيات الحالية:</strong>
+                                        {% if panel.x_coordinate and panel.y_coordinate %}
+                                            <span class="badge bg-info">X: {{ panel.x_coordinate }}, Y: {{ panel.y_coordinate }}</span>
+                                            <a href="https://www.google.com/maps?q={{ panel.y_coordinate }},{{ panel.x_coordinate }}" target="_blank" class="btn btn-sm btn-primary ms-2">
+                                                <i class="fas fa-map-marker-alt me-1"></i> عرض في خرائط جوجل
+                                            </a>
+                                        {% else %}
+                                            <span class="badge bg-warning">غير محدد</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">تعليمات تعديل الموقع</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ol>
+                                        <li>انقر على الخريطة لتحديد موقع اللوحة.</li>
+                                        <li>يمكنك سحب العلامة لضبط الموقع بدقة.</li>
+                                        <li>استخدم أزرار التكبير والتصغير للتنقل في الخريطة.</li>
+                                        <li>يمكنك البحث عن موقع معين باستخدام حقل البحث.</li>
+                                        <li>بعد تحديد الموقع المناسب، انقر على زر "حفظ الموقع".</li>
+                                    </ol>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        يمكنك أيضًا لصق إحداثيات من خرائط جوجل مباشرة في الحقول أدناه.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">الخريطة</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="search-location" placeholder="ابحث عن موقع...">
+                                            <button class="btn btn-primary" type="button" id="search-button">
+                                                <i class="fas fa-search"></i> بحث
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="coordinates-display" id="coordinates-display">
+                                        الإحداثيات: <span id="current-coordinates">انقر على الخريطة لتحديد الموقع</span>
+                                    </div>
+                                    <div id="map"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form action="{{ url_for('save_panel_location', panel_id=panel.id) }}" method="post" id="location-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="x_coordinate" class="form-label">إحداثي X (خط الطول)</label>
+                                    <input type="text" class="form-control" id="x_coordinate" name="x_coordinate" value="{{ panel.x_coordinate or '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="y_coordinate" class="form-label">إحداثي Y (خط العرض)</label>
+                                    <input type="text" class="form-control" id="y_coordinate" name="y_coordinate" value="{{ panel.y_coordinate or '' }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('panel_details', panel_id=panel.id) }}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-primary">حفظ الموقع</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تهيئة الخريطة
+        const map = L.map('map').setView([{{ default_center[0] }}, {{ default_center[1] }}], 13);
+
+        // إضافة طبقة الخريطة
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // إضافة علامة للموقع الحالي إذا كان موجودًا
+        let marker;
+        {% if panel.y_coordinate and panel.x_coordinate %}
+            marker = L.marker([{{ panel.y_coordinate }}, {{ panel.x_coordinate }}], {
+                draggable: true
+            }).addTo(map);
+            map.setView([{{ panel.y_coordinate }}, {{ panel.x_coordinate }}], 15);
+            updateCoordinatesDisplay({{ panel.y_coordinate }}, {{ panel.x_coordinate }});
+        {% endif %}
+
+        // معالج حدث النقر على الخريطة
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            // إضافة أو تحديث العلامة
+            if (marker) {
+                marker.setLatLng([lat, lng]);
+            } else {
+                marker = L.marker([lat, lng], {
+                    draggable: true
+                }).addTo(map);
+                
+                // إضافة معالج حدث لسحب العلامة
+                marker.on('dragend', function(e) {
+                    const position = marker.getLatLng();
+                    updateCoordinatesDisplay(position.lat, position.lng);
+                    updateCoordinateInputs(position.lng, position.lat);
+                });
+            }
+            
+            updateCoordinatesDisplay(lat, lng);
+            updateCoordinateInputs(lng, lat);
+        });
+        
+        // إضافة معالج حدث لسحب العلامة إذا كانت موجودة
+        if (marker) {
+            marker.on('dragend', function(e) {
+                const position = marker.getLatLng();
+                updateCoordinatesDisplay(position.lat, position.lng);
+                updateCoordinateInputs(position.lng, position.lat);
+            });
+        }
+        
+        // تحديث عرض الإحداثيات
+        function updateCoordinatesDisplay(lat, lng) {
+            document.getElementById('current-coordinates').textContent = `X: ${lng.toFixed(6)}, Y: ${lat.toFixed(6)}`;
+        }
+        
+        // تحديث حقول الإدخال
+        function updateCoordinateInputs(x, y) {
+            document.getElementById('x_coordinate').value = x.toFixed(6);
+            document.getElementById('y_coordinate').value = y.toFixed(6);
+        }
+        
+        // إضافة معالج حدث للبحث عن موقع
+        document.getElementById('search-button').addEventListener('click', function() {
+            const searchQuery = document.getElementById('search-location').value;
+            if (searchQuery) {
+                // استخدام Nominatim API للبحث عن الموقع
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            const result = data[0];
+                            const lat = parseFloat(result.lat);
+                            const lng = parseFloat(result.lon);
+                            
+                            // تحريك الخريطة إلى الموقع
+                            map.setView([lat, lng], 15);
+                            
+                            // إضافة أو تحديث العلامة
+                            if (marker) {
+                                marker.setLatLng([lat, lng]);
+                            } else {
+                                marker = L.marker([lat, lng], {
+                                    draggable: true
+                                }).addTo(map);
+                                
+                                // إضافة معالج حدث لسحب العلامة
+                                marker.on('dragend', function(e) {
+                                    const position = marker.getLatLng();
+                                    updateCoordinatesDisplay(position.lat, position.lng);
+                                    updateCoordinateInputs(position.lng, position.lat);
+                                });
+                            }
+                            
+                            updateCoordinatesDisplay(lat, lng);
+                            updateCoordinateInputs(lng, lat);
+                        } else {
+                            alert('لم يتم العثور على نتائج للبحث');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('حدث خطأ أثناء البحث');
+                    });
+            }
+        });
+        
+        // إضافة معالج حدث للبحث عند الضغط على Enter
+        document.getElementById('search-location').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('search-button').click();
+            }
+        });
+    });
+</script>
+{% endblock %}

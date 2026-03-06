@@ -1,0 +1,691 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم تفاصيل قراءات اللوحة -->
+<section class="mb-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('electrical_dashboard_view') }}">لوحة المعلومات الكهربائية</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">قراءات اللوحة</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <h2 class="section-title">
+        <i class="fas fa-chart-line me-2 icon-primary"></i>
+        قراءات اللوحة: {{ panel.mdb }}
+    </h2>
+
+    <!-- معلومات اللوحة -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-server me-2"></i>
+                    معلومات اللوحة
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <strong>رقم تاج ماكسيمو:</strong> {{ panel.maximo_tag }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>المنطقة:</strong> {{ panel.area_name }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>نوع اللوحة:</strong> {{ panel.panel_type }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>سعة القاطع:</strong>
+                                {% if panel.breaker_capacity %}
+                                    {{ panel.breaker_capacity }} أمبير
+                                {% else %}
+                                    غير محدد
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <strong>الحد الأدنى للجهد:</strong>
+                                {% if panel.min_voltage %}
+                                    {{ panel.min_voltage }} فولت
+                                {% else %}
+                                    غير محدد
+                                {% endif %}
+                            </div>
+                            <div class="mb-2">
+                                <strong>الحد الأقصى للجهد:</strong>
+                                {% if panel.max_voltage %}
+                                    {{ panel.max_voltage }} فولت
+                                {% else %}
+                                    غير محدد
+                                {% endif %}
+                            </div>
+                            <div class="mb-2">
+                                {% set warning_threshold = panel.warning_threshold if panel.warning_threshold is not none else 70 %}
+                                {% set danger_threshold = panel.danger_threshold if panel.danger_threshold is not none else 80 %}
+                                {% set warning_color = '#FFC107' %}
+                                {% set danger_color = '#DC3545' %}
+
+                                <strong>نسبة التحذير:</strong>
+                                <span class="badge" style="background-color: {{ warning_color }};">{{ warning_threshold }}%</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>نسبة الخطر:</strong>
+                                <span class="badge" style="background-color: {{ danger_color }};">{{ danger_threshold }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('panel_details', panel_id=panel.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-info-circle me-1"></i>
+                            تفاصيل اللوحة
+                        </a>
+                        {% if panel.location_url %}
+                            <a href="{{ panel.location_url }}" target="_blank" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                الموقع على الخريطة
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-filter me-2"></i>
+                        تصفية القراءات
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="filter-form" method="get" action="{{ url_for('panel_readings', panel_id=panel.id) }}">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <label for="hours" class="form-label">عرض القراءات خلال آخر:</label>
+                                <select class="form-select" id="hours" name="hours" onchange="toggleCustomPeriod(this.value)">
+                                    <option value="0.25" {% if hours == 0.25 %}selected{% endif %}>15 دقيقة</option>
+                                    <option value="1" {% if hours == 1 %}selected{% endif %}>ساعة</option>
+                                    <option value="2" {% if hours == 2 %}selected{% endif %}>ساعتين</option>
+                                    <option value="3" {% if hours == 3 %}selected{% endif %}>3 ساعات</option>
+                                    <option value="6" {% if hours == 6 %}selected{% endif %}>6 ساعات</option>
+                                    <option value="12" {% if hours == 12 %}selected{% endif %}>12 ساعة</option>
+                                    <option value="24" {% if hours == 24 %}selected{% endif %}>24 ساعة (يوم كامل)</option>
+                                    <option value="48" {% if hours == 48 %}selected{% endif %}>يومين</option>
+                                    <option value="72" {% if hours == 72 %}selected{% endif %}>3 أيام</option>
+                                    <option value="168" {% if hours == 168 %}selected{% endif %}>أسبوع</option>
+                                    <option value="custom" {% if hours == 'custom' %}selected{% endif %}>فترة مخصصة</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-filter me-2"></i>
+                                    تصفية
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="custom-period-container" class="row mt-3" style="display: {% if hours == 'custom' %}flex{% else %}none{% endif %};">
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label">من تاريخ:</label>
+                                <input type="datetime-local" class="form-control" id="start_date" name="start_date" value="{{ start_date if start_date else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label">إلى تاريخ:</label>
+                                <input type="datetime-local" class="form-control" id="end_date" name="end_date" value="{{ end_date if end_date else '' }}">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الرسوم البيانية -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-2"></i>
+                    الرسوم البيانية للقراءات
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="chartTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="current-tab" data-bs-toggle="tab" data-bs-target="#current" type="button" role="tab" aria-controls="current" aria-selected="true">التيار</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="voltage-tab" data-bs-toggle="tab" data-bs-target="#voltage" type="button" role="tab" aria-controls="voltage" aria-selected="false">الجهد</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="power-tab" data-bs-toggle="tab" data-bs-target="#power" type="button" role="tab" aria-controls="power" aria-selected="false">القدرة</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="load-tab" data-bs-toggle="tab" data-bs-target="#load" type="button" role="tab" aria-controls="load" aria-selected="false">الحمل</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content mt-3" id="chartTabsContent">
+                        <div class="tab-pane fade show active" id="current" role="tabpanel" aria-labelledby="current-tab">
+                            <div class="chart-container" style="position: relative; height:400px;">
+                                <canvas id="current-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="voltage" role="tabpanel" aria-labelledby="voltage-tab">
+                            <div class="chart-container" style="position: relative; height:400px;">
+                                <canvas id="voltage-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="power" role="tabpanel" aria-labelledby="power-tab">
+                            <div class="chart-container" style="position: relative; height:400px;">
+                                <canvas id="power-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="load" role="tabpanel" aria-labelledby="load-tab">
+                            <div class="chart-container" style="position: relative; height:400px;">
+                                <canvas id="load-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- التنبيهات -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-bell me-2"></i>
+                    التنبيهات
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>نوع التنبيه</th>
+                                        <th>الرسالة</th>
+                                        <th>الخطورة</th>
+                                        <th>الوقت</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for alert in alerts %}
+                                        <tr>
+                                            <td>
+                                                {% if alert.alert_type == 'current' %}
+                                                    <span class="badge bg-primary">التيار</span>
+                                                {% elif alert.alert_type == 'voltage' %}
+                                                    <span class="badge bg-info">الجهد</span>
+                                                {% elif alert.alert_type == 'power' %}
+                                                    <span class="badge bg-secondary">القدرة</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ alert.message }}</td>
+                                            <td>
+                                                <span class="badge {% if alert.severity == 'danger' %}bg-danger{% else %}bg-warning{% endif %}">
+                                                    {{ alert.severity }}
+                                                </span>
+                                            </td>
+                                            <td>{{ alert.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                            <td>
+                                                {% if alert.is_resolved %}
+                                                    <span class="badge bg-success">تم الحل</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">لم يتم الحل</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('toggle_alert_read', alert_id=alert.id) }}" class="btn btn-outline-primary">
+                                                        <i class="fas {% if alert.is_read %}fa-eye-slash{% else %}fa-eye{% endif %}"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('toggle_alert_resolved', alert_id=alert.id) }}" class="btn btn-outline-success">
+                                                        <i class="fas {% if alert.is_resolved %}fa-times{% else %}fa-check{% endif %}"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا توجد تنبيهات خلال الفترة المحددة.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول القراءات -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-table me-2"></i>
+                    جدول القراءات
+                </div>
+                <div class="card-body">
+                    {% if readings %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="readings-table">
+                                <thead>
+                                    <tr>
+                                        <th>وقت القراءة</th>
+                                        <th>التيار (أمبير)</th>
+                                        <th>الجهد (فولت)</th>
+                                        <th>القدرة (واط)</th>
+                                        <th>الحمل</th>
+                                        <th>الطاقة (كيلوواط ساعة)</th>
+                                        <th>معامل القدرة</th>
+                                        <th>التردد (هرتز)</th>
+                                        <th>حالة التيار</th>
+                                        <th>حالة الجهد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reading in readings %}
+                                        <tr>
+                                            <td>{{ reading.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                            <td>
+                                                {{ "%.2f"|format(reading.current) if reading.current else '-' }}
+                                                {% if reading.current and panel.breaker_capacity %}
+                                                    <small class="d-block text-muted">({{ ((reading.current / panel.breaker_capacity) * 100)|round(1) }}%)</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ "%.2f"|format(reading.voltage) if reading.voltage else '-' }}</td>
+                                            <td>{{ "%.2f"|format(reading.power) if reading.power else '-' }}</td>
+                                            <td>
+                                                {{ "%.2f"|format(reading.load) if reading.load else '-' }}
+                                                {% if reading.load and panel.breaker_capacity %}
+                                                    <small class="d-block text-muted">({{ ((reading.load / panel.breaker_capacity) * 100)|round(1) }}%)</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ "%.2f"|format(reading.energy) if reading.energy else '-' }}</td>
+                                            <td>{{ "%.2f"|format(reading.power_factor) if reading.power_factor else '-' }}</td>
+                                            <td>{{ "%.2f"|format(reading.frequency) if reading.frequency else '-' }}</td>
+                                            <td>
+                                                <span class="badge
+                                                    {% if reading.current_status == 'danger' %}
+                                                        bg-danger
+                                                    {% elif reading.current_status == 'warning' %}
+                                                        bg-warning text-dark
+                                                    {% else %}
+                                                        bg-success
+                                                    {% endif %}">
+                                                    {{ reading.current_status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge
+                                                    {% if reading.voltage_status == 'danger' %}
+                                                        bg-danger
+                                                    {% elif reading.voltage_status == 'warning' %}
+                                                        bg-warning text-dark
+                                                    {% else %}
+                                                        bg-success
+                                                    {% endif %}">
+                                                    {{ reading.voltage_status }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا توجد قراءات خلال الفترة المحددة.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // وظيفة لإظهار/إخفاء حقول الفترة المخصصة
+    function toggleCustomPeriod(value) {
+        const customPeriodContainer = document.getElementById('custom-period-container');
+        if (value === 'custom') {
+            customPeriodContainer.style.display = 'flex';
+        } else {
+            customPeriodContainer.style.display = 'none';
+            // إذا تم اختيار فترة محددة، قم بتقديم النموذج تلقائيًا
+            if (value !== 'custom') {
+                document.getElementById('filter-form').submit();
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // بيانات الرسوم البيانية
+        const timestamps = {{ timestamps|tojson }};
+        const currentValues = {{ current_values|tojson }};
+        const voltageValues = {{ voltage_values|tojson }};
+        const powerValues = {{ power_values|tojson }};
+        const loadValues = {{ load_values|tojson }};
+
+        // الحصول على قيم الحدود
+        {% set warning_threshold = panel.warning_threshold if panel.warning_threshold is not none else get_setting('default_warning_threshold', '70')|float %}
+        {% set danger_threshold = panel.danger_threshold if panel.danger_threshold is not none else get_setting('default_danger_threshold', '80')|float %}
+        {% set warning_color = get_setting('alert_color_warning', '#FFC107') %}
+        {% set danger_color = get_setting('alert_color_danger', '#DC3545') %}
+
+        // حساب قيم الحدود للرسم البياني
+        const breakerCapacity = {{ panel.breaker_capacity or 0 }};
+        const warningThreshold = breakerCapacity * ({{ warning_threshold }} / 100);
+        const dangerThreshold = breakerCapacity * ({{ danger_threshold }} / 100);
+
+        // رسم بياني للتيار
+        const currentCtx = document.getElementById('current-chart');
+        if (currentCtx && currentValues && currentValues.length > 0) {
+            new Chart(currentCtx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: 'التيار (أمبير)',
+                            data: currentValues,
+                            borderColor: 'rgba(184, 153, 102, 1)',
+                            backgroundColor: 'rgba(184, 153, 102, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'حد التحذير',
+                            data: Array(timestamps.length).fill(warningThreshold),
+                            borderColor: '{{ warning_color }}',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'حد الخطر',
+                            data: Array(timestamps.length).fill(dangerThreshold),
+                            borderColor: '{{ danger_color }}',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'التيار (أمبير)',
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'الوقت',
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'قراءات التيار',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // الحصول على حدود الجهد
+        {% set min_voltage = panel.min_voltage if panel.min_voltage is not none else get_setting('default_min_voltage', '210')|float %}
+        {% set max_voltage = panel.max_voltage if panel.max_voltage is not none else get_setting('default_max_voltage', '250')|float %}
+
+        // رسم بياني للجهد
+        const voltageCtx = document.getElementById('voltage-chart');
+        if (voltageCtx && voltageValues && voltageValues.length > 0) {
+            new Chart(voltageCtx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: 'الجهد (فولت)',
+                            data: voltageValues,
+                            borderColor: 'rgba(148, 188, 203, 1)',
+                            backgroundColor: 'rgba(148, 188, 203, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'الحد الأدنى للجهد',
+                            data: Array(timestamps.length).fill({{ min_voltage }}),
+                            borderColor: '{{ danger_color }}',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'الحد الأقصى للجهد',
+                            data: Array(timestamps.length).fill({{ max_voltage }}),
+                            borderColor: '{{ danger_color }}',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'الجهد (فولت)',
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'الوقت',
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'قراءات الجهد',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // رسم بياني للقدرة
+        const powerCtx = document.getElementById('power-chart');
+        if (powerCtx && powerValues && powerValues.length > 0) {
+            new Chart(powerCtx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [{
+                        label: 'القدرة (واط)',
+                        data: powerValues,
+                        borderColor: 'rgba(106, 138, 152, 1)',
+                        backgroundColor: 'rgba(106, 138, 152, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'القدرة (واط)',
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'الوقت',
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'قراءات القدرة',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // رسم بياني للحمل
+        const loadCtx = document.getElementById('load-chart');
+        if (loadCtx && loadValues && loadValues.length > 0) {
+            new Chart(loadCtx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: 'الحمل',
+                            data: loadValues,
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'حد التحذير',
+                            data: Array(timestamps.length).fill(warningThreshold),
+                            borderColor: '{{ warning_color }}',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'حد الخطر',
+                            data: Array(timestamps.length).fill(dangerThreshold),
+                            borderColor: '{{ danger_color }}',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'الحمل',
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'الوقت',
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'قراءات الحمل',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // تهيئة جدول القراءات
+        $('#readings-table').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
+            },
+            "order": [[0, 'desc']],
+            "pageLength": 10
+        });
+    });
+</script>
+{% endblock %}

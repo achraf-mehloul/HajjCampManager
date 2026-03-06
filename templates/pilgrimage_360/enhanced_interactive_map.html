@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الخريطة التفاعلية المحسنة - تجربة الحجاج 360°</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- A-Frame for 360° -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #B89966;
+            --secondary-color: #8B7355;
+            --accent-color: #D4AF37;
+            --text-dark: #2C3E50;
+            --bg-light: #F8F9FA;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-light);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .map-container {
+            height: 100vh;
+            position: relative;
+            display: flex;
+        }
+
+        #enhanced-map {
+            flex: 1;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 400px;
+            background: white;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(100%);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .location-card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .location-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .location-card.active {
+            border-color: var(--primary-color);
+            background: #f8f9fa;
+        }
+
+        .distance-badge {
+            background: var(--accent-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .view-mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .toggle-btn {
+            background: none;
+            border: 1px solid #ddd;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin: 0 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .panorama-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 2000;
+            display: none;
+        }
+
+        .panorama-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 2001;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panorama-info {
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+
+        .panorama-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .panorama-btn {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .panorama-btn:hover {
+            background: white;
+        }
+
+        .navigation-hotspots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2001;
+            display: flex;
+            gap: 10px;
+        }
+
+        .hotspot-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .hotspot-btn:hover {
+            background: var(--secondary-color);
+            transform: scale(1.05);
+        }
+
+        .filters-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-width: 250px;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .category-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .category-btn {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .distance-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            left: -15px;
+            transform: translateY(-50%);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 60px;
+            border-radius: 15px 0 0 15px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: absolute;
+                top: 0;
+                right: 0;
+                z-index: 1500;
+            }
+            
+            .filters-panel {
+                position: relative;
+                margin: 10px;
+                top: auto;
+                right: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="map-container">
+        <!-- الخريطة الرئيسية -->
+        <div id="enhanced-map"></div>
+        
+        <!-- أزرار تبديل وضع العرض -->
+        <div class="view-mode-toggle">
+            <button class="toggle-btn active" data-mode="2d">
+                <i class="fas fa-map me-1"></i>2D
+            </button>
+            <button class="toggle-btn" data-mode="360">
+                <i class="fas fa-globe me-1"></i>360°
+            </button>
+        </div>
+        
+        <!-- لوحة المرشحات -->
+        <div class="filters-panel">
+            <div class="filter-group">
+                <label>الفئات</label>
+                <div class="category-filter">
+                    <button class="category-btn active" data-category="all">الكل</button>
+                    <button class="category-btn" data-category="مطاعم">مطاعم</button>
+                    <button class="category-btn" data-category="مساجد">مساجد</button>
+                    <button class="category-btn" data-category="خدمات">خدمات</button>
+                    <button class="category-btn" data-category="فنادق">فنادق</button>
+                    <button class="category-btn" data-category="مواصلات">مواصلات</button>
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <label>المسافة (كم)</label>
+                <input type="range" class="distance-slider" min="1" max="50" value="10" id="distanceRange">
+                <div class="d-flex justify-content-between">
+                    <small>1 كم</small>
+                    <small id="distanceValue">10 كم</small>
+                    <small>50 كم</small>
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="show360Only">
+                    <label class="form-check-label" for="show360Only">
+                        عرض المواقع مع 360° فقط
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- الشريط الجانبي -->
+        <div class="sidebar" id="sidebar">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            
+            <div class="sidebar-header">
+                <h5 class="mb-0">المواقع القريبة</h5>
+                <button class="btn btn-sm btn-outline-light" onclick="getCurrentLocation()">
+                    <i class="fas fa-location-arrow"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-content" id="locationsList">
+                <!-- سيتم ملء المواقع هنا -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- عارض الصور البانورامية -->
+    <div class="panorama-viewer" id="panoramaViewer">
+        <div class="panorama-controls">
+            <div class="panorama-info" id="panoramaInfo">
+                <h6 class="mb-1" id="panoramaTitle">اسم الموقع</h6>
+                <small id="panoramaDescription">وصف الموقع</small>
+            </div>
+            
+            <div class="panorama-actions">
+                <button class="panorama-btn" onclick="toggleFullscreen()">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button class="panorama-btn" onclick="closePanorama()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- مشهد A-Frame للصور البانورامية -->
+        <a-scene id="panoramaScene" embedded style="height: 100%; width: 100%;">
+            <a-sky id="panoramaSky" src="" rotation="0 -130 0"></a-sky>
+            
+            <!-- نقاط التنقل -->
+            <a-entity id="navigationHotspots"></a-entity>
+            
+            <!-- الكاميرا مع التحكم -->
+            <a-camera look-controls wasd-controls="enabled: false">
+                <a-cursor
+                    animation__click="property: scale; startEvents: click; from: 0.1 0.1 0.1; to: 1 1 1; dur: 150"
+                    animation__fusing="property: scale; startEvents: fusing; from: 1 1 1; to: 0.1 0.1 0.1; dur: 1500"
+                    geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                    material="color: white; shader: flat">
+                </a-cursor>
+            </a-camera>
+        </a-scene>
+        
+        <!-- أزرار التنقل السفلية -->
+        <div class="navigation-hotspots" id="navigationButtons">
+            <!-- سيتم إضافة أزرار التنقل هنا -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        let map;
+        let userLocation = null;
+        let currentViewMode = '2d';
+        let allLocations = [];
+        let filteredLocations = [];
+        let markersGroup;
+        let currentPanoramaLocation = null;
+        
+        // تهيئة الخريطة
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadLocations();
+            initEventListeners();
+        });
+        
+        function initMap() {
+            map = L.map('enhanced-map').setView([21.4225, 39.8262], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            markersGroup = L.layerGroup().addTo(map);
+        }
+        
+        function loadLocations() {
+            fetch('{{ url_for("pilgrimage_api_locations") }}')
+                .then(response => response.json())
+                .then(data => {
+                    allLocations = data.locations || data;
+                    filteredLocations = [...allLocations];
+                    updateMap();
+                    updateSidebar();
+                })
+                .catch(error => {
+                    console.error('خطأ في تحميل المواقع:', error);
+                });
+        }
+        
+        function updateMap() {
+            markersGroup.clearLayers();
+            
+            filteredLocations.forEach(location => {
+                if (location.lat && location.lng) {
+                    const marker = createLocationMarker(location);
+                    markersGroup.addLayer(marker);
+                }
+            });
+        }
+        
+        function createLocationMarker(location) {
+            // تحديد لون العلامة حسب الفئة
+            const categoryColors = {
+                'مطاعم': '#28a745',
+                'مساجد': '#007bff', 
+                'خدمات': '#dc3545',
+                'فنادق': '#6f42c1',
+                'مواصلات': '#fd7e14'
+            };
+            
+            const color = categoryColors[location.category] || '#6c757d';
+            
+            const marker = L.marker([location.lat, location.lng], {
+                icon: L.divIcon({
+                    html: `
+                        <div style="
+                            background: ${color};
+                            width: 30px;
+                            height: 30px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 14px;
+                            border: 3px solid white;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">
+                            <i class="fas ${getCategoryIcon(location.category)}"></i>
+                        </div>
+                    `,
+                    className: 'custom-marker',
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
+                })
+            });
+            
+            marker.on('click', () => selectLocation(location));
+            
+            return marker;
+        }
+        
+        function getCategoryIcon(category) {
+            const icons = {
+                'مطاعم': 'fa-utensils',
+                'مساجد': 'fa-mosque',
+                'خدمات': 'fa-hospital',
+                'فنادق': 'fa-bed',
+                'مواصلات': 'fa-bus'
+            };
+            return icons[category] || 'fa-map-marker';
+        }
+
+        function selectLocation(location) {
+            currentPanoramaLocation = location;
+
+            // تحديث الشريط الجانبي
+            updateLocationSelection(location);
+
+            // التركيز على الموقع في الخريطة
+            map.setView([location.lat, location.lng], 16);
+
+            // عرض الصورة البانورامية إذا كان الوضع 360°
+            if (currentViewMode === '360' && location.has_360) {
+                showPanorama(location);
+            }
+        }
+
+        function updateLocationSelection(selectedLocation) {
+            document.querySelectorAll('.location-card').forEach(card => {
+                card.classList.remove('active');
+            });
+
+            const selectedCard = document.querySelector(`[data-location-id="${selectedLocation.id}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('active');
+                selectedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function updateSidebar() {
+            const locationsList = document.getElementById('locationsList');
+            locationsList.innerHTML = '';
+
+            filteredLocations.forEach(location => {
+                const distance = userLocation ?
+                    calculateDistance(userLocation.lat, userLocation.lng, location.lat, location.lng) : 0;
+
+                const card = document.createElement('div');
+                card.className = 'location-card';
+                card.setAttribute('data-location-id', location.id);
+                card.onclick = () => selectLocation(location);
+
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-0">${location.name}</h6>
+                        ${distance > 0 ? `<span class="distance-badge">${distance.toFixed(1)} كم</span>` : ''}
+                    </div>
+                    <p class="text-muted small mb-2">${location.description || 'لا يوجد وصف'}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas ${getCategoryIcon(location.category)} me-1"></i>
+                            ${location.category}
+                        </small>
+                        <div>
+                            ${location.has_360 ? '<i class="fas fa-globe text-primary me-1" title="متوفر 360°"></i>' : ''}
+                            ${location.rating ? `<i class="fas fa-star text-warning me-1"></i>${location.rating}` : ''}
+                        </div>
+                    </div>
+                `;
+
+                locationsList.appendChild(card);
+            });
+        }
+
+        function showPanorama(location) {
+            if (!location.has_360) return;
+
+            const viewer = document.getElementById('panoramaViewer');
+            const title = document.getElementById('panoramaTitle');
+            const description = document.getElementById('panoramaDescription');
+            const sky = document.getElementById('panoramaSky');
+
+            title.textContent = location.name;
+            description.textContent = location.description || '';
+
+            // تحديد صورة البانوراما (استخدام صورة تجريبية)
+            const panoramaImage = location.panorama_images && location.panorama_images.length > 0
+                ? location.panorama_images[0]
+                : '/static/360_images/kaaba_360.jpg';
+
+            sky.setAttribute('src', panoramaImage);
+
+            // إضافة نقاط التنقل
+            updateNavigationHotspots(location);
+
+            viewer.style.display = 'block';
+        }
+
+        function updateNavigationHotspots(location) {
+            const hotspotsContainer = document.getElementById('navigationHotspots');
+            const buttonsContainer = document.getElementById('navigationButtons');
+
+            hotspotsContainer.innerHTML = '';
+            buttonsContainer.innerHTML = '';
+
+            // البحث عن المواقع القريبة
+            const nearbyLocations = allLocations.filter(loc =>
+                loc.id !== location.id &&
+                loc.has_360 &&
+                calculateDistance(location.lat, location.lng, loc.lat, loc.lng) < 0.5
+            );
+
+            nearbyLocations.forEach((nearbyLocation, index) => {
+                // إضافة نقطة تنقل في المشهد
+                const hotspot = document.createElement('a-sphere');
+                hotspot.setAttribute('position', `${(index - 1) * 2} 1.5 -3`);
+                hotspot.setAttribute('radius', '0.1');
+                hotspot.setAttribute('color', '#D4AF37');
+                hotspot.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000');
+                hotspot.addEventListener('click', () => {
+                    selectLocation(nearbyLocation);
+                    showPanorama(nearbyLocation);
+                });
+
+                hotspotsContainer.appendChild(hotspot);
+
+                // إضافة زر في الأسفل
+                const button = document.createElement('button');
+                button.className = 'hotspot-btn';
+                button.innerHTML = `<i class="fas fa-arrow-right me-1"></i>${nearbyLocation.name}`;
+                button.onclick = () => {
+                    selectLocation(nearbyLocation);
+                    showPanorama(nearbyLocation);
+                };
+
+                buttonsContainer.appendChild(button);
+            });
+        }
+
+        function closePanorama() {
+            document.getElementById('panoramaViewer').style.display = 'none';
+        }
+
+        function toggleFullscreen() {
+            const viewer = document.getElementById('panoramaViewer');
+            if (!document.fullscreenElement) {
+                viewer.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function initEventListeners() {
+            // أزرار تبديل وضع العرض
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentViewMode = this.dataset.mode;
+                });
+            });
+
+            // مرشحات الفئات
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    filterLocations();
+                });
+            });
+
+            // مرشح المسافة
+            const distanceRange = document.getElementById('distanceRange');
+            const distanceValue = document.getElementById('distanceValue');
+
+            distanceRange.addEventListener('input', function() {
+                distanceValue.textContent = this.value + ' كم';
+                filterLocations();
+            });
+
+            // مرشح 360°
+            document.getElementById('show360Only').addEventListener('change', filterLocations);
+        }
+
+        function filterLocations() {
+            const selectedCategory = document.querySelector('.category-btn.active').dataset.category;
+            const maxDistance = parseFloat(document.getElementById('distanceRange').value);
+            const show360Only = document.getElementById('show360Only').checked;
+
+            filteredLocations = allLocations.filter(location => {
+                // فلتر الفئة
+                if (selectedCategory !== 'all' && location.category !== selectedCategory) {
+                    return false;
+                }
+
+                // فلتر المسافة
+                if (userLocation) {
+                    const distance = calculateDistance(userLocation.lat, userLocation.lng, location.lat, location.lng);
+                    if (distance > maxDistance) {
+                        return false;
+                    }
+                }
+
+                // فلتر 360°
+                if (show360Only && !location.has_360) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            updateMap();
+            updateSidebar();
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        map.setView([userLocation.lat, userLocation.lng], 15);
+
+                        // إضافة علامة الموقع الحالي
+                        L.marker([userLocation.lat, userLocation.lng], {
+                            icon: L.divIcon({
+                                html: '<div style="background: #007bff; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                                className: 'user-location-marker',
+                                iconSize: [26, 26],
+                                iconAnchor: [13, 13]
+                            })
+                        }).addTo(map);
+
+                        filterLocations();
+                    },
+                    error => {
+                        console.error('خطأ في الحصول على الموقع:', error);
+                        alert('لا يمكن الحصول على موقعك الحالي');
+                    }
+                );
+            } else {
+                alert('المتصفح لا يدعم تحديد الموقع');
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = sidebar.querySelector('.sidebar-toggle i');
+
+            sidebar.classList.toggle('collapsed');
+
+            if (sidebar.classList.contains('collapsed')) {
+                toggle.className = 'fas fa-chevron-left';
+            } else {
+                toggle.className = 'fas fa-chevron-right';
+            }
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371; // نصف قطر الأرض بالكيلومتر
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+    </script>
+</body>
+</html>

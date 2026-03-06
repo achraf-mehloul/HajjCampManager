@@ -1,0 +1,467 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم تفاصيل طلب الفحص -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-clipboard-check me-2 icon-primary"></i>
+        تفاصيل طلب الفحص #{{ inspection_request.request_number }}
+    </h2>
+
+    <div class="row">
+        <!-- معلومات طلب الفحص -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-info-circle me-2"></i>
+                        معلومات الطلب
+                    </div>
+                    <div>
+                        <span class="badge {% if inspection_request.status == 'جديد' %}bg-primary{% elif inspection_request.status == 'قيد التنفيذ' %}bg-warning text-dark{% elif inspection_request.status == 'مكتمل' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ inspection_request.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>رقم الطلب:</strong> {{ inspection_request.request_number }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>تاريخ الإنشاء:</strong> {{ inspection_request.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>عنوان الطلب:</strong> {{ inspection_request.title }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>الأولوية:</strong>
+                            <span class="badge {% if inspection_request.priority == 'عالي' %}bg-danger{% elif inspection_request.priority == 'متوسط' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                                {{ inspection_request.priority }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>نوع الطلب:</strong> {{ inspection_request.request_type_obj.name if inspection_request.request_type_obj else inspection_request.request_type or 'غير محدد' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>آخر تحديث:</strong> {{ inspection_request.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>مقدم الطلب:</strong> {{ inspection_request.requester.name }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>المكلف بالفحص:</strong> {{ inspection_request.assignee.name if inspection_request.assignee else 'غير محدد' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>المقاول المسؤول:</strong> {{ inspection_request.contractor.name if inspection_request.contractor else 'غير محدد' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>الفريق المسؤول:</strong> {{ inspection_request.team.name if inspection_request.team else 'غير محدد' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>تاريخ الاستحقاق:</strong> {{ inspection_request.due_date.strftime('%Y-%m-%d') if inspection_request.due_date else 'غير محدد' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>تاريخ الإكمال:</strong> {{ inspection_request.completed_at.strftime('%Y-%m-%d %H:%M') if inspection_request.completed_at else 'غير مكتمل' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>اسم المطوف:</strong> {{ inspection_request.mutawif_name or 'غير محدد' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>اسم المرشد:</strong> {{ inspection_request.pilgrim_guide_name or 'غير محدد' }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <strong>وصف الطلب:</strong>
+                            <div class="mt-2 p-3 bg-light rounded">
+                                {{ inspection_request.description }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <strong>تفاصيل الموقع:</strong>
+                            <div class="mt-2 p-3 bg-light rounded">
+                                {{ inspection_request.location_details or 'لا توجد تفاصيل إضافية للموقع' }}
+                            </div>
+                        </div>
+                    </div>
+                    {% if inspection_request.image_path %}
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <strong>الصورة المرفقة:</strong>
+                                <div class="mt-2">
+                                    <img src="{{ url_for('static', filename='uploads/' + inspection_request.image_path) }}" class="img-fluid rounded" alt="صورة مرفقة">
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('inspection_requests') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            العودة
+                        </a>
+                        <div>
+                            {% if inspection_request.status != 'مكتمل' and inspection_request.status != 'ملغي' %}
+                                <a href="{{ url_for('update_inspection_request_status', request_id=inspection_request.id, status='قيد التنفيذ') }}" class="btn btn-warning">
+                                    <i class="fas fa-play me-1"></i>
+                                    بدء التنفيذ
+                                </a>
+                                <a href="{{ url_for('update_inspection_request_status', request_id=inspection_request.id, status='مكتمل') }}" class="btn btn-success">
+                                    <i class="fas fa-check me-1"></i>
+                                    إكمال
+                                </a>
+                                <a href="{{ url_for('update_inspection_request_status', request_id=inspection_request.id, status='ملغي') }}" class="btn btn-danger">
+                                    <i class="fas fa-times me-1"></i>
+                                    إلغاء
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- معلومات اللوحة -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-bolt me-2"></i>
+                    معلومات اللوحة
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>رقم اللوحة:</strong> {{ inspection_request.panel.mdb }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>رقم تاج ماكسيمو:</strong> {{ inspection_request.panel.maximo_tag }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>المنطقة:</strong> {{ inspection_request.panel.area_name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>نوع اللوحة:</strong> {{ inspection_request.panel.panel_type }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>الحالة:</strong>
+                        <span class="badge {% if inspection_request.panel.status == 'عامل' %}bg-success{% elif inspection_request.panel.status == 'معطل' %}bg-danger{% else %}bg-warning{% endif %}">
+                            {{ inspection_request.panel.status }}
+                        </span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>سعة القاطع:</strong> {{ inspection_request.panel.breaker_capacity or 'غير محدد' }} أمبير
+                    </div>
+                    <div class="mb-2">
+                        <strong>مرتبطة بنظام سكادا:</strong>
+                        <span class="badge {% if inspection_request.panel.is_scada_connected %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ 'نعم' if inspection_request.panel.is_scada_connected else 'لا' }}
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('panel_details', panel_id=inspection_request.panel.id) }}" class="btn btn-primary w-100 mb-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            تفاصيل اللوحة
+                        </a>
+                        {% if inspection_request.panel.x_coordinate and inspection_request.panel.y_coordinate %}
+                            <a href="https://www.google.com/maps?q={{ inspection_request.panel.y_coordinate }},{{ inspection_request.panel.x_coordinate }}" target="_blank" class="btn btn-secondary w-100">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                عرض على خرائط Google
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم البحث عن طلبات فحص أخرى -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-search me-2 icon-secondary"></i>
+        البحث عن طلبات فحص أخرى
+    </h2>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-filter me-2"></i>
+                    البحث والتصفية
+                </div>
+                <div class="card-body">
+                    <form id="search-form" method="GET">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="search_term" class="form-label">البحث</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="search_term" name="search_term"
+                                           placeholder="ابحث برقم اللوحة أو رقم ماكسيمو..."
+                                           value="{{ request.args.get('search_term', '') }}">
+                                    <button class="btn btn-outline-secondary" type="submit">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" type="button" id="clear_search">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="status_filter" class="form-label">الحالة</label>
+                                <select class="form-select" id="status_filter" name="status_filter">
+                                    <option value="all">جميع الحالات</option>
+                                    <option value="جديد" {% if request.args.get('status_filter') == 'جديد' %}selected{% endif %}>جديد</option>
+                                    <option value="قيد التنفيذ" {% if request.args.get('status_filter') == 'قيد التنفيذ' %}selected{% endif %}>قيد التنفيذ</option>
+                                    <option value="مكتمل" {% if request.args.get('status_filter') == 'مكتمل' %}selected{% endif %}>مكتمل</option>
+                                    <option value="ملغي" {% if request.args.get('status_filter') == 'ملغي' %}selected{% endif %}>ملغي</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="priority_filter" class="form-label">الأولوية</label>
+                                <select class="form-select" id="priority_filter" name="priority_filter">
+                                    <option value="all">جميع الأولويات</option>
+                                    <option value="عالي" {% if request.args.get('priority_filter') == 'عالي' %}selected{% endif %}>عالي</option>
+                                    <option value="متوسط" {% if request.args.get('priority_filter') == 'متوسط' %}selected{% endif %}>متوسط</option>
+                                    <option value="منخفض" {% if request.args.get('priority_filter') == 'منخفض' %}selected{% endif %}>منخفض</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <button type="button" id="reset_filters" class="btn btn-outline-secondary">
+                                        <i class="fas fa-undo me-1"></i>
+                                        إعادة تعيين
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نتائج البحث -->
+    <div class="row mt-4" id="search-results" style="display: none;">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-list me-2"></i>
+                        نتائج البحث
+                    </div>
+                    <div id="results-count" class="badge bg-primary"></div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="results-table">
+                            <thead>
+                                <tr>
+                                    <th>رقم الطلب</th>
+                                    <th>اللوحة</th>
+                                    <th>رقم ماكسيمو</th>
+                                    <th>العنوان</th>
+                                    <th>الأولوية</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-tbody">
+                                <!-- سيتم ملء النتائج هنا بواسطة JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="no-results" class="text-center text-muted" style="display: none;">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <p>لم يتم العثور على نتائج مطابقة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // تنفيذ البحث
+    function performSearch() {
+        var searchTerm = $('#search_term').val().trim();
+        var statusFilter = $('#status_filter').val();
+        var priorityFilter = $('#priority_filter').val();
+
+        if (searchTerm.length < 2 && statusFilter === 'all' && priorityFilter === 'all') {
+            $('#search-results').hide();
+            return;
+        }
+
+        // إظهار مؤشر التحميل
+        $('#results-tbody').html('<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري البحث...</td></tr>');
+        $('#search-results').show();
+
+        // إرسال طلب البحث
+        $.ajax({
+            url: '/api/search-inspection-requests',
+            method: 'GET',
+            data: {
+                search_term: searchTerm,
+                status_filter: statusFilter,
+                priority_filter: priorityFilter
+            },
+            success: function(response) {
+                displayResults(response.requests);
+            },
+            error: function() {
+                $('#results-tbody').html('<tr><td colspan="8" class="text-center text-danger">حدث خطأ في البحث</td></tr>');
+            }
+        });
+    }
+
+    // عرض النتائج
+    function displayResults(requests) {
+        var tbody = $('#results-tbody');
+        tbody.empty();
+
+        if (requests.length === 0) {
+            $('#no-results').show();
+            tbody.hide();
+            $('#results-count').text('0 نتيجة');
+            return;
+        }
+
+        $('#no-results').hide();
+        tbody.show();
+        $('#results-count').text(requests.length + ' نتيجة');
+
+        requests.forEach(function(request) {
+            var statusBadge = getStatusBadge(request.status);
+            var priorityBadge = getPriorityBadge(request.priority);
+
+            var row = `
+                <tr>
+                    <td>${request.request_number}</td>
+                    <td><a href="/panels/${request.panel.id}" class="text-primary">${request.panel.mdb}</a></td>
+                    <td>${request.panel.maximo_tag}</td>
+                    <td>${request.title}</td>
+                    <td>${priorityBadge}</td>
+                    <td>${statusBadge}</td>
+                    <td>${formatDate(request.created_at)}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="/inspection-requests/${request.id}" class="btn btn-info" title="عرض التفاصيل">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="/panels/${request.panel.id}" class="btn btn-primary" title="تفاصيل اللوحة">
+                                <i class="fas fa-bolt"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+
+    // دالة لتنسيق شارة الحالة
+    function getStatusBadge(status) {
+        var badgeClass = '';
+        switch(status) {
+            case 'جديد':
+                badgeClass = 'bg-primary';
+                break;
+            case 'قيد التنفيذ':
+                badgeClass = 'bg-warning text-dark';
+                break;
+            case 'مكتمل':
+                badgeClass = 'bg-success';
+                break;
+            case 'ملغي':
+                badgeClass = 'bg-secondary';
+                break;
+            default:
+                badgeClass = 'bg-secondary';
+        }
+        return `<span class="badge ${badgeClass}">${status}</span>`;
+    }
+
+    // دالة لتنسيق شارة الأولوية
+    function getPriorityBadge(priority) {
+        var badgeClass = '';
+        switch(priority) {
+            case 'عالي':
+                badgeClass = 'bg-danger';
+                break;
+            case 'متوسط':
+                badgeClass = 'bg-warning text-dark';
+                break;
+            case 'منخفض':
+                badgeClass = 'bg-info text-dark';
+                break;
+            default:
+                badgeClass = 'bg-secondary';
+        }
+        return `<span class="badge ${badgeClass}">${priority}</span>`;
+    }
+
+    // دالة لتنسيق التاريخ
+    function formatDate(dateString) {
+        var date = new Date(dateString);
+        return date.toLocaleDateString('ar-SA');
+    }
+
+    // أحداث البحث
+    $('#search_term').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            performSearch();
+        }
+    });
+
+    $('#search-form').on('submit', function(e) {
+        e.preventDefault();
+        performSearch();
+    });
+
+    $('#status_filter, #priority_filter').on('change', function() {
+        performSearch();
+    });
+
+    // مسح البحث
+    $('#clear_search').on('click', function() {
+        $('#search_term').val('');
+        performSearch();
+    });
+
+    // إعادة تعيين الفلاتر
+    $('#reset_filters').on('click', function() {
+        $('#search_term').val('');
+        $('#status_filter').val('all');
+        $('#priority_filter').val('all');
+        $('#search-results').hide();
+    });
+
+    // تنفيذ البحث التلقائي إذا كانت هناك معاملات في URL
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('search_term') || urlParams.get('status_filter') || urlParams.get('priority_filter')) {
+        performSearch();
+    }
+});
+</script>
+{% endblock %}

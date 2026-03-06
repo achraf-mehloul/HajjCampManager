@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">تخصيص أسماء الأعمدة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        يمكنك تخصيص أسماء الأعمدة في ملفات Excel/CSV التي تقوم باستيرادها. قم بتحديد الأسماء المستخدمة في ملفاتك لكل عمود.
+                    </div>
+
+                    <form method="post" action="{{ url_for('column_mapping') }}">
+                        <div class="row">
+                            <!-- الأعمدة الأساسية -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">الأعمدة الأساسية</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="column_name_mdb" class="form-label">اسم عمود MDB</label>
+                                            <input type="text" class="form-control" id="column_name_mdb" name="column_name_mdb" value="{{ column_mapping.column_name_mdb }}" required>
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على رقم اللوحة (MDB)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="column_name_timestamp" class="form-label">اسم عمود وقت القراءة</label>
+                                            <input type="text" class="form-control" id="column_name_timestamp" name="column_name_timestamp" value="{{ column_mapping.column_name_timestamp }}" required>
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على وقت القراءة</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="column_name_current" class="form-label">اسم عمود التيار</label>
+                                            <input type="text" class="form-control" id="column_name_current" name="column_name_current" value="{{ column_mapping.column_name_current }}" required>
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على قيمة التيار (أمبير)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="column_name_voltage" class="form-label">اسم عمود الجهد</label>
+                                            <input type="text" class="form-control" id="column_name_voltage" name="column_name_voltage" value="{{ column_mapping.column_name_voltage }}" required>
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على قيمة الجهد (فولت)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="column_name_load" class="form-label">اسم عمود الحمل</label>
+                                            <input type="text" class="form-control" id="column_name_load" name="column_name_load" value="{{ column_mapping.column_name_load }}">
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على قيمة الحمل</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="column_name_breaker_capacity" class="form-label">اسم عمود سعة القاطع</label>
+                                            <input type="text" class="form-control" id="column_name_breaker_capacity" name="column_name_breaker_capacity" value="{{ column_mapping.column_name_breaker_capacity }}">
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على سعة القاطع (أمبير)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- الأعمدة الإضافية -->
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">الأعمدة الإضافية</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="column_name_power" class="form-label">اسم عمود القدرة</label>
+                                            <input type="text" class="form-control" id="column_name_power" name="column_name_power" value="{{ column_mapping.column_name_power }}">
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على قيمة القدرة (واط)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="column_name_energy" class="form-label">اسم عمود الطاقة</label>
+                                            <input type="text" class="form-control" id="column_name_energy" name="column_name_energy" value="{{ column_mapping.column_name_energy }}">
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على قيمة الطاقة (كيلوواط ساعة)</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="column_name_power_factor" class="form-label">اسم عمود معامل القدرة</label>
+                                            <input type="text" class="form-control" id="column_name_power_factor" name="column_name_power_factor" value="{{ column_mapping.column_name_power_factor }}">
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على قيمة معامل القدرة</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="column_name_frequency" class="form-label">اسم عمود التردد</label>
+                                            <input type="text" class="form-control" id="column_name_frequency" name="column_name_frequency" value="{{ column_mapping.column_name_frequency }}">
+                                            <small class="form-text text-muted">اسم العمود الذي يحتوي على قيمة التردد (هرتز)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                حفظ التخصيص
+                            </button>
+                            <a href="{{ url_for('settings') }}" class="btn btn-secondary">
+                                <i class="fas fa-cog me-1"></i>
+                                الإعدادات
+                            </a>
+                            <a href="{{ url_for('electrical_dashboard_view') }}" class="btn btn-info">
+                                <i class="fas fa-bolt me-1"></i>
+                                لوحة المعلومات الكهربائية
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

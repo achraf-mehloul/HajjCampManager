@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة الأصول{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-box me-2"></i>
+                    إدارة الأصول
+                </h2>
+                <div>
+                    <a href="{{ url_for('panorama360.import_assets') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-file-excel me-2"></i>
+                        استيراد من Excel
+                    </a>
+                    <button onclick="relinkAssets()" class="btn btn-success me-2">
+                        <i class="fas fa-link me-2"></i>
+                        إعادة ربط مع المخيمات
+                    </button>
+                    <a href="{{ url_for('panorama360.admin_dashboard') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        رجوع
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الفلاتر -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">المنطقة</label>
+                    <select class="form-select" name="area" onchange="this.form.submit()">
+                        <option value="">جميع المناطق</option>
+                        {% for area in areas %}
+                        <option value="{{ area }}" {% if area == area_filter %}selected{% endif %}>
+                            {{ area }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">الحالة</label>
+                    <select class="form-select" name="status" onchange="this.form.submit()">
+                        <option value="">جميع الحالات</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>نشط</option>
+                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>غير نشط</option>
+                        <option value="maintenance" {% if status_filter == 'maintenance' %}selected{% endif %}>صيانة</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <a href="{{ url_for('panorama360.manage_assets') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-redo me-2"></i>
+                        إعادة تعيين
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول الأصول -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">
+                قائمة الأصول ({{ assets|length }})
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if assets %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>رقم الأصل</th>
+                            <th>الوصف</th>
+                            <th>المخيم</th>
+                            <th>المربع</th>
+                            <th>المنطقة</th>
+                            <th>الدولة</th>
+                            <th>الشركة/المطوف</th>
+                            <th>الإحداثيات</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الاستيراد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in assets %}
+                        <tr>
+                            <td>
+                                <strong>{{ asset.asset_number }}</strong>
+                                {% if asset.panel_id %}
+                                <br><small class="text-success">
+                                    <i class="fas fa-link me-1"></i>مربوط بلوحة
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>{{ asset.description[:50] }}...</td>
+                            <td>
+                                {% if asset.camp %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-campground me-1"></i>{{ asset.camp.name }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asset.square_number %}
+                                <span class="badge bg-info">{{ asset.square_number }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <i class="fas fa-map-marker-alt text-primary me-1"></i>
+                                {{ asset.area or '-' }}
+                            </td>
+                            <td>{{ asset.country or '-' }}</td>
+                            <td>{{ asset.company_name or '-' }}</td>
+                            <td>
+                                {% if asset.x_coordinate and asset.y_coordinate %}
+                                <small>
+                                    {{ "%.4f"|format(asset.x_coordinate) }},
+                                    {{ "%.4f"|format(asset.y_coordinate) }}
+                                </small>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if asset.status == 'active' else 'secondary' if asset.status == 'inactive' else 'warning' }}">
+                                    {{ 'نشط' if asset.status == 'active' else 'غير نشط' if asset.status == 'inactive' else 'صيانة' }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>{{ asset.imported_at.strftime('%Y-%m-%d') }}</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-box fa-3x text-muted mb-3"></i>
+                <p class="text-muted">لا توجد أصول</p>
+                <a href="{{ url_for('panorama360.import_assets') }}" class="btn btn-primary">
+                    <i class="fas fa-file-excel me-2"></i>
+                    استيراد أصول
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function relinkAssets() {
+    if (!confirm('هل تريد إعادة ربط جميع الأصول مع المخيمات؟\nسيتم تحديث معلومات الدولة والمربع والشركة تلقائياً بناءً على الموقع الجغرافي.')) {
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الربط...';
+    
+    fetch('/panorama360/admin/relink-assets', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('خطأ: ' + data.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-link me-2"></i>إعادة ربط مع المخيمات';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء إعادة الربط');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-link me-2"></i>إعادة ربط مع المخيمات';
+    });
+}
+</script>
+{% endblock %}

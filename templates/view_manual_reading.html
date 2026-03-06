@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل القراءة اليدوية{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">تفاصيل القراءة اليدوية للوحة: {{ panel.mdb }}</h5>
+                    <div>
+                        <a href="{{ url_for('panel_details', panel_id=panel.id) }}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> العودة إلى تفاصيل اللوحة
+                        </a>
+                        {% if current_user.role == 'admin' or reading.created_by == current_user.id %}
+                        <a href="{{ url_for('readings.delete_manual_reading', reading_id=reading.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من حذف هذه القراءة؟')">
+                            <i class="fas fa-trash me-1"></i> حذف القراءة
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">معلومات القراءة</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>وقت القراءة:</strong> {{ reading.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>نوع القراءة:</strong>
+                                        {% if reading.reading_type == 'manual' %}
+                                            يدوية
+                                        {% elif reading.reading_type == 'imported' %}
+                                            مستوردة
+                                        {% else %}
+                                            {{ reading.reading_type }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>حالة اللوحة:</strong>
+                                        {% if reading.panel_status %}
+                                            {% if reading.panel_status == 'عامل' %}
+                                                <span class="badge bg-success">{{ reading.panel_status }}</span>
+                                            {% elif reading.panel_status == 'معطل' %}
+                                                <span class="badge bg-danger">{{ reading.panel_status }}</span>
+                                            {% elif reading.panel_status == 'تحت الصيانة' %}
+                                                <span class="badge bg-warning text-dark">{{ reading.panel_status }}</span>
+                                            {% elif reading.panel_status == 'مفصول' %}
+                                                <span class="badge bg-secondary">{{ reading.panel_status }}</span>
+                                            {% else %}
+                                                <span class="badge bg-info">{{ reading.panel_status }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-success">عامل</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>تم الإضافة بواسطة:</strong> {{ reading.user.name if reading.user else 'غير معروف' }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>تاريخ الإضافة:</strong> {{ reading.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </div>
+                                    {% if reading.notes %}
+                                    <div class="mb-2">
+                                        <strong>ملاحظات:</strong> {{ reading.notes }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">القراءات الكهربائية</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <strong>التيار:</strong>
+                                        {% if reading.current is not none %}
+                                            {{ reading.current }} {{ reading.current_unit.name if reading.current_unit else 'A' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>الجهد:</strong>
+                                        {% if reading.voltage is not none %}
+                                            {{ reading.voltage }} {{ reading.voltage_unit.name if reading.voltage_unit else 'V' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>القدرة:</strong>
+                                        {% if reading.power is not none %}
+                                            {{ reading.power }} {{ reading.power_unit.name if reading.power_unit else 'W' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>الطاقة:</strong>
+                                        {% if reading.energy is not none %}
+                                            {{ reading.energy }} {{ reading.energy_unit.name if reading.energy_unit else 'kWh' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>معامل القدرة:</strong> {{ reading.power_factor if reading.power_factor is not none else '-' }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>التردد:</strong> {{ reading.frequency if reading.frequency is not none else '-' }} Hz
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>سعة القاطع:</strong> {{ reading.breaker_capacity if reading.breaker_capacity is not none else '-' }} A
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if dropdown_values %}
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">قيم إضافية</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for label, value in dropdown_values.items() %}
+                                        <div class="col-md-4 mb-2">
+                                            <strong>{{ label }}:</strong> {{ value }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if reading.current is not none and reading.voltage is not none and reading.power is not none %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">تحليل القراءات</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <canvas id="readingChart" width="400" height="200"></canvas>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="alert alert-info">
+                                                <h6>ملخص القراءات</h6>
+                                                <p>
+                                                    {% if panel.breaker_capacity and reading.current is not none %}
+                                                    <strong>نسبة الحمل:</strong> {{ "%.2f"|format((reading.current / panel.breaker_capacity) * 100) }}%<br>
+                                                    {% endif %}
+                                                    <strong>القدرة الظاهرية:</strong> {{ "%.2f"|format(reading.current * reading.voltage) }} VA<br>
+                                                    <strong>القدرة الحقيقية:</strong> {{ reading.power }} W<br>
+                                                    {% if reading.power_factor is not none %}
+                                                    <strong>معامل القدرة:</strong> {{ reading.power_factor }}<br>
+                                                    {% else %}
+                                                    <strong>معامل القدرة (محسوب):</strong> {{ "%.2f"|format(reading.power / (reading.current * reading.voltage)) if reading.current * reading.voltage > 0 else '-' }}<br>
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if reading.current is not none and reading.voltage is not none and reading.power is not none %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var ctx = document.getElementById('readingChart').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['التيار (A)', 'الجهد (V/10)', 'القدرة (W/100)'],
+                datasets: [{
+                    label: 'القراءات الكهربائية',
+                    data: [
+                        {{ reading.current }},
+                        {{ reading.voltage / 10 }},
+                        {{ reading.power / 100 }}
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var label = context.dataset.label || '';
+                                var value = context.raw;
+                                var index = context.dataIndex;
+
+                                if (index === 0) {
+                                    return label + ': ' + value + ' A';
+                                } else if (index === 1) {
+                                    return label + ': ' + (value * 10) + ' V';
+                                } else if (index === 2) {
+                                    return label + ': ' + (value * 100) + ' W';
+                                }
+
+                                return label + ': ' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم إدارة أعضاء الفريق -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-users me-2 icon-primary"></i>
+        إدارة أعضاء الفريق: {{ team.name }}
+    </h2>
+
+    <div class="mb-3">
+        <a href="{{ url_for('contractor_teams', contractor_id=contractor.id) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i>
+            العودة إلى فرق المقاول
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-user-friends me-2"></i>
+                        أعضاء الفريق
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                            <i class="fas fa-user-plus me-1"></i>
+                            إضافة عضو جديد
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if members %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>الاسم</th>
+                                        <th>المنصب</th>
+                                        <th>رقم الهاتف</th>
+                                        <th>البريد الإلكتروني</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in members %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ member.name }}</td>
+                                            <td>{{ member.position or 'غير محدد' }}</td>
+                                            <td>{{ member.phone or 'غير محدد' }}</td>
+                                            <td>{{ member.email or 'غير محدد' }}</td>
+                                            <td>
+                                                {% if member.is_active %}
+                                                    <span class="badge bg-success">نشط</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">غير نشط</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button type="button" class="btn btn-primary edit-member-btn"
+                                                        data-id="{{ member.id }}"
+                                                        data-name="{{ member.name }}"
+                                                        data-position="{{ member.position }}"
+                                                        data-phone="{{ member.phone }}"
+                                                        data-email="{{ member.email }}"
+                                                        data-is-active="{{ member.is_active }}"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editMemberModal">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <a href="{{ url_for('delete_team_member', contractor_id=contractor.id, team_id=team.id, member_id=member.id) }}" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا العضو؟ سيتم أيضًا حذف حساب المستخدم المرتبط به إن وجد.');">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا يوجد أعضاء مسجلين في هذا الفريق. يمكنك إضافة عضو جديد باستخدام الزر أعلاه.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة عضو جديد -->
+    <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addMemberModalLabel">إضافة عضو جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <form action="{{ url_for('add_team_member', contractor_id=contractor.id, team_id=team.id) }}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="user_id" class="form-label">اختر مستخدم موجود</label>
+                            <select class="form-select" id="user_id" name="user_id">
+                                <option value="">-- إنشاء عضو جديد --</option>
+                                {% for user in available_users %}
+                                    <option value="{{ user.id }}" data-email="{{ user.email }}" data-phone="{{ user.phone if user.phone else '' }}">{{ user.name }} ({{ user.username }})</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">يمكنك اختيار مستخدم موجود أو إنشاء عضو جديد</div>
+                        </div>
+                        <hr>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">الاسم</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="position" class="form-label">المنصب</label>
+                            <input type="text" class="form-control" id="position" name="position">
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="phone" name="phone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">عضو نشط</label>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="create_user" name="create_user" checked>
+                            <label class="form-check-label" for="create_user">إنشاء حساب مستخدم</label>
+                            <div class="form-text">سيتم إنشاء حساب مستخدم باسم المستخدم وكلمة المرور نفس اسم المستخدم</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">اسم المستخدم</label>
+                            <input type="text" class="form-control" id="username" name="username">
+                            <div class="form-text">إذا تركت هذا الحقل فارغًا، سيتم استخدام البريد الإلكتروني كاسم مستخدم</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">إضافة</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل عضو -->
+    <div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editMemberModalLabel">تعديل عضو</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <form action="{{ url_for('edit_team_member', contractor_id=contractor.id, team_id=team.id) }}" method="post">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit_member_id" name="member_id">
+                        <div class="mb-3">
+                            <label for="edit_member_name" class="form-label">الاسم</label>
+                            <input type="text" class="form-control" id="edit_member_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_member_position" class="form-label">المنصب</label>
+                            <input type="text" class="form-control" id="edit_member_position" name="position">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_member_phone" class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="edit_member_phone" name="phone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_member_email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="edit_member_email" name="email">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="edit_member_is_active" name="is_active">
+                            <label class="form-check-label" for="edit_member_is_active">عضو نشط</label>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="edit_create_user" name="create_user">
+                            <label class="form-check-label" for="edit_create_user">إنشاء حساب مستخدم</label>
+                            <div class="form-text">سيتم إنشاء حساب مستخدم باسم المستخدم وكلمة المرور نفس اسم المستخدم</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_username" class="form-label">اسم المستخدم</label>
+                            <input type="text" class="form-control" id="edit_username" name="username">
+                            <div class="form-text">إذا تركت هذا الحقل فارغًا، سيتم استخدام البريد الإلكتروني كاسم مستخدم</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تعبئة بيانات المستخدم عند اختياره
+        const userSelect = document.getElementById('user_id');
+        if (userSelect) {
+            userSelect.addEventListener('change', function() {
+                const userId = this.value;
+                if (userId) {
+                    // الحصول على بيانات المستخدم المحدد
+                    const selectedOption = this.options[this.selectedIndex];
+                    const userName = selectedOption.text.split(' (')[0];
+                    const userEmail = selectedOption.getAttribute('data-email') || '';
+                    const userPhone = selectedOption.getAttribute('data-phone') || '';
+
+                    // تعبئة النموذج ببيانات المستخدم
+                    document.getElementById('name').value = userName;
+                    document.getElementById('email').value = userEmail;
+                    document.getElementById('phone').value = userPhone;
+
+                    // تعطيل حقول البيانات الأساسية
+                    document.getElementById('name').readOnly = true;
+                    document.getElementById('email').readOnly = true;
+
+                    // إخفاء خيارات إنشاء حساب مستخدم
+                    document.getElementById('create_user').checked = false;
+                    document.getElementById('create_user').disabled = true;
+                    document.getElementById('username').disabled = true;
+                } else {
+                    // إعادة تفعيل الحقول
+                    document.getElementById('name').value = '';
+                    document.getElementById('email').value = '';
+                    document.getElementById('phone').value = '';
+
+                    document.getElementById('name').readOnly = false;
+                    document.getElementById('email').readOnly = false;
+
+                    document.getElementById('create_user').disabled = false;
+                    document.getElementById('username').disabled = false;
+                }
+            });
+        }
+
+        // تهيئة أزرار تعديل العضو
+        const editButtons = document.querySelectorAll('.edit-member-btn');
+        editButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // الحصول على بيانات العضو من سمات الزر
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const position = this.getAttribute('data-position');
+                const phone = this.getAttribute('data-phone');
+                const email = this.getAttribute('data-email');
+                const isActive = this.getAttribute('data-is-active') === 'True';
+
+                // تعبئة النموذج ببيانات العضو
+                document.getElementById('edit_member_id').value = id;
+                document.getElementById('edit_member_name').value = name;
+                document.getElementById('edit_member_position').value = position || '';
+                document.getElementById('edit_member_phone').value = phone || '';
+                document.getElementById('edit_member_email').value = email || '';
+                document.getElementById('edit_member_is_active').checked = isActive;
+            });
+        });
+    });
+</script>
+{% endblock %}

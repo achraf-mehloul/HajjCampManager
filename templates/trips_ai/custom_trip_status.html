@@ -1,0 +1,403 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-clipboard-check me-2"></i>
+                حالة الرحلة المخصصة
+            </h1>
+            <p class="lead">تتبع حالة طلب رحلتك المخصصة</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('trips_ai.index') }}">الرحلات والذكاء الاصطناعي</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('trips_ai.custom_trip') }}">طلب رحلة مخصصة</a></li>
+                    <li class="breadcrumb-item active">حالة الطلب</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Trip Status -->
+        <div class="col-lg-8">
+            <!-- Trip Info Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        معلومات الطلب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>رقم الطلب</h6>
+                            <p class="text-primary fw-bold">{{ custom_trip.trip_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>تاريخ الطلب</h6>
+                            <p>{{ custom_trip.request_date.strftime('%Y-%m-%d %H:%M') if custom_trip.request_date else 'غير محدد' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>اسم العميل</h6>
+                            <p>{{ custom_trip.customer_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>نوع الرحلة</h6>
+                            <p>
+                                {% if custom_trip.trip_type == 'hajj' %}
+                                    <span class="badge bg-success">حج</span>
+                                {% elif custom_trip.trip_type == 'umrah' %}
+                                    <span class="badge bg-primary">عمرة</span>
+                                {% elif custom_trip.trip_type == 'tourism' %}
+                                    <span class="badge bg-info">سياحة دينية</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ custom_trip.trip_type }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>عدد المسافرين</h6>
+                            <p>{{ custom_trip.number_of_travelers }} شخص</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>حالة الطلب</h6>
+                            <p>
+                                {% if custom_trip.status == 'pending' %}
+                                    <span class="badge bg-warning">قيد المراجعة</span>
+                                {% elif custom_trip.status == 'quoted' %}
+                                    <span class="badge bg-info">تم إعداد العرض</span>
+                                {% elif custom_trip.status == 'approved' %}
+                                    <span class="badge bg-success">تم الموافقة</span>
+                                {% elif custom_trip.status == 'rejected' %}
+                                    <span class="badge bg-danger">مرفوض</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ custom_trip.status }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Timeline -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-timeline me-2"></i>
+                        تتبع حالة الطلب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item completed">
+                            <div class="timeline-marker bg-success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>تم استلام الطلب</h6>
+                                <p class="text-muted">{{ custom_trip.request_date.strftime('%Y-%m-%d %H:%M') if custom_trip.request_date else 'غير محدد' }}</p>
+                                <small class="text-success">مكتمل</small>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item {% if custom_trip.status in ['quoted', 'approved'] %}completed{% else %}active{% endif %}">
+                            <div class="timeline-marker {% if custom_trip.status in ['quoted', 'approved'] %}bg-success{% else %}bg-primary{% endif %}">
+                                {% if custom_trip.status in ['quoted', 'approved'] %}
+                                    <i class="fas fa-check"></i>
+                                {% else %}
+                                    <i class="fas fa-clock"></i>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-content">
+                                <h6>مراجعة وتحليل الطلب</h6>
+                                <p class="text-muted">فريقنا يراجع طلبك ويحلل احتياجاتك</p>
+                                <small class="{% if custom_trip.status in ['quoted', 'approved'] %}text-success{% else %}text-primary{% endif %}">
+                                    {% if custom_trip.status in ['quoted', 'approved'] %}مكتمل{% else %}جاري العمل{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item {% if custom_trip.status == 'approved' %}completed{% elif custom_trip.status == 'quoted' %}active{% endif %}">
+                            <div class="timeline-marker {% if custom_trip.status == 'approved' %}bg-success{% elif custom_trip.status == 'quoted' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                {% if custom_trip.status == 'approved' %}
+                                    <i class="fas fa-check"></i>
+                                {% elif custom_trip.status == 'quoted' %}
+                                    <i class="fas fa-clock"></i>
+                                {% else %}
+                                    <i class="fas fa-circle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-content">
+                                <h6>إعداد العرض المخصص</h6>
+                                <p class="text-muted">إعداد عرض مفصل يناسب احتياجاتك</p>
+                                <small class="{% if custom_trip.status == 'approved' %}text-success{% elif custom_trip.status == 'quoted' %}text-primary{% else %}text-muted{% endif %}">
+                                    {% if custom_trip.status == 'approved' %}مكتمل{% elif custom_trip.status == 'quoted' %}جاري العمل{% else %}في الانتظار{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item {% if custom_trip.status == 'approved' %}active{% endif %}">
+                            <div class="timeline-marker {% if custom_trip.status == 'approved' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                {% if custom_trip.status == 'approved' %}
+                                    <i class="fas fa-clock"></i>
+                                {% else %}
+                                    <i class="fas fa-circle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-content">
+                                <h6>التواصل والتأكيد</h6>
+                                <p class="text-muted">التواصل معك لتأكيد التفاصيل والحجز</p>
+                                <small class="{% if custom_trip.status == 'approved' %}text-primary{% else %}text-muted{% endif %}">
+                                    {% if custom_trip.status == 'approved' %}جاري العمل{% else %}في الانتظار{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Suggestions (if available) -->
+            {% if custom_trip.ai_suggestions %}
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot me-2"></i>
+                        اقتراحات الذكاء الاصطناعي
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="ai-suggestions">
+                        {{ custom_trip.ai_suggestions|safe }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Demo AI Suggestions -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot me-2"></i>
+                        اقتراحات أولية (تجريبي)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb me-2"></i>اقتراحات مبدئية لرحلتك:</h6>
+                        <ul class="mb-0">
+                            <li>بناءً على طلبك، نقترح رحلة {{ custom_trip.trip_type }} لمدة 7-10 أيام</li>
+                            <li>الإقامة في فنادق 4-5 نجوم قريبة من الحرم</li>
+                            <li>برنامج شامل يتضمن الزيارات الدينية والسياحية</li>
+                            <li>مرشد سياحي متخصص يتحدث العربية</li>
+                            <li>نقل مريح ومكيف بين المواقع</li>
+                        </ul>
+                    </div>
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle me-2"></i>
+                        هذه اقتراحات أولية. سيتم إعداد عرض مفصل ومخصص لك قريباً.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>إجراءات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="window.print()">
+                            <i class="fas fa-print me-2"></i>طباعة التفاصيل
+                        </button>
+                        <a href="{{ url_for('trips_ai.custom_trip') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus me-2"></i>طلب رحلة جديدة
+                        </a>
+                        <a href="{{ url_for('trips_ai.chatbot_page') }}" class="btn btn-outline-info">
+                            <i class="fas fa-comments me-2"></i>تحدث مع المساعد
+                        </a>
+                        <a href="{{ url_for('trips_ai.packages') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-search me-2"></i>تصفح الحزم الجاهزة
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-phone me-2"></i>تواصل معنا
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <i class="fas fa-phone text-primary me-2"></i>
+                        <strong>الهاتف:</strong> 920000000
+                    </p>
+                    <p class="mb-2">
+                        <i class="fas fa-envelope text-primary me-2"></i>
+                        <strong>البريد:</strong> info@example.com
+                    </p>
+                    <p class="mb-2">
+                        <i class="fas fa-clock text-primary me-2"></i>
+                        <strong>ساعات العمل:</strong> 24/7
+                    </p>
+                    <hr>
+                    <p class="text-muted small mb-0">
+                        سيتم التواصل معك خلال 24 ساعة من تاريخ الطلب
+                    </p>
+                </div>
+            </div>
+
+            <!-- Expected Timeline -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-calendar me-2"></i>الجدول الزمني المتوقع
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <strong>اليوم 1:</strong> استلام الطلب
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            <strong>اليوم 2-3:</strong> مراجعة وتحليل
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-info me-2"></i>
+                            <strong>اليوم 4-5:</strong> إعداد العرض
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            <strong>اليوم 6:</strong> التواصل والتأكيد
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 5px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-item.completed .timeline-marker {
+    box-shadow: 0 0 0 2px #28a745;
+}
+
+.timeline-item.active .timeline-marker {
+    box-shadow: 0 0 0 2px #007bff;
+    animation: pulse 2s infinite;
+}
+
+.timeline-content h6 {
+    margin-bottom: 5px;
+    font-size: 1rem;
+}
+
+.timeline-content p {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.ai-suggestions {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #17a2b8;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 2px #007bff, 0 0 0 4px rgba(0, 123, 255, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 0 2px #007bff, 0 0 0 8px rgba(0, 123, 255, 0.1);
+    }
+    100% {
+        box-shadow: 0 0 0 2px #007bff, 0 0 0 4px rgba(0, 123, 255, 0.3);
+    }
+}
+
+@media print {
+    .card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+    }
+    
+    .btn, .breadcrumb {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh every 30 seconds if status is pending
+    {% if custom_trip.status == 'pending' %}
+    setInterval(function() {
+        location.reload();
+    }, 30000);
+    {% endif %}
+    
+    // Show notification if status changed
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('updated') === 'true') {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show';
+        alert.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>
+            تم تحديث حالة طلبك!
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.container-fluid').insertBefore(alert, document.querySelector('.row'));
+    }
+});
+</script>
+{% endblock %}

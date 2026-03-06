@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة النماذج ثلاثية الأبعاد{% endblock %}
+
+{% block extra_css %}
+<style>
+    .model-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .model-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .model-preview {
+        height: 200px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .model-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .model-info {
+        padding: 20px;
+    }
+    
+    .format-badge {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 0.8em;
+        margin: 2px;
+        display: inline-block;
+    }
+    
+    .size-info {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 8px;
+        margin: 10px 0;
+    }
+    
+    .upload-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 15px;
+        padding: 40px;
+        text-align: center;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .upload-area:hover {
+        border-color: #667eea;
+        background: #f0f4ff;
+    }
+    
+    .upload-area.dragover {
+        border-color: #667eea;
+        background: #e3f2fd;
+    }
+    
+    .progress-container {
+        display: none;
+        margin-top: 20px;
+    }
+    
+    .model-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .action-btn {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9em;
+    }
+    
+    .btn-view {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-edit {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+    }
+    
+    .stats-number {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-cube me-3" style="color: #667eea;"></i>
+                        إدارة النماذج ثلاثية الأبعاد
+                    </h2>
+                    <p class="text-muted mb-0">رفع وإدارة النماذج ثلاثية الأبعاد للمواقع المقدسة</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="fas fa-plus me-2"></i>رفع نموذج جديد
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">{{ models|length }}</div>
+                <div>إجمالي النماذج</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">4</div>
+                <div>الصيغ المدعومة</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">2.1</div>
+                <div>إجمالي الحجم (GB)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-number">1,234</div>
+                <div>مرات المشاهدة</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Models Grid -->
+    <div class="row">
+        <!-- Kaaba Model -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="model-card">
+                <div class="model-preview">
+                    <img src="https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=400" alt="الكعبة المشرفة">
+                    <div class="position-absolute top-0 end-0 p-2">
+                        <span class="badge bg-success">نشط</span>
+                    </div>
+                </div>
+                <div class="model-info">
+                    <h5 class="mb-2">الكعبة المشرفة</h5>
+                    <p class="text-muted mb-3">نموذج ثلاثي الأبعاد عالي الدقة للكعبة المشرفة</p>
+                    
+                    <div class="mb-3">
+                        <strong>الصيغ المتاحة:</strong><br>
+                        <span class="format-badge">GLB</span>
+                        <span class="format-badge">glTF</span>
+                        <span class="format-badge">USDZ</span>
+                        <span class="format-badge">FBX</span>
+                    </div>
+                    
+                    <div class="size-info">
+                        <div class="d-flex justify-content-between">
+                            <span>GLB (عالي الجودة):</span>
+                            <span>50 MB</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>USDZ (AR):</span>
+                            <span>13 MB</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>إجمالي المشاهدات:</span>
+                            <span>856</span>
+                        </div>
+                    </div>
+                    
+                    <div class="model-actions">
+                        <button class="action-btn btn-view" onclick="viewModel('kaaba')">
+                            <i class="fas fa-eye me-1"></i>عرض
+                        </button>
+                        <button class="action-btn btn-edit" onclick="editModel('kaaba')">
+                            <i class="fas fa-edit me-1"></i>تعديل
+                        </button>
+                        <button class="action-btn btn-delete" onclick="deleteModel('kaaba')">
+                            <i class="fas fa-trash me-1"></i>حذف
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Masjid Al-Haram Model -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="model-card">
+                <div class="model-preview">
+                    <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400" alt="المسجد الحرام">
+                    <div class="position-absolute top-0 end-0 p-2">
+                        <span class="badge bg-warning">قيد المعالجة</span>
+                    </div>
+                </div>
+                <div class="model-info">
+                    <h5 class="mb-2">المسجد الحرام</h5>
+                    <p class="text-muted mb-3">نموذج شامل للمسجد الحرام والمناطق المحيطة</p>
+                    
+                    <div class="mb-3">
+                        <strong>الصيغ المتاحة:</strong><br>
+                        <span class="format-badge">GLB</span>
+                        <span class="format-badge">glTF</span>
+                        <span class="format-badge">USDZ</span>
+                    </div>
+                    
+                    <div class="size-info">
+                        <div class="d-flex justify-content-between">
+                            <span>GLB (عالي الجودة):</span>
+                            <span>120 MB</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>USDZ (AR):</span>
+                            <span>45 MB</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>إجمالي المشاهدات:</span>
+                            <span>432</span>
+                        </div>
+                    </div>
+                    
+                    <div class="model-actions">
+                        <button class="action-btn btn-view" onclick="viewModel('masjid-al-haram')">
+                            <i class="fas fa-eye me-1"></i>عرض
+                        </button>
+                        <button class="action-btn btn-edit" onclick="editModel('masjid-al-haram')">
+                            <i class="fas fa-edit me-1"></i>تعديل
+                        </button>
+                        <button class="action-btn btn-delete" onclick="deleteModel('masjid-al-haram')">
+                            <i class="fas fa-trash me-1"></i>حذف
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add New Model Card -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="model-card" style="border: 2px dashed #dee2e6;">
+                <div class="model-preview d-flex align-items-center justify-content-center">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-plus fa-3x mb-3"></i>
+                        <h5>إضافة نموذج جديد</h5>
+                    </div>
+                </div>
+                <div class="model-info text-center">
+                    <p class="text-muted mb-3">رفع نموذج ثلاثي الأبعاد جديد</p>
+                    <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="fas fa-upload me-2"></i>رفع نموذج
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-upload me-2"></i>
+                    رفع نموذج ثلاثي الأبعاد جديد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">اسم النموذج</label>
+                        <input type="text" class="form-control" name="model_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">الوصف</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">الموقع المرتبط</label>
+                        <select class="form-select" name="location_id">
+                            <option value="">اختر الموقع</option>
+                            <option value="1">المسجد الحرام</option>
+                            <option value="2">المسجد النبوي</option>
+                            <option value="3">جبل النور</option>
+                        </select>
+                    </div>
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                        <h5>اسحب الملفات هنا أو اضغط للاختيار</h5>
+                        <p class="text-muted">الصيغ المدعومة: GLB, glTF, USDZ, FBX</p>
+                        <input type="file" id="fileInput" name="model_files" multiple accept=".glb,.gltf,.usdz,.fbx" style="display: none;">
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2 text-center">
+                            <span id="uploadStatus">جاري الرفع...</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="uploadModel()">
+                    <i class="fas fa-upload me-2"></i>رفع النموذج
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Upload functionality
+document.getElementById('uploadArea').addEventListener('click', function() {
+    document.getElementById('fileInput').click();
+});
+
+document.getElementById('uploadArea').addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('dragover');
+});
+
+document.getElementById('uploadArea').addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+});
+
+document.getElementById('uploadArea').addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    document.getElementById('fileInput').files = files;
+    updateFileList(files);
+});
+
+document.getElementById('fileInput').addEventListener('change', function() {
+    updateFileList(this.files);
+});
+
+function updateFileList(files) {
+    const uploadArea = document.getElementById('uploadArea');
+    if (files.length > 0) {
+        let fileList = '<h6>الملفات المحددة:</h6><ul class="list-unstyled">';
+        for (let file of files) {
+            fileList += `<li><i class="fas fa-file me-2"></i>${file.name} (${formatFileSize(file.size)})</li>`;
+        }
+        fileList += '</ul>';
+        uploadArea.innerHTML = fileList;
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function uploadModel() {
+    const form = document.getElementById('uploadForm');
+    const formData = new FormData(form);
+    const progressContainer = document.querySelector('.progress-container');
+    const progressBar = document.querySelector('.progress-bar');
+    const uploadStatus = document.getElementById('uploadStatus');
+    
+    progressContainer.style.display = 'block';
+    
+    // محاكاة رفع الملف
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        uploadStatus.textContent = `جاري الرفع... ${Math.round(progress)}%`;
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            uploadStatus.textContent = 'تم الرفع بنجاح!';
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadModal'));
+                modal.hide();
+                location.reload();
+            }, 1500);
+        }
+    }, 200);
+}
+
+function viewModel(modelId) {
+    window.open(`/pilgrimage-360/3d-viewer?model=${modelId}`, '_blank');
+}
+
+function editModel(modelId) {
+    alert('تعديل النموذج: ' + modelId + ' (قريباً)');
+}
+
+function deleteModel(modelId) {
+    if (confirm('هل أنت متأكد من حذف هذا النموذج؟')) {
+        alert('تم حذف النموذج: ' + modelId);
+        // هنا يمكن إضافة كود الحذف الفعلي
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم التنبيهات -->
+<section class="mb-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('electrical_dashboard_view') }}">لوحة المعلومات الكهربائية</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">التنبيهات</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <h2 class="section-title">
+        <i class="fas fa-bell me-2 icon-primary"></i>
+        التنبيهات
+    </h2>
+
+    <!-- إحصائيات التنبيهات -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="dashboard-card primary">
+                <div class="title">إجمالي التنبيهات</div>
+                <div class="number">{{ total_alerts }}</div>
+                <div><i class="fas fa-bell fa-2x"></i></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card" style="background-color: #FFF3CD; color: #856404;">
+                <div class="title">تنبيهات تحذيرية</div>
+                <div class="number">{{ warning_alerts }}</div>
+                <div><i class="fas fa-exclamation-triangle fa-2x"></i></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card" style="background-color: #F8D7DA; color: #721C24;">
+                <div class="title">تنبيهات خطرة</div>
+                <div class="number">{{ danger_alerts }}</div>
+                <div><i class="fas fa-radiation fa-2x"></i></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card" style="background-color: #D1ECF1; color: #0C5460;">
+                <div class="title">تنبيهات غير مقروءة</div>
+                <div class="number">{{ unread_alerts }}</div>
+                <div><i class="fas fa-envelope fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فلترة التنبيهات -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-filter me-2"></i>
+            تصفية التنبيهات
+        </div>
+        <div class="card-body">
+            <form id="filter-form" method="get" action="{{ url_for('alerts') }}">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="severity" class="form-label">الخطورة</label>
+                        <select class="form-select" id="severity" name="severity">
+                            <option value="all">الكل</option>
+                            <option value="warning" {% if request.args.get('severity') == 'warning' %}selected{% endif %}>تحذير</option>
+                            <option value="danger" {% if request.args.get('severity') == 'danger' %}selected{% endif %}>خطر</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">نوع التنبيه</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="all">الكل</option>
+                            <option value="current" {% if request.args.get('type') == 'current' %}selected{% endif %}>التيار</option>
+                            <option value="voltage" {% if request.args.get('type') == 'voltage' %}selected{% endif %}>الجهد</option>
+                            <option value="power" {% if request.args.get('type') == 'power' %}selected{% endif %}>القدرة</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="is_read" class="form-label">حالة القراءة</label>
+                        <select class="form-select" id="is_read" name="is_read">
+                            <option value="all">الكل</option>
+                            <option value="read" {% if request.args.get('is_read') == 'read' %}selected{% endif %}>مقروء</option>
+                            <option value="unread" {% if request.args.get('is_read') == 'unread' %}selected{% endif %}>غير مقروء</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-2"></i>
+                            تصفية
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- تصدير التقارير -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-file-export me-2"></i>
+            تصدير التقارير
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <form id="export-alerts-form" action="{{ url_for('export_alerts') }}" method="post">
+                        <!-- نقل معايير التصفية الحالية إلى نموذج التصدير -->
+                        <input type="hidden" name="severity" value="{{ request.args.get('severity', 'all') }}">
+                        <input type="hidden" name="type" value="{{ request.args.get('type', 'all') }}">
+                        <input type="hidden" name="is_read" value="{{ request.args.get('is_read', 'all') }}">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="export_format" class="form-label">صيغة التصدير</label>
+                                    <select class="form-select" id="export_format" name="export_format">
+                                        <option value="excel">Excel</option>
+                                        <option value="pdf">PDF</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="date_range" class="form-label">نطاق التاريخ</label>
+                                    <select class="form-select" id="date_range" name="date_range">
+                                        <option value="all">كل الفترات</option>
+                                        <option value="today">اليوم</option>
+                                        <option value="yesterday">الأمس</option>
+                                        <option value="last_week">آخر أسبوع</option>
+                                        <option value="last_month">آخر شهر</option>
+                                        <option value="custom">تخصيص...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="custom_date_range" class="row" style="display: none;">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">تاريخ البداية</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">تاريخ النهاية</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">الأعمدة المطلوبة</label>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="include_panel" name="include_panel" value="1" checked>
+                                        <label class="form-check-label" for="include_panel">اللوحة</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="include_type" name="include_type" value="1" checked>
+                                        <label class="form-check-label" for="include_type">نوع التنبيه</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="include_message" name="include_message" value="1" checked>
+                                        <label class="form-check-label" for="include_message">الرسالة</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="include_severity" name="include_severity" value="1" checked>
+                                        <label class="form-check-label" for="include_severity">الخطورة</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="include_timestamp" name="include_timestamp" value="1" checked>
+                                        <label class="form-check-label" for="include_timestamp">الوقت</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="include_status" name="include_status" value="1" checked>
+                                        <label class="form-check-label" for="include_status">الحالة</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-file-export me-2"></i>
+                            تصدير التقرير
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة التنبيهات -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-bell me-2"></i>
+            قائمة التنبيهات
+        </div>
+        <div class="card-body">
+            {% if alerts %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>اللوحة</th>
+                                <th>نوع التنبيه</th>
+                                <th>الرسالة</th>
+                                <th>الخطورة</th>
+                                <th>الوقت</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in alerts %}
+                                <tr class="{% if not alert.is_read %}table-warning{% endif %}">
+                                    <td>
+                                        <a href="{{ url_for('panel_readings', panel_id=alert.panel_id) }}">
+                                            {{ alert.panel.mdb }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if alert.alert_type == 'current' %}
+                                            <span class="badge bg-primary">التيار</span>
+                                        {% elif alert.alert_type == 'voltage' %}
+                                            <span class="badge bg-info">الجهد</span>
+                                        {% elif alert.alert_type == 'power' %}
+                                            <span class="badge bg-secondary">القدرة</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ alert.message }}</td>
+                                    <td>
+                                        <span class="badge {% if alert.severity == 'danger' %}bg-danger{% else %}bg-warning{% endif %}">
+                                            {{ alert.severity }}
+                                        </span>
+                                    </td>
+                                    <td>{{ alert.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <div>
+                                            <span class="badge {% if alert.is_read %}bg-success{% else %}bg-secondary{% endif %}">
+                                                {% if alert.is_read %}مقروء{% else %}غير مقروء{% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="badge {% if alert.is_resolved %}bg-success{% else %}bg-danger{% endif %}">
+                                                {% if alert.is_resolved %}تم الحل{% else %}لم يتم الحل{% endif %}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('panel_readings', panel_id=alert.panel_id) }}" class="btn btn-info" title="عرض القراءات">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
+                                            <a href="{{ url_for('toggle_alert_read', alert_id=alert.id) }}" class="btn btn-primary" title="{% if alert.is_read %}تعيين كغير مقروء{% else %}تعيين كمقروء{% endif %}">
+                                                <i class="fas {% if alert.is_read %}fa-eye-slash{% else %}fa-eye{% endif %}"></i>
+                                            </a>
+                                            <a href="{{ url_for('toggle_alert_resolved', alert_id=alert.id) }}" class="btn btn-success" title="{% if alert.is_resolved %}إعادة فتح{% else %}تعيين كمحلول{% endif %}">
+                                                <i class="fas {% if alert.is_resolved %}fa-times{% else %}fa-check{% endif %}"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    لا توجد تنبيهات متطابقة مع معايير البحث.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تهيئة جدول التنبيهات
+        $('#alerts-table').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
+            },
+            "order": [[4, 'desc']],
+            "pageLength": 25
+        });
+
+        // إظهار/إخفاء حقول التاريخ المخصصة
+        $('#date_range').change(function() {
+            if ($(this).val() === 'custom') {
+                $('#custom_date_range').show();
+            } else {
+                $('#custom_date_range').hide();
+            }
+        });
+
+        // تعيين التاريخ الحالي كقيمة افتراضية
+        var today = new Date();
+        var dd = String(today.getDate()).padStart(2, '0');
+        var mm = String(today.getMonth() + 1).padStart(2, '0'); // يناير هو 0!
+        var yyyy = today.getFullYear();
+
+        today = yyyy + '-' + mm + '-' + dd;
+        $('#end_date').val(today);
+
+        // تعيين تاريخ البداية قبل أسبوع كقيمة افتراضية
+        var lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
+
+        var lwdd = String(lastWeek.getDate()).padStart(2, '0');
+        var lwmm = String(lastWeek.getMonth() + 1).padStart(2, '0');
+        var lwyyyy = lastWeek.getFullYear();
+
+        lastWeek = lwyyyy + '-' + lwmm + '-' + lwdd;
+        $('#start_date').val(lastWeek);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-city me-2"></i>
+                لوحة معلومات التخطيط الحضري
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item active">التخطيط الحضري</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ urban_plans|length }}</h4>
+                            <p class="card-text">إجمالي المخططات</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-map fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ approved_plans }}</h4>
+                            <p class="card-text">المخططات المعتمدة</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ pending_plans }}</h4>
+                            <p class="card-text">المخططات المعلقة</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ zoning_areas|length }}</h4>
+                            <p class="card-text">المناطق التنظيمية</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-layer-group fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('smart_city.add_urban_plan') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>إضافة مخطط حضري
+                </a>
+                <button type="button" class="btn btn-success" onclick="addZoningArea()">
+                    <i class="fas fa-plus me-2"></i>إضافة منطقة تنظيمية
+                </button>
+                <button type="button" class="btn btn-info" onclick="refreshMap()">
+                    <i class="fas fa-sync me-2"></i>تحديث الخريطة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map and Data -->
+    <div class="row">
+        <!-- Map -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map me-2"></i>خريطة التخطيط الحضري
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="urban-planning-map" style="height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Tables -->
+        <div class="col-lg-4">
+            <!-- Urban Plans -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">المخططات الحضرية</h6>
+                </div>
+                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                    {% for plan in urban_plans %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                        <div>
+                            <strong>{{ plan.plan_name }}</strong><br>
+                            <small class="text-muted">{{ plan.plan_type }}</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-{% if plan.approval_status == 'approved' %}success{% elif plan.approval_status == 'pending' %}warning{% else %}danger{% endif %}">
+                                {{ plan.approval_status }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Zoning Areas -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">المناطق التنظيمية</h6>
+                </div>
+                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                    {% for zone in zoning_areas %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                        <div>
+                            <strong>{{ zone.zone_name }}</strong><br>
+                            <small class="text-muted">{{ zone.zone_code }} - {{ zone.zone_type }}</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-{% if zone.is_active %}success{% else %}secondary{% endif %}">
+                                {% if zone.is_active %}نشط{% else %}غير نشط{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Urban Plans Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table me-2"></i>تفاصيل المخططات الحضرية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>اسم المخطط</th>
+                                    <th>النوع</th>
+                                    <th>فئة الاستخدام</th>
+                                    <th>حالة الاعتماد</th>
+                                    <th>السلطة المختصة</th>
+                                    <th>تاريخ الاعتماد</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for plan in urban_plans %}
+                                <tr>
+                                    <td>{{ plan.plan_name }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ plan.plan_type }}</span>
+                                    </td>
+                                    <td>{{ plan.land_use_category or 'غير محدد' }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if plan.approval_status == 'approved' %}success{% elif plan.approval_status == 'pending' %}warning{% else %}danger{% endif %}">
+                                            {{ plan.approval_status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ plan.planning_authority or 'غير محدد' }}</td>
+                                    <td>{{ plan.approval_date.strftime('%Y-%m-%d') if plan.approval_date else 'غير محدد' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="showPlanDetails({{ plan.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" onclick="editPlan({{ plan.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<script>
+// Initialize map
+let map = L.map('urban-planning-map').setView([21.4225, 39.8262], 12); // Mecca coordinates
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Add urban plans to map
+{% for plan in urban_plans %}
+{% if plan.coordinates %}
+try {
+    let coordinates = {{ plan.coordinates | safe }};
+    let color = '{% if plan.approval_status == "approved" %}green{% elif plan.approval_status == "pending" %}orange{% else %}red{% endif %}';
+    
+    let polygon = L.polygon(coordinates, {
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.3
+    }).addTo(map);
+    
+    polygon.bindPopup(`
+        <strong>{{ plan.plan_name }}</strong><br>
+        النوع: {{ plan.plan_type }}<br>
+        الحالة: {{ plan.approval_status }}<br>
+        {{ plan.description or '' }}
+    `);
+} catch(e) {
+    console.log('Error parsing coordinates for plan {{ plan.id }}');
+}
+{% endif %}
+{% endfor %}
+
+// Add zoning areas to map
+{% for zone in zoning_areas %}
+{% if zone.coordinates %}
+try {
+    let coordinates = {{ zone.coordinates | safe }};
+    let color = '{% if zone.is_active %}blue{% else %}gray{% endif %}';
+    
+    let polygon = L.polygon(coordinates, {
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.2,
+        dashArray: '5, 5'
+    }).addTo(map);
+    
+    polygon.bindPopup(`
+        <strong>{{ zone.zone_name }}</strong><br>
+        الكود: {{ zone.zone_code }}<br>
+        النوع: {{ zone.zone_type }}<br>
+        الحالة: {% if zone.is_active %}نشط{% else %}غير نشط{% endif %}
+    `);
+} catch(e) {
+    console.log('Error parsing coordinates for zone {{ zone.id }}');
+}
+{% endif %}
+{% endfor %}
+
+// Refresh map
+function refreshMap() {
+    location.reload();
+}
+
+// Plan functions
+function showPlanDetails(planId) {
+    alert('عرض تفاصيل المخطط: ' + planId);
+}
+
+function editPlan(planId) {
+    alert('تعديل المخطط: ' + planId);
+}
+
+function addZoningArea() {
+    alert('إضافة منطقة تنظيمية جديدة');
+}
+</script>
+{% endblock %}

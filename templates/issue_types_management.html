@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم إدارة أنواع البلاغات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-tags me-2 icon-primary"></i>
+        إدارة أنواع البلاغات
+    </h2>
+
+    <div class="row">
+        <!-- إضافة نوع بلاغ جديد -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة نوع بلاغ جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_issue_type') }}" method="post">
+                        <div class="mb-3">
+                            <label for="value" class="form-label">قيمة النوع</label>
+                            <input type="text" class="form-control" id="value" name="value" required placeholder="مثال: عطل كهربائي">
+                        </div>
+                        <div class="mb-3">
+                            <label for="display_text" class="form-label">نص العرض</label>
+                            <input type="text" class="form-control" id="display_text" name="display_text" required placeholder="مثال: عطل كهربائي">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">الوصف</label>
+                            <textarea class="form-control" id="description" name="description" rows="2" placeholder="وصف مختصر لنوع البلاغ"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="order" class="form-label">الترتيب</label>
+                            <input type="number" class="form-control" id="order" name="order" value="0" min="0">
+                            <div class="form-text">ترتيب ظهور النوع في القائمة (0 = الأول)</div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">نشط</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة النوع
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة أنواع البلاغات -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-list me-2"></i>
+                        قائمة أنواع البلاغات
+                    </div>
+                    <div>
+                        <span class="badge bg-info">{{ issue_types|length }} نوع</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if issue_types %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>الترتيب</th>
+                                        <th>نص العرض</th>
+                                        <th>القيمة</th>
+                                        <th>الوصف</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="issue-types-table">
+                                    {% for item in issue_types %}
+                                        <tr data-id="{{ item.id }}">
+                                            <td>
+                                                <span class="badge bg-secondary">{{ item.order }}</span>
+                                            </td>
+                                            <td>{{ item.display_text }}</td>
+                                            <td><code>{{ item.value }}</code></td>
+                                            <td>{{ item.description or '-' }}</td>
+                                            <td>
+                                                {% if item.is_active %}
+                                                    <span class="badge bg-success">نشط</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">غير نشط</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary btn-sm edit-issue-type"
+                                                            data-id="{{ item.id }}"
+                                                            data-value="{{ item.value }}"
+                                                            data-display-text="{{ item.display_text }}"
+                                                            data-description="{{ item.description or '' }}"
+                                                            data-order="{{ item.order }}"
+                                                            data-is-active="{{ item.is_active }}"
+                                                            title="تعديل">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-warning btn-sm toggle-issue-type"
+                                                            data-id="{{ item.id }}"
+                                                            title="{% if item.is_active %}تعطيل{% else %}تفعيل{% endif %}">
+                                                        <i class="fas fa-{% if item.is_active %}pause{% else %}play{% endif %}"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger btn-sm delete-issue-type"
+                                                            data-id="{{ item.id }}"
+                                                            title="حذف">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">لا توجد أنواع بلاغات محددة</p>
+                            <p class="text-muted">استخدم النموذج على اليسار لإضافة نوع بلاغ جديد</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- نافذة تعديل نوع البلاغ -->
+<div class="modal fade" id="editIssueTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل نوع البلاغ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editIssueTypeForm" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_item_id" name="item_id">
+                    <div class="mb-3">
+                        <label for="edit_value" class="form-label">قيمة النوع</label>
+                        <input type="text" class="form-control" id="edit_value" name="value" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_display_text" class="form-label">نص العرض</label>
+                        <input type="text" class="form-control" id="edit_display_text" name="display_text" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">الوصف</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_order" class="form-label">الترتيب</label>
+                        <input type="number" class="form-control" id="edit_order" name="order" min="0">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="edit_is_active" name="is_active">
+                        <label class="form-check-label" for="edit_is_active">نشط</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/ui-lightness/jquery-ui.css">
+<script>
+    $(document).ready(function() {
+        // تعديل نوع البلاغ
+        $('.edit-issue-type').on('click', function() {
+            var id = $(this).data('id');
+            var value = $(this).data('value');
+            var displayText = $(this).data('display-text');
+            var description = $(this).data('description');
+            var order = $(this).data('order');
+            var isActive = $(this).data('is-active');
+
+            $('#edit_item_id').val(id);
+            $('#edit_value').val(value);
+            $('#edit_display_text').val(displayText);
+            $('#edit_description').val(description);
+            $('#edit_order').val(order);
+            $('#edit_is_active').prop('checked', isActive);
+
+            $('#editIssueTypeForm').attr('action', '{{ url_for("edit_issue_type") }}');
+            $('#editIssueTypeModal').modal('show');
+        });
+
+        // تفعيل/تعطيل نوع البلاغ
+        $('.toggle-issue-type').on('click', function() {
+            var id = $(this).data('id');
+            var button = $(this);
+
+            $.post('{{ url_for("toggle_issue_type") }}', {
+                item_id: id
+            })
+            .done(function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert('حدث خطأ: ' + response.message);
+                }
+            })
+            .fail(function() {
+                alert('حدث خطأ في الاتصال');
+            });
+        });
+
+        // حذف نوع البلاغ
+        $('.delete-issue-type').on('click', function() {
+            var id = $(this).data('id');
+
+            if (confirm('هل أنت متأكد من حذف هذا النوع؟ سيؤثر هذا على جميع البلاغات المرتبطة به.')) {
+                $.post('{{ url_for("delete_issue_type") }}', {
+                    item_id: id
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('حدث خطأ: ' + response.message);
+                    }
+                })
+                .fail(function() {
+                    alert('حدث خطأ في الاتصال');
+                });
+            }
+        });
+
+        // جعل الجدول قابل للسحب والإفلات لإعادة الترتيب
+        $("#issue-types-table").sortable({
+            update: function(event, ui) {
+                var order = [];
+                $('#issue-types-table tr').each(function(index) {
+                    order.push({
+                        id: $(this).data('id'),
+                        order: index
+                    });
+                });
+
+                $.post('{{ url_for("reorder_issue_types") }}', {
+                    order: JSON.stringify(order)
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        // تحديث أرقام الترتيب في الجدول
+                        $('#issue-types-table tr').each(function(index) {
+                            $(this).find('.badge').text(index);
+                        });
+                    } else {
+                        alert('حدث خطأ في إعادة الترتيب');
+                        location.reload();
+                    }
+                })
+                .fail(function() {
+                    alert('حدث خطأ في الاتصال');
+                    location.reload();
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

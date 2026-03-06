@@ -1,0 +1,521 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم طلبات الفحص -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-clipboard-check me-2 icon-primary"></i>
+        {{ translate('إدارة طلبات الفحص', get_setting('language', 'ar')) }}
+    </h2>
+
+    <div class="row">
+        <!-- إحصائيات طلبات الفحص -->
+        <div class="col-md-12 mb-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="dashboard-card primary">
+                        <div class="title">{{ translate('إجمالي طلبات الفحص', get_setting('language', 'ar')) }}</div>
+                        <div class="number">{{ stats.total }}</div>
+                        <div><i class="fas fa-clipboard-list fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card secondary">
+                        <div class="title">طلبات جديدة</div>
+                        <div class="number">{{ stats.new }}</div>
+                        <div><i class="fas fa-plus-circle fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card" style="background-color: #FFF3CD; color: #856404;">
+                        <div class="title">قيد التنفيذ</div>
+                        <div class="number">{{ stats.in_progress }}</div>
+                        <div><i class="fas fa-cogs fa-2x"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="dashboard-card success">
+                        <div class="title">طلبات مكتملة</div>
+                        <div class="number">{{ stats.completed }}</div>
+                        <div><i class="fas fa-check-circle fa-2x"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- إضافة طلب فحص جديد -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة طلب فحص جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_inspection_request') }}" method="post">
+                        <div class="mb-3">
+                            <label for="panel_search" class="form-label">البحث عن اللوحة</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="panel_search" placeholder="ابحث برقم اللوحة أو رقم ماكسيمو...">
+                                <button class="btn btn-outline-secondary" type="button" id="search_panel_button">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" id="clear_panel_search">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn btn-outline-info" type="button" id="toggle_panel_dropdown" title="إظهار/إخفاء القائمة المنسدلة">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">يمكنك البحث مباشرة أو استخدام القائمة المنسدلة أدناه</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="panel_id" class="form-label">اللوحة (يمكن اختيار أكثر من لوحة)</label>
+                            <select class="form-select" id="panel_id" name="panel_id" multiple size="5">
+                                <option value="">اختياري - لا توجد لوحة محددة</option>
+                                {% for panel in panels %}
+                                    <option value="{{ panel.id }}" data-mdb="{{ panel.mdb }}" data-maximo="{{ panel.maximo_tag }}" {% if panel.id|string in request.args.getlist('panel_id') %}selected{% endif %}>
+                                        {{ panel.mdb }} ({{ panel.maximo_tag }}) - {{ panel.area_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اضغط Ctrl لتحديد أكثر من لوحة. هذا الحقل اختياري.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="title" class="form-label">عنوان الطلب (اختياري)</label>
+                            <input type="text" class="form-control" id="title" name="title" placeholder="عنوان وصفي للطلب">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="request_type_id" class="form-label">نوع الطلب (اختياري)</label>
+                            <select class="form-select" id="request_type_id" name="request_type_id">
+                                <option value="">اختياري - لا يوجد نوع محدد</option>
+                                {% for type in request_types %}
+                                    <option value="{{ type.id }}">{{ type.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">وصف الطلب (اختياري)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="وصف مفصل للطلب (اختياري)"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="priority" class="form-label">الأولوية (اختياري)</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="منخفض">منخفض</option>
+                                <option value="متوسط" selected>متوسط</option>
+                                <option value="عالي">عالي</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="responsible_person" class="form-label">الشخص المسؤول (اختياري)</label>
+                            <select class="form-select" id="responsible_person" name="responsible_person">
+                                <option value="">اختر الشخص المسؤول</option>
+                                {% for user in users %}
+                                    <option value="{{ user.id }}" data-user-name="{{ user.name }}">{{ user.name }} ({{ user.role }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="assigned_group" class="form-label">المجموعة المسؤولة (اختياري)</label>
+                            <select class="form-select" id="assigned_group" name="assigned_group">
+                                <option value="">اختر المجموعة</option>
+                                {% for group in user_groups %}
+                                    <option value="{{ group.id }}">{{ group.name }} (عدد الأعضاء: {{ group.memberships|length }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة طلب الفحص
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة طلبات الفحص -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-list me-2"></i>
+                        قائمة طلبات الفحص
+                    </div>
+                    <div class="d-flex">
+                        <!-- نموذج البحث الفوري -->
+                        <div class="d-flex">
+                            <div class="input-group input-group-sm me-2">
+                                <input type="text" class="form-control" id="search_requests" placeholder="بحث فوري في طلبات الفحص...">
+                                <button class="btn btn-outline-secondary" type="button" id="clear_requests_search">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <select class="form-select form-select-sm me-2" id="status-filter">
+                                <option value="all">جميع الحالات</option>
+                                <option value="جديد">جديد</option>
+                                <option value="قيد التنفيذ">قيد التنفيذ</option>
+                                <option value="مكتمل">مكتمل</option>
+                                <option value="ملغي">ملغي</option>
+                            </select>
+                        </div>
+
+                        <!-- أزرار التصدير -->
+                        <div class="dropdown ms-2">
+                            <button class="btn btn-sm btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-download me-1"></i>تصدير
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <button class="dropdown-item" onclick="exportInspectionRequests('excel')">
+                                        <i class="fas fa-file-excel me-2"></i>Excel
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" onclick="exportInspectionRequests('pdf')">
+                                        <i class="fas fa-file-pdf me-2"></i>PDF
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم الطلب</th>
+                                    <th>اللوحة</th>
+                                    <th>العنوان</th>
+                                    <th>الأولوية</th>
+                                    <th>الحالة</th>
+                                    <th>الشخص المسؤول</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>وقت المعالجة (دقيقة)</th>
+                                    <th>وقت الإنجاز (دقيقة)</th>
+                                    <th>تاريخ الاستحقاق</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if inspection_requests %}
+                                    {% for request in inspection_requests %}
+                                        <tr>
+                                            <td>{{ request.request_number }}</td>
+                                            <td>
+                                                <a href="{{ url_for('panel_details', panel_id=request.panel.id) }}" class="text-primary">
+                                                    {{ request.panel.mdb }}
+                                                </a>
+                                            </td>
+                                            <td>{{ request.title }}</td>
+                                            <td>
+                                                <span class="badge {% if request.priority == 'عالي' %}bg-danger{% elif request.priority == 'متوسط' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                                                    {{ request.priority }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if request.status == 'جديد' %}bg-primary{% elif request.status == 'قيد التنفيذ' %}bg-warning text-dark{% elif request.status == 'مكتمل' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ request.status }}
+                                                </span>
+                                            </td>
+                                            <td>{{ request.responsible_person or 'غير محدد' }}</td>
+                                            <td>{{ request.created_at.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                {% if request.processing_time %}
+                                                    {{ request.processing_time }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if request.completion_time %}
+                                                    {{ request.completion_time }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ request.due_date.strftime('%Y-%m-%d') if request.due_date else '-' }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('inspection_request_details', request_id=request.id) }}" class="btn btn-info">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('readings.add_manual_reading_view', panel_id=request.panel.id) }}" class="btn btn-primary" title="إضافة قراءة يدوية">
+                                                        <i class="fas fa-plus-circle"></i>
+                                                    </a>
+                                                    {% if request.status != 'مكتمل' and request.status != 'ملغي' %}
+                                                        <a href="{{ url_for('update_inspection_request_status', request_id=request.id, status='قيد التنفيذ') }}" class="btn btn-warning">
+                                                            <i class="fas fa-play"></i>
+                                                        </a>
+                                                        <a href="{{ url_for('update_inspection_request_status', request_id=request.id, status='مكتمل') }}" class="btn btn-success">
+                                                            <i class="fas fa-check"></i>
+                                                        </a>
+                                                        <a href="{{ url_for('update_inspection_request_status', request_id=request.id, status='ملغي') }}" class="btn btn-danger">
+                                                            <i class="fas fa-times"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="11" class="text-center">لا توجد طلبات فحص</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // فحص إذا كان هناك طلب لفتح نموذج إضافة طلب فحص للوحة محددة
+        const urlParams = new URLSearchParams(window.location.search);
+        const panelId = urlParams.get('panel_id');
+        const action = urlParams.get('action');
+
+        if (panelId && action === 'new') {
+            // تحديد اللوحة في النموذج
+            const panelSelect = document.getElementById('panel_id');
+            if (panelSelect) {
+                // إزالة التحديد المتعدد مؤقتاً لتحديد لوحة واحدة
+                panelSelect.removeAttribute('multiple');
+                panelSelect.size = 1;
+                panelSelect.value = panelId;
+
+                // التمرير إلى النموذج
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+
+                // تركيز على حقل العنوان
+                setTimeout(() => {
+                    document.getElementById('title').focus();
+                }, 500);
+            }
+
+            // إزالة المعاملات من URL
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+
+        // تفعيل البحث في اللوحات
+        var panelSearchMode = 'dropdown'; // dropdown أو direct
+
+        // تبديل وضع بحث اللوحة
+        $('#toggle_panel_dropdown').on('click', function() {
+            var panelSelect = $('#panel_id');
+            var dropdownContainer = panelSelect.closest('.mb-3');
+
+            if (panelSearchMode === 'dropdown') {
+                dropdownContainer.hide();
+                panelSearchMode = 'direct';
+                $(this).find('i').removeClass('fas fa-list').addClass('fas fa-search');
+                $(this).attr('title', 'التبديل إلى القائمة المنسدلة');
+                $('#panel_search').attr('placeholder', 'ابحث برقم اللوحة أو رقم ماكسيمو واضغط Enter...');
+            } else {
+                dropdownContainer.show();
+                panelSearchMode = 'dropdown';
+                $(this).find('i').removeClass('fas fa-search').addClass('fas fa-list');
+                $(this).attr('title', 'إظهار/إخفاء القائمة المنسدلة');
+                $('#panel_search').attr('placeholder', 'ابحث برقم اللوحة أو رقم ماكسيمو...');
+            }
+        });
+
+        // البحث في قائمة اللوحات المنسدلة
+        $('#panel_search').on('input', function() {
+            if (panelSearchMode === 'dropdown') {
+                var searchTerm = $(this).val().toLowerCase();
+                var panelSelect = $('#panel_id');
+                var options = panelSelect.find('option');
+
+                options.each(function() {
+                    var option = $(this);
+                    if (option.val() === '') return; // تجاهل خيار "اختر اللوحة"
+
+                    var mdb = option.data('mdb') ? option.data('mdb').toString().toLowerCase() : '';
+                    var maximo = option.data('maximo') ? option.data('maximo').toString().toLowerCase() : '';
+                    var text = option.text().toLowerCase();
+
+                    if (searchTerm === '' || mdb.includes(searchTerm) || maximo.includes(searchTerm) || text.includes(searchTerm)) {
+                        option.show();
+                    } else {
+                        option.hide();
+                    }
+                });
+            }
+        });
+
+        // البحث المباشر في اللوحة
+        $('#panel_search').on('keypress', function(e) {
+            if (e.which === 13 && panelSearchMode === 'direct') {
+                performPanelDirectSearch();
+            }
+        });
+
+        $('#search_panel_button').on('click', function() {
+            if (panelSearchMode === 'direct') {
+                performPanelDirectSearch();
+            }
+        });
+
+        function performPanelDirectSearch() {
+            var searchTerm = $('#panel_search').val().trim();
+            if (searchTerm.length < 2) {
+                alert('يرجى إدخال على الأقل حرفين للبحث');
+                return;
+            }
+
+            // البحث في اللوحات باستخدام API
+            $.get('/api/search-panels', { q: searchTerm })
+                .done(function(data) {
+                    var panelSelect = $('#panel_id');
+                    panelSelect.empty();
+                    panelSelect.append('<option value="">اختياري - لا توجد لوحة محددة</option>');
+
+                    if (data.panels && data.panels.length > 0) {
+                        data.panels.forEach(function(panel) {
+                            panelSelect.append(
+                                '<option value="' + panel.id + '" data-mdb="' + panel.mdb + '" data-maximo="' + panel.maximo_tag + '">' +
+                                panel.mdb + ' (' + panel.maximo_tag + ') - ' + panel.area_name +
+                                '</option>'
+                            );
+                        });
+                        panelSelect.closest('.mb-3').show();
+                    } else {
+                        alert('لم يتم العثور على لوحات مطابقة');
+                    }
+                })
+                .fail(function() {
+                    alert('حدث خطأ في البحث');
+                });
+        }
+
+        // مسح بحث اللوحة
+        $('#clear_panel_search').on('click', function() {
+            $('#panel_search').val('');
+            if (panelSearchMode === 'dropdown') {
+                $('#panel_id option').show();
+            } else {
+                // إعادة تحميل جميع اللوحات
+                location.reload();
+            }
+        });
+
+        // إعادة تعيين البحث عند تغيير الاختيار
+        $('#panel_id').on('change', function() {
+            if ($(this).val()) {
+                $('#panel_search').val('');
+                $('#panel_id option').show();
+            }
+        });
+
+        // بحث في قائمة طلبات الفحص - بحث فوري
+        var searchTimeout;
+        $('#search_requests').on('input', function() {
+            clearTimeout(searchTimeout);
+            var searchTerm = $(this).val().toLowerCase();
+
+            searchTimeout = setTimeout(function() {
+                filterRequestsTable(searchTerm);
+            }, 300); // انتظار 300 ملي ثانية قبل البحث
+        });
+
+        $('#search_requests').on('keypress', function(e) {
+            if (e.which === 13) {
+                e.preventDefault(); // منع إرسال النموذج
+                var searchTerm = $(this).val().toLowerCase();
+                filterRequestsTable(searchTerm);
+            }
+        });
+
+        // مسح بحث طلبات الفحص
+        $('#clear_requests_search').on('click', function() {
+            $('#search_requests').val('');
+            filterRequestsTable('');
+        });
+
+        // تغيير الحالة
+        $('#status-filter').on('change', function() {
+            var selectedStatus = $(this).val();
+            var searchTerm = $('#search_requests').val().toLowerCase();
+            filterRequestsTable(searchTerm, selectedStatus);
+        });
+
+        // دالة فلترة الجدول
+        function filterRequestsTable(searchTerm, statusFilter) {
+            var tbody = $('table tbody');
+            var rows = tbody.find('tr');
+
+            rows.each(function() {
+                var row = $(this);
+                var text = row.text().toLowerCase();
+                var statusCell = row.find('td:nth-child(5)').text().trim(); // عمود الحالة
+
+                var matchesSearch = searchTerm === '' || text.includes(searchTerm);
+                var matchesStatus = !statusFilter || statusFilter === 'all' || statusCell.includes(statusFilter);
+
+                if (matchesSearch && matchesStatus) {
+                    row.show();
+                } else {
+                    row.hide();
+                }
+            });
+        }
+    });
+
+    // تصدير طلبات الفحص
+    function exportInspectionRequests(format) {
+        // إنشاء نموذج مخفي للتصدير
+        var form = $('<form>', {
+            'method': 'POST',
+            'action': '/inspection-requests/export'
+        });
+
+        // إضافة الفلاتر الحالية
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'status',
+            'value': $('#status-filter').val() || 'all'
+        }));
+
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'search',
+            'value': $('#search_requests').val() || ''
+        }));
+
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'export_format',
+            'value': format
+        }));
+
+        // إضافة CSRF token
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'csrf_token',
+            'value': $('meta[name=csrf-token]').attr('content')
+        }));
+
+        // إرسال النموذج
+        $('body').append(form);
+        form.submit();
+        form.remove();
+    }
+</script>
+{% endblock %}

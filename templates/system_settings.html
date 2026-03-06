@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">إعدادات النظام</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-cogs me-2"></i>
+                    إعدادات النظام
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('system_settings') }}" method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <!-- إعدادات النظام العامة -->
+                            <div class="col-md-12 mb-4">
+                                <h5 class="mb-3">إعدادات النظام العامة</h5>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="setting_system_name" class="form-label">اسم النظام</label>
+                                            <input type="text" class="form-control" id="setting_system_name" name="setting_system_name" value="{{ get_setting('system_name', 'نظام إدارة لوحات التوزيع الكهربائية') }}">
+                                            <div class="form-text">اسم النظام الذي سيظهر في الصفحات</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="setting_copyright_text" class="form-label">نص حقوق الملكية</label>
+                                            <input type="text" class="form-control" id="setting_copyright_text" name="setting_copyright_text" value="{{ get_setting('copyright_text', 'جميع الحقوق محفوظة © 2023') }}">
+                                            <div class="form-text">نص حقوق الملكية الذي سيظهر في تذييل الصفحات</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="setting_logo_file" class="form-label">شعار النظام</label>
+                                            <input type="file" class="form-control" id="setting_logo_file" name="setting_logo_file" accept="image/*">
+                                            <div class="form-text">شعار النظام الذي سيظهر في الصفحات (الحجم المناسب: 200×50 بكسل)</div>
+                                        </div>
+
+                                        {% if get_setting('logo_path') %}
+                                        <div class="mb-3">
+                                            <label class="form-label">الشعار الحالي</label>
+                                            <div>
+                                                <img src="{{ url_for('static', filename=get_setting('logo_path')) }}" alt="شعار النظام" style="max-height: 50px;" class="img-thumbnail">
+                                                <div class="form-check mt-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_remove_logo" name="setting_remove_logo">
+                                                    <label class="form-check-label" for="setting_remove_logo">
+                                                        إزالة الشعار الحالي
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="setting_primary_color" class="form-label">اللون الرئيسي للنظام</label>
+                                            <input type="color" class="form-control form-control-color" id="setting_primary_color" name="setting_primary_color" value="{{ get_setting('primary_color', '#B89966') }}">
+                                            <div class="form-text">اللون الرئيسي للنظام</div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="setting_secondary_color" class="form-label">اللون الثانوي للنظام</label>
+                                            <input type="color" class="form-control form-control-color" id="setting_secondary_color" name="setting_secondary_color" value="{{ get_setting('secondary_color', '#94BCCB') }}">
+                                            <div class="form-text">اللون الثانوي للنظام</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات التنبيهات -->
+                            <div class="col-md-6">
+                                <h5 class="mb-3">إعدادات التنبيهات</h5>
+
+                                <div class="mb-3">
+                                    <label for="setting_default_warning_threshold" class="form-label">نسبة التحذير الافتراضية (%)</label>
+                                    <input type="number" class="form-control" id="setting_default_warning_threshold" name="setting_default_warning_threshold" value="{{ get_setting('default_warning_threshold', '70') }}" min="0" max="100" step="1">
+                                    <div class="form-text">النسبة التي عندها يتم إصدار تنبيه تحذيري للتيار (بالنسبة لسعة القاطع)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_default_danger_threshold" class="form-label">نسبة الخطر الافتراضية (%)</label>
+                                    <input type="number" class="form-control" id="setting_default_danger_threshold" name="setting_default_danger_threshold" value="{{ get_setting('default_danger_threshold', '80') }}" min="0" max="100" step="1">
+                                    <div class="form-text">النسبة التي عندها يتم إصدار تنبيه خطر للتيار (بالنسبة لسعة القاطع)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_default_min_voltage" class="form-label">الحد الأدنى الافتراضي للجهد (فولت)</label>
+                                    <input type="number" class="form-control" id="setting_default_min_voltage" name="setting_default_min_voltage" value="{{ get_setting('default_min_voltage', '210') }}" min="0" step="0.1">
+                                    <div class="form-text">الحد الأدنى للجهد الذي عنده يتم إصدار تنبيه</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_default_max_voltage" class="form-label">الحد الأقصى الافتراضي للجهد (فولت)</label>
+                                    <input type="number" class="form-control" id="setting_default_max_voltage" name="setting_default_max_voltage" value="{{ get_setting('default_max_voltage', '250') }}" min="0" step="0.1">
+                                    <div class="form-text">الحد الأقصى للجهد الذي عنده يتم إصدار تنبيه</div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات المراقبة -->
+                            <div class="col-md-6">
+                                <h5 class="mb-3">إعدادات المراقبة</h5>
+
+                                <div class="mb-3">
+                                    <label for="setting_alert_check_interval" class="form-label">الفاصل الزمني للتحقق من التنبيهات (دقيقة)</label>
+                                    <input type="number" class="form-control" id="setting_alert_check_interval" name="setting_alert_check_interval" value="{{ get_setting('alert_check_interval', '15') }}" min="1" step="1">
+                                    <div class="form-text">الفاصل الزمني بين عمليات التحقق من التنبيهات</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_alert_time_window" class="form-label">النافذة الزمنية للتنبيهات (دقيقة)</label>
+                                    <input type="number" class="form-control" id="setting_alert_time_window" name="setting_alert_time_window" value="{{ get_setting('alert_time_window', '60') }}" min="1" step="1">
+                                    <div class="form-text">الفترة الزمنية التي يتم فيها التحقق من القراءات للتنبيهات</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_alert_method" class="form-label">طريقة التنبيه</label>
+                                    <select class="form-select" id="setting_alert_method" name="setting_alert_method">
+                                        <option value="peak" {% if get_setting('alert_method', 'peak') == 'peak' %}selected{% endif %}>القيمة القصوى (Peak)</option>
+                                        <option value="average" {% if get_setting('alert_method') == 'average' %}selected{% endif %}>المتوسط (Average)</option>
+                                    </select>
+                                    <div class="form-text">طريقة حساب القيم للتنبيهات (القيمة القصوى أو المتوسط)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_alert_calculation_period" class="form-label">فترة حساب التنبيهات (دقيقة)</label>
+                                    <input type="number" class="form-control" id="setting_alert_calculation_period" name="setting_alert_calculation_period" value="{{ get_setting('alert_calculation_period', '60') }}" min="1" step="1">
+                                    <div class="form-text">الفترة الزمنية التي يتم خلالها حساب متوسط القراءات أو القيمة القصوى</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_alert_color_warning" class="form-label">لون التحذير</label>
+                                    <input type="color" class="form-control form-control-color" id="setting_alert_color_warning" name="setting_alert_color_warning" value="{{ get_setting('alert_color_warning', '#FFC107') }}">
+                                    <div class="form-text">لون التحذير (عند تجاوز نسبة التحذير)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_alert_color_danger" class="form-label">لون الخطر</label>
+                                    <input type="color" class="form-control form-control-color" id="setting_alert_color_danger" name="setting_alert_color_danger" value="{{ get_setting('alert_color_danger', '#DC3545') }}">
+                                    <div class="form-text">لون الخطر (عند تجاوز نسبة الخطر)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_alert_color_normal" class="form-label">لون الحالة الطبيعية</label>
+                                    <input type="color" class="form-control form-control-color" id="setting_alert_color_normal" name="setting_alert_color_normal" value="{{ get_setting('alert_color_normal', '#28A745') }}">
+                                    <div class="form-text">لون الحالة الطبيعية (عندما تكون القيم ضمن الحدود المسموحة)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="setting_send_notifications" class="form-label">إرسال إشعارات للمقاولين</label>
+                                    <select class="form-select" id="setting_send_notifications" name="setting_send_notifications">
+                                        <option value="true" {% if get_setting('send_notifications', 'true') == 'true' %}selected{% endif %}>نعم</option>
+                                        <option value="false" {% if get_setting('send_notifications') == 'false' %}selected{% endif %}>لا</option>
+                                    </select>
+                                    <div class="form-text">إرسال إشعارات تلقائية للمقاولين عند حدوث تنبيهات</div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات الخريطة -->
+                            <div class="col-md-12 mt-4">
+                                <h5 class="mb-3">إعدادات الخريطة</h5>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="setting_default_map_center" class="form-label">مركز الخريطة الافتراضي (خط العرض، خط الطول)</label>
+                                            <input type="text" class="form-control" id="setting_default_map_center" name="setting_default_map_center" value="{{ get_setting('default_map_center', '21.3891, 39.8579') }}">
+                                            <div class="form-text">إحداثيات مركز الخريطة الافتراضي (عرفة، مكة المكرمة)</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="setting_default_map_zoom" class="form-label">مستوى تكبير الخريطة الافتراضي</label>
+                                            <input type="number" class="form-control" id="setting_default_map_zoom" name="setting_default_map_zoom" value="{{ get_setting('default_map_zoom', '14') }}" min="1" max="20" step="1">
+                                            <div class="form-text">مستوى تكبير الخريطة الافتراضي (1-20)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات القراءات الكهربائية -->
+                            <div class="col-md-12 mt-4">
+                                <h5 class="mb-3">إعدادات القراءات الكهربائية</h5>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="setting_use_three_phase" class="form-label">نظام القراءات</label>
+                                            <select class="form-select" id="setting_use_three_phase" name="setting_use_three_phase">
+                                                <option value="true" {% if get_setting('use_three_phase', 'true') == 'true' %}selected{% endif %}>نظام ثلاثي الطور (L1, L2, L3)</option>
+                                                <option value="false" {% if get_setting('use_three_phase', 'true') == 'false' %}selected{% endif %}>نظام أحادي الطور</option>
+                                            </select>
+                                            <div class="form-text">تحديد نظام القراءات الكهربائية (ثلاثي الطور أو أحادي الطور)</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="setting_default_frequency" class="form-label">التردد الافتراضي (Hz)</label>
+                                            <input type="number" class="form-control" id="setting_default_frequency" name="setting_default_frequency" value="{{ get_setting('default_frequency', '60') }}" min="0" step="0.1">
+                                            <div class="form-text">قيمة التردد الافتراضية (هرتز)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- إعدادات واجهة المقاول -->
+                            <div class="col-md-12 mt-4">
+                                <h5 class="mb-3">إعدادات واجهة المقاول</h5>
+
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    يمكنك تخصيص العناصر التي تظهر للمقاول العادي في واجهة النظام.
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card mb-3">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">عناصر القراءة اليدوية</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_show_voltage" name="setting_show_voltage" {% if get_setting('show_voltage', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_show_voltage">
+                                                        إظهار حقول الجهد
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_show_power" name="setting_show_power" {% if get_setting('show_power', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_show_power">
+                                                        إظهار حقول القدرة
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_show_energy" name="setting_show_energy" {% if get_setting('show_energy', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_show_energy">
+                                                        إظهار حقول الطاقة
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_show_power_factor" name="setting_show_power_factor" {% if get_setting('show_power_factor', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_show_power_factor">
+                                                        إظهار حقول معامل القدرة
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_show_frequency" name="setting_show_frequency" {% if get_setting('show_frequency', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_show_frequency">
+                                                        إظهار حقول التردد
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_show_mutawif" name="setting_show_mutawif" {% if get_setting('show_mutawif', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_show_mutawif">
+                                                        إظهار حقل اسم المطوف
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="card mb-3">
+                                            <div class="card-header">
+                                                <h6 class="mb-0">صلاحيات المقاول</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_allow_edit_location" name="setting_allow_edit_location" {% if get_setting('allow_edit_location', 'false') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_allow_edit_location">
+                                                        السماح بتعديل موقع اللوحة
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_allow_edit_breaker" name="setting_allow_edit_breaker" {% if get_setting('allow_edit_breaker', 'false') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_allow_edit_breaker">
+                                                        السماح بتعديل سعة القاطع
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_allow_export_reports" name="setting_allow_export_reports" {% if get_setting('allow_export_reports', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_allow_export_reports">
+                                                        السماح بتصدير التقارير
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_allow_view_map" name="setting_allow_view_map" {% if get_setting('allow_view_map', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_allow_view_map">
+                                                        السماح بعرض الخريطة
+                                                    </label>
+                                                </div>
+
+                                                <div class="form-check mb-2">
+                                                    <input class="form-check-input" type="checkbox" id="setting_allow_add_issues" name="setting_allow_add_issues" {% if get_setting('allow_add_issues', 'true') == 'true' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="setting_allow_add_issues">
+                                                        السماح بإضافة بلاغات
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                حفظ الإعدادات
+                            </button>
+                            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // يمكن إضافة أي سكربتات خاصة بالصفحة هنا
+    });
+</script>
+{% endblock %}

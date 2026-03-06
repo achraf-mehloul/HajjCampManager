@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-magic me-2"></i>
+                مخطط الرحلات الذكي
+            </h1>
+            <p class="lead">اطلب من مساعدنا الذكي تخطيط رحلة مثالية لك مع أفضل الأسعار والأوقات</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('trips_ai.index') }}">الرحلات والذكاء الاصطناعي</a></li>
+                    <li class="breadcrumb-item active">مخطط الرحلات الذكي</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Planning Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot me-2"></i>أخبرنا عن رحلتك المثالية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="ai-planning-form">
+                        <!-- Trip Request -->
+                        <div class="mb-4">
+                            <label for="trip-request" class="form-label">
+                                <i class="fas fa-comment-dots me-2"></i>اطلب رحلتك بالتفصيل
+                            </label>
+                            <textarea class="form-control" id="trip-request" name="request" rows="4" 
+                                placeholder="مثال: أريد رحلة حج لشخصين لمدة 14 يوم في شهر يونيو، مع إقامة في فندق 4 نجوم قريب من الحرم، وميزانية حوالي 15000 ريال للشخص الواحد. أفضل الرحلات المنظمة مع مرشد سياحي." required></textarea>
+                            <div class="form-text">
+                                كن مفصلاً قدر الإمكان: نوع الرحلة، المدة، عدد الأشخاص، الميزانية، التفضيلات الخاصة
+                            </div>
+                        </div>
+
+                        <!-- Quick Preferences -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="trip-type" class="form-label">نوع الرحلة</label>
+                                <select class="form-select" id="trip-type" name="trip_type">
+                                    <option value="">اختر النوع</option>
+                                    <option value="hajj">حج</option>
+                                    <option value="umrah">عمرة</option>
+                                    <option value="tourism">سياحة دينية</option>
+                                    <option value="custom">مخصص</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="travelers-count" class="form-label">عدد المسافرين</label>
+                                <input type="number" class="form-control" id="travelers-count" name="travelers_count" min="1" max="50" value="2">
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="budget-range" class="form-label">الميزانية المتوقعة (ريال)</label>
+                                <select class="form-select" id="budget-range" name="budget_range">
+                                    <option value="">اختر النطاق</option>
+                                    <option value="budget">اقتصادي (أقل من 5000)</option>
+                                    <option value="mid">متوسط (5000 - 10000)</option>
+                                    <option value="premium">مميز (10000 - 20000)</option>
+                                    <option value="luxury">فاخر (أكثر من 20000)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="duration" class="form-label">المدة المفضلة (أيام)</label>
+                                <input type="number" class="form-control" id="duration" name="duration" min="1" max="30" value="7">
+                            </div>
+                        </div>
+
+                        <!-- Advanced Preferences -->
+                        <div class="accordion mb-4" id="advancedPreferences">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingAdvanced">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdvanced">
+                                        <i class="fas fa-cogs me-2"></i>تفضيلات متقدمة (اختياري)
+                                    </button>
+                                </h2>
+                                <div id="collapseAdvanced" class="accordion-collapse collapse" data-bs-parent="#advancedPreferences">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="accommodation-type" class="form-label">نوع الإقامة</label>
+                                                <select class="form-select" id="accommodation-type" name="accommodation_type">
+                                                    <option value="">لا يهم</option>
+                                                    <option value="hotel">فندق</option>
+                                                    <option value="apartment">شقة مفروشة</option>
+                                                    <option value="tent">خيمة (للحج)</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="hotel-rating" class="form-label">تصنيف الفندق</label>
+                                                <select class="form-select" id="hotel-rating" name="hotel_rating">
+                                                    <option value="">لا يهم</option>
+                                                    <option value="3">3 نجوم</option>
+                                                    <option value="4">4 نجوم</option>
+                                                    <option value="5">5 نجوم</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="transport-type" class="form-label">وسيلة النقل</label>
+                                                <select class="form-select" id="transport-type" name="transport_type">
+                                                    <option value="">لا يهم</option>
+                                                    <option value="bus">حافلة</option>
+                                                    <option value="flight">طيران</option>
+                                                    <option value="private">سيارة خاصة</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="departure-city" class="form-label">مدينة المغادرة</label>
+                                                <input type="text" class="form-control" id="departure-city" name="departure_city" placeholder="مثال: الرياض">
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="special-requirements" class="form-label">متطلبات خاصة</label>
+                                            <textarea class="form-control" id="special-requirements" name="special_requirements" rows="2" 
+                                                placeholder="مثال: وجبات حلال، غرف منفصلة، مرافق لذوي الاحتياجات الخاصة"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="plan-btn">
+                                <i class="fas fa-magic me-2"></i>خطط رحلتي بالذكاء الاصطناعي
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Response -->
+        <div class="col-lg-4">
+            <div class="card" id="ai-response-card" style="display: none;">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot me-2"></i>اقتراحات الذكاء الاصطناعي
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="ai-response-content">
+                        <!-- AI response will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>نصائح للحصول على أفضل النتائج
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            كن مفصلاً في وصف رحلتك المثالية
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            اذكر الميزانية المتوقعة والمدة المفضلة
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            حدد أي متطلبات خاصة أو تفضيلات
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            اذكر عدد المسافرين وأعمارهم
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            يمكنك طرح أسئلة متعددة ومقارنة الخيارات
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Examples Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-examples me-2"></i>أمثلة على الطلبات
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <button class="btn btn-outline-primary btn-sm w-100 text-start example-btn" 
+                                data-example="أريد رحلة عمرة لشخصين لمدة 7 أيام في شهر رمضان، مع إقامة في فندق 5 نجوم قريب من الحرم، وميزانية 12000 ريال للشخص">
+                            <i class="fas fa-mosque me-2"></i>رحلة عمرة مميزة
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <button class="btn btn-outline-success btn-sm w-100 text-start example-btn"
+                                data-example="خطط لي رحلة حج اقتصادية لعائلة من 4 أشخاص، مدة 14 يوم، ميزانية إجمالية 40000 ريال، مع تفضيل الإقامة في منى والمشاعر المقدسة">
+                            <i class="fas fa-kaaba me-2"></i>حج عائلي اقتصادي
+                        </button>
+                    </div>
+                    <div class="mb-0">
+                        <button class="btn btn-outline-info btn-sm w-100 text-start example-btn"
+                                data-example="أريد جولة سياحية دينية لمدة 5 أيام تشمل مكة والمدينة، مع زيارة المعالم التاريخية، لشخص واحد، ميزانية 8000 ريال">
+                            <i class="fas fa-map-marked-alt me-2"></i>جولة سياحية دينية
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('ai-planning-form');
+    const planBtn = document.getElementById('plan-btn');
+    const responseCard = document.getElementById('ai-response-card');
+    const responseContent = document.getElementById('ai-response-content');
+    const exampleBtns = document.querySelectorAll('.example-btn');
+    
+    // Handle example buttons
+    exampleBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const example = this.getAttribute('data-example');
+            document.getElementById('trip-request').value = example;
+        });
+    });
+    
+    // Handle form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const requestData = {
+            request: formData.get('request'),
+            preferences: {
+                trip_type: formData.get('trip_type'),
+                travelers_count: formData.get('travelers_count'),
+                budget_range: formData.get('budget_range'),
+                duration: formData.get('duration'),
+                accommodation_type: formData.get('accommodation_type'),
+                hotel_rating: formData.get('hotel_rating'),
+                transport_type: formData.get('transport_type'),
+                departure_city: formData.get('departure_city'),
+                special_requirements: formData.get('special_requirements')
+            }
+        };
+        
+        // Show loading state
+        planBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التخطيط...';
+        planBtn.disabled = true;
+        
+        // Show response card
+        responseCard.style.display = 'block';
+        responseContent.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                <h5>جاري تحليل طلبك...</h5>
+                <p class="text-muted">الذكاء الاصطناعي يعمل على إيجاد أفضل الخيارات لك</p>
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+        
+        // Scroll to response
+        responseCard.scrollIntoView({ behavior: 'smooth' });
+        
+        // Make API call
+        fetch('/trips-ai/api/plan-trip', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayAIResponse(data);
+            } else {
+                displayError(data.error || 'حدث خطأ غير متوقع');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            displayError('خطأ في الاتصال بالخادم');
+        })
+        .finally(() => {
+            // Reset button
+            planBtn.innerHTML = '<i class="fas fa-magic me-2"></i>خطط رحلتي بالذكاء الاصطناعي';
+            planBtn.disabled = false;
+        });
+    });
+    
+    function displayAIResponse(data) {
+        const response = data.response;
+        const processedData = data.processed_data || {};
+        
+        responseContent.innerHTML = `
+            <div class="ai-response">
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    تم تحليل طلبك بنجاح!
+                </div>
+                
+                <div class="response-text mb-4">
+                    <h6><i class="fas fa-comment me-2"></i>اقتراحات الذكاء الاصطناعي:</h6>
+                    <div class="bg-light p-3 rounded">
+                        ${response.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+                
+                ${processedData.packages && processedData.packages.length > 0 ? `
+                <div class="suggested-packages mb-3">
+                    <h6><i class="fas fa-box me-2"></i>الحزم المقترحة:</h6>
+                    <ul class="list-group list-group-flush">
+                        ${processedData.packages.map(pkg => `<li class="list-group-item">${pkg}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                ${processedData.costs && Object.keys(processedData.costs).length > 0 ? `
+                <div class="cost-estimates mb-3">
+                    <h6><i class="fas fa-money-bill me-2"></i>تقديرات التكلفة:</h6>
+                    <ul class="list-group list-group-flush">
+                        ${Object.values(processedData.costs).map(cost => `<li class="list-group-item">${cost}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+                
+                <div class="action-buttons mt-4">
+                    <div class="d-grid gap-2">
+                        <a href="/trips-ai/packages" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>تصفح الحزم المتاحة
+                        </a>
+                        <a href="/trips-ai/custom-trip" class="btn btn-outline-primary">
+                            <i class="fas fa-cog me-2"></i>طلب رحلة مخصصة
+                        </a>
+                        <button class="btn btn-outline-secondary" onclick="startNewPlanning()">
+                            <i class="fas fa-redo me-2"></i>تخطيط جديد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    function displayError(error) {
+        responseContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>عذراً!</strong> ${error}
+            </div>
+            <div class="text-center">
+                <button class="btn btn-primary" onclick="startNewPlanning()">
+                    <i class="fas fa-redo me-2"></i>حاول مرة أخرى
+                </button>
+            </div>
+        `;
+    }
+    
+    window.startNewPlanning = function() {
+        form.reset();
+        responseCard.style.display = 'none';
+        document.getElementById('trip-request').focus();
+    };
+});
+</script>
+
+<style>
+.ai-response {
+    font-size: 0.95rem;
+}
+
+.response-text {
+    line-height: 1.6;
+}
+
+.example-btn {
+    text-align: right !important;
+    border: 1px dashed #dee2e6;
+}
+
+.example-btn:hover {
+    border-style: solid;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

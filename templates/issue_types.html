@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        إدارة أنواع البلاغات
+                    </h5>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addTypeModal">
+                        <i class="fas fa-plus me-1"></i>
+                        إضافة نوع جديد
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>الرقم</th>
+                                    <th>اسم النوع</th>
+                                    <th>الوصف</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for type in issue_types %}
+                                <tr>
+                                    <td>{{ type.id }}</td>
+                                    <td><strong>{{ type.value }}</strong></td>
+                                    <td>{{ type.description or 'لا يوجد وصف' }}</td>
+                                    <td>
+                                        {% if type.is_active %}
+                                            <span class="badge bg-success">نشط</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">غير نشط</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ type.created_at.strftime('%Y-%m-%d') if type.created_at else '-' }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-primary" onclick="editType({{ type.id }}, '{{ type.value }}', '{{ type.description or '' }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            {% if type.is_active %}
+                                            <form method="post" action="{{ url_for('delete_issue_type', type_id=type.id) }}" style="display: inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا النوع؟')">
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إضافة نوع جديد -->
+<div class="modal fade" id="addTypeModal" tabindex="-1" aria-labelledby="addTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTypeModalLabel">إضافة نوع بلاغ جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{{ url_for('add_issue_type') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="type_name" class="form-label">اسم النوع</label>
+                        <input type="text" class="form-control" id="type_name" name="value" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="type_description" class="form-label">الوصف</label>
+                        <textarea class="form-control" id="type_description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة النوع</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تعديل النوع -->
+<div class="modal fade" id="editTypeModal" tabindex="-1" aria-labelledby="editTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTypeModalLabel">تعديل نوع البلاغ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="#" id="editTypeForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_type_name" class="form-label">اسم النوع</label>
+                        <input type="text" class="form-control" id="edit_type_name" name="value" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_type_description" class="form-label">الوصف</label>
+                        <textarea class="form-control" id="edit_type_description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function editType(typeId, typeName, typeDescription) {
+        document.getElementById('edit_type_name').value = typeName;
+        document.getElementById('edit_type_description').value = typeDescription;
+        document.getElementById('editTypeForm').action = `/issue-types/${typeId}/edit`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('editTypeModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

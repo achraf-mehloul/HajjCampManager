@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marked-alt me-2"></i>
+                        إدارة مناطق المستخدمين
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>المستخدم</th>
+                                    <th>الدور</th>
+                                    <th>المناطق المخصصة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ user.name }}</strong><br>
+                                        <small class="text-muted">{{ user.username }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if user.role == 'admin' %}bg-danger{% elif user.role == 'contractor' %}bg-warning{% elif user.role == 'readings_recorder' %}bg-secondary{% else %}bg-info{% endif %}">
+                                            {% if user.role == 'admin' %}
+                                                مدير
+                                            {% elif user.role == 'user' %}
+                                                مستخدم
+                                            {% elif user.role == 'contractor' %}
+                                                مقاول
+                                            {% elif user.role == 'regular_contractor' %}
+                                                مقاول عادي
+                                            {% elif user.role == 'readings_recorder' %}
+                                                مسجل قراءات
+                                            {% else %}
+                                                {{ user.role }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% set assigned_areas = user.get_assigned_areas() %}
+                                        {% if assigned_areas %}
+                                            {% for area in assigned_areas %}
+                                                <span class="badge bg-secondary me-1">{{ area }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted">جميع المناطق</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="editUserAreas({{ user.id }}, '{{ user.name }}', {{ user.get_assigned_areas()|tojson }})">
+                                            <i class="fas fa-edit"></i>
+                                            تعديل المناطق
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تعديل المناطق -->
+<div class="modal fade" id="editAreasModal" tabindex="-1" aria-labelledby="editAreasModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editAreasModalLabel">تعديل مناطق المستخدم</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editAreasForm" method="post" action="{{ url_for('update_user_areas') }}">
+                <div class="modal-body">
+                    <input type="hidden" id="user_id" name="user_id">
+
+                    <div class="mb-3">
+                        <label class="form-label">المستخدم:</label>
+                        <span id="user_name" class="fw-bold"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">المناطق المتاحة:</label>
+                        <div class="row">
+                            {% for area in areas %}
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="areas" value="{{ area }}" id="area_{{ loop.index }}">
+                                    <label class="form-check-label" for="area_{{ loop.index }}">
+                                        {{ area }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        إذا لم يتم تحديد أي منطقة، سيكون للمستخدم صلاحية الوصول إلى جميع المناطق.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function editUserAreas(userId, userName, assignedAreas) {
+        // تعيين معرف المستخدم واسمه
+        document.getElementById('user_id').value = userId;
+        document.getElementById('user_name').textContent = userName;
+
+        // إلغاء تحديد جميع المناطق
+        const checkboxes = document.querySelectorAll('input[name="areas"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // تحديد المناطق المخصصة حالياً
+        if (assignedAreas && assignedAreas.length > 0) {
+            assignedAreas.forEach(area => {
+                const checkbox = document.querySelector(`input[name="areas"][value="${area}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+        // إظهار النافذة
+        const modal = new bootstrap.Modal(document.getElementById('editAreasModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

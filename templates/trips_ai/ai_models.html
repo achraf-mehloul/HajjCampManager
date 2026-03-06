@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-robot me-2"></i>
+                إدارة نماذج الذكاء الاصطناعي
+            </h1>
+            <p class="lead">إدارة وتكوين نماذج الذكاء الاصطناعي المستخدمة في النظام</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('trips_ai.index') }}">الرحلات والذكاء الاصطناعي</a>
+                    </li>
+                    <li class="breadcrumb-item active">إدارة نماذج الذكاء الاصطناعي</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-robot fa-2x mb-2"></i>
+                    <h4>3</h4>
+                    <p class="mb-0">إجمالي النماذج</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h4>2</h4>
+                    <p class="mb-0">النماذج النشطة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-star fa-2x mb-2"></i>
+                    <h4>1</h4>
+                    <p class="mb-0">النموذج الافتراضي</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-2x mb-2"></i>
+                    <h4>95%</h4>
+                    <p class="mb-0">معدل النجاح</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4>النماذج المتاحة</h4>
+                <div>
+                    <a href="{{ url_for('trips_ai.add_ai_model') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>إضافة نموذج جديد
+                    </a>
+                    <button class="btn btn-outline-secondary" onclick="refreshModels()">
+                        <i class="fas fa-sync me-2"></i>تحديث
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Models List -->
+    <div class="row">
+        {% for model in models %}
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header {% if model.is_active %}bg-primary{% else %}bg-secondary{% endif %} text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i
+                                class="fas fa-{% if model.model_type == 'chatbot' %}comments{% elif model.model_type == 'trip_planner' %}route{% else %}robot{% endif %} me-2"></i>{{
+                            model.model_name }}
+                        </h6>
+                        <div>
+                            {% if model.is_active %}
+                            <span class="badge bg-success">نشط</span>
+                            {% else %}
+                            <span class="badge bg-secondary">غير نشط</span>
+                            {% endif %}
+                            {% if model.is_default %}
+                            <span class="badge bg-warning">افتراضي</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">النوع:</small>
+                        <span
+                            class="badge bg-{% if model.model_type == 'chatbot' %}info{% elif model.model_type == 'trip_planner' %}success{% else %}primary{% endif %}">
+                            {% if model.model_type == 'chatbot' %}شات بوت
+                            {% elif model.model_type == 'trip_planner' %}مخطط رحلات
+                            {% elif model.model_type == 'translator' %}مترجم
+                            {% elif model.model_type == 'analyzer' %}محلل
+                            {% elif model.model_type == 'recommender' %}نظام توصيات
+                            {% else %}{{ model.model_type }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">المزود:</small>
+                        <strong>{{ model.api_provider }}</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">الإصدار:</small>
+                        <strong>{{ model.model_version or 'غير محدد' }}</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">درجة الحرارة:</small>
+                        <strong>{{ model.temperature }}</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">الحد الأقصى للرموز:</small>
+                        <strong>{{ model.max_tokens }}</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">عدد الاستخدامات:</small>
+                        <strong>{{ model.usage_count or 0 }}</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">آخر استخدام:</small>
+                        <strong>
+                            {% if model.last_used %}
+                            {{ model.last_used.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                            لم يستخدم بعد
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-outline-primary btn-sm" onclick="testModel('{{ model.id }}')">
+                            <i class="fas fa-play me-1"></i>اختبار
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="editModel('{{ model.id }}')">
+                            <i class="fas fa-edit me-1"></i>تعديل
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteModel('{{ model.id }}')">
+                            <i class="fas fa-trash me-1"></i>حذف
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 border-dashed">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-muted">
+                            <i class="fas fa-plus me-2"></i>إضافة نموذج جديد
+                        </h6>
+                        <span class="badge bg-secondary">جديد</span>
+                    </div>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-robot fa-4x text-muted mb-3"></i>
+                    <h6 class="text-muted">أضف نموذج ذكاء اصطناعي جديد</h6>
+                    <p class="text-muted small">يمكنك إضافة نماذج من OpenAI، Anthropic، Google، أو مزودين آخرين</p>
+                    <div class="mt-3">
+                        <a href="{{ url_for('trips_ai.add_ai_model') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>إضافة نموذج
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Panel -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cogs me-2"></i>إعدادات النظام
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>إعدادات عامة</h6>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="enableAI" checked>
+                                <label class="form-check-label" for="enableAI">
+                                    تفعيل الذكاء الاصطناعي
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="enableLogging" checked>
+                                <label class="form-check-label" for="enableLogging">
+                                    تسجيل المحادثات
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="enableAnalytics">
+                                <label class="form-check-label" for="enableAnalytics">
+                                    تحليلات الاستخدام
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>حدود الاستخدام</h6>
+                            <div class="mb-3">
+                                <label class="form-label">الحد الأقصى للطلبات في الساعة</label>
+                                <input type="number" class="form-control" value="100">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">مهلة الاستجابة (ثانية)</label>
+                                <input type="number" class="form-control" value="30">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-primary" onclick="saveSettings()">
+                            <i class="fas fa-save me-2"></i>حفظ الإعدادات
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="resetSettings()">
+                            <i class="fas fa-undo me-2"></i>إعادة تعيين
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Modal -->
+<div class="modal fade" id="testModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-play me-2"></i>اختبار النموذج
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">رسالة الاختبار</label>
+                    <textarea class="form-control" id="testMessage" rows="3"
+                        placeholder="اكتب رسالة لاختبار النموذج...">مرحباً، أريد رحلة عمرة لشخصين</textarea>
+                </div>
+                <div id="testResult" class="d-none">
+                    <h6>النتيجة:</h6>
+                    <div class="bg-light p-3 rounded" id="testResponse"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary" onclick="runTest()">
+                    <i class="fas fa-play me-2"></i>تشغيل الاختبار
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-dashed {
+        border: 2px dashed #dee2e6 !important;
+    }
+
+    .card {
+        transition: transform 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .progress {
+        height: 8px;
+    }
+</style>
+
+<script>
+    let currentTestModel = null;
+
+    function testModel(modelId) {
+        currentTestModel = modelId;
+        const modal = new bootstrap.Modal(document.getElementById('testModal'));
+        document.getElementById('testResult').classList.add('d-none');
+        modal.show();
+    }
+
+    function runTest() {
+        const message = document.getElementById('testMessage').value;
+        if (!message.trim()) {
+            alert('يرجى إدخال رسالة للاختبار');
+            return;
+        }
+
+        // Show loading
+        const resultDiv = document.getElementById('testResult');
+        const responseDiv = document.getElementById('testResponse');
+
+        resultDiv.classList.remove('d-none');
+        responseDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاختبار...';
+
+        // Simulate API call
+        fetch('/trips-ai/api/test-ai-model', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model_id: currentTestModel,
+                test_prompt: message
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    responseDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>نجح الاختبار!</strong>
+                </div>
+                <div class="mt-2">
+                    <strong>الاستجابة:</strong><br>
+                    ${data.response.replace(/\n/g, '<br>')}
+                </div>
+            `;
+                } else {
+                    responseDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>فشل الاختبار:</strong> ${data.error}
+                </div>
+            `;
+                }
+            })
+            .catch(error => {
+                responseDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>خطأ في الاتصال:</strong> ${error.message}
+            </div>
+        `;
+            });
+    }
+
+    function editModel(modelId) {
+        // Redirect to edit page
+        window.location.href = `/trips-ai/edit-ai-model/${modelId}`;
+    }
+
+    function viewStats(modelId) {
+        alert('ستتم إضافة صفحة الإحصائيات قريباً');
+    }
+
+    function refreshModels() {
+        location.reload();
+    }
+
+    function deleteModel(modelId) {
+        if (confirm('هل أنت متأكد من حذف هذا النموذج؟ لا يمكن التراجع عن هذا الإجراء.')) {
+            window.location.href = `/trips-ai/delete-ai-model/${modelId}`;
+        }
+    }
+
+    function saveSettings() {
+        alert('تم حفظ الإعدادات بنجاح!');
+    }
+
+    function resetSettings() {
+        if (confirm('هل أنت متأكد من إعادة تعيين الإعدادات؟')) {
+            location.reload();
+        }
+    }
+</script>
+{% endblock %}

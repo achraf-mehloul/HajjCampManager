@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        إضافة بلاغ جديد
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_issue') }}" method="post" enctype="multipart/form-data">
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="panel_id" class="form-label">اللوحة</label>
+                                    <select class="form-select" id="panel_id" name="panel_id" required>
+                                        <option value="">اختر اللوحة</option>
+                                        {% for panel in panels %}
+                                            <option value="{{ panel.id }}"
+                                                    data-mdb="{{ panel.mdb }}"
+                                                    data-maximo="{{ panel.maximo_tag }}"
+                                                    data-company="{{ panel.company.name if panel.company else 'غير محدد' }}"
+                                                    data-country="{{ panel.country.name if panel.country else 'غير محدد' }}"
+                                                    data-camp="{{ panel.camp.camp_number if panel.camp else 'غير محدد' }}"
+                                                    {% if selected_panel and selected_panel.id == panel.id %}selected{% endif %}>
+                                                {{ panel.mdb }} ({{ panel.maximo_tag }}) - {{ panel.area_name }}
+                                                {% if panel.company %} - {{ panel.company.name }}{% endif %}
+                                                {% if panel.country %} - {{ panel.country.name }}{% endif %}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="panel_search" class="form-label">البحث عن اللوحة</label>
+                                    <input type="text" class="form-control" id="panel_search" placeholder="ابحث برقم اللوحة أو رقم ماكسيمو...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- معلومات اللوحة المحددة -->
+                        <div id="panel_info" class="alert alert-info" style="display: none;">
+                            <h6><i class="fas fa-info-circle me-2"></i>معلومات اللوحة المحددة:</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>رقم اللوحة:</strong> <span id="selected_mdb">-</span></p>
+                                    <p class="mb-1"><strong>رقم ماكسيمو:</strong> <span id="selected_maximo">-</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>الشركة:</strong> <span id="selected_company">-</span></p>
+                                    <p class="mb-1"><strong>الدولة:</strong> <span id="selected_country">-</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>المخيم:</strong> <span id="selected_camp">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">عنوان البلاغ</label>
+                                    <input type="text" class="form-control" id="title" name="title" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="issue_type" class="form-label">نوع المشكلة</label>
+                                    <select class="form-select" id="issue_type" name="issue_type" required>
+                                        <option value="">اختر نوع المشكلة</option>
+                                        {% if issue_types %}
+                                            {% for issue_type in issue_types %}
+                                                <option value="{{ issue_type.value }}">{{ issue_type.display_text }}</option>
+                                            {% endfor %}
+                                        {% else %}
+                                            <option value="عطل كهربائي">عطل كهربائي</option>
+                                            <option value="تلف في المعدات">تلف في المعدات</option>
+                                            <option value="مشكلة في التوصيلات">مشكلة في التوصيلات</option>
+                                            <option value="تسرب مياه">تسرب مياه</option>
+                                            <option value="مشكلة في التبريد">مشكلة في التبريد</option>
+                                            <option value="أخرى">أخرى</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">الأولوية</label>
+                                    <select class="form-select" id="priority" name="priority" required>
+                                        <option value="منخفض">منخفض</option>
+                                        <option value="متوسط" selected>متوسط</option>
+                                        <option value="عالي">عالي</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="assignment_type" class="form-label">نوع التخصيص (اختياري)</label>
+                                    <select class="form-select" id="assignment_type" name="assignment_type" onchange="toggleAssignmentOptions()">
+                                        <option value="">تخصيص تلقائي حسب المنطقة</option>
+                                        <option value="user">تخصيص لمستخدم محدد</option>
+                                        <option value="group">تخصيص لمجموعة</option>
+                                        <option value="contractor">تخصيص لمقاول</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- خيارات التخصيص -->
+                        <div class="row mb-3" id="assignment_options" style="display: none;">
+                            <!-- تخصيص لمستخدم -->
+                            <div class="col-md-6" id="user_assignment" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="assignee_id" class="form-label">المستخدم المخصص</label>
+                                    <select class="form-select" id="assignee_id" name="assignee_id">
+                                        <option value="">اختر المستخدم</option>
+                                        {% for user in users %}
+                                            <option value="{{ user.id }}">{{ user.name }} ({{ user.role }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- تخصيص لمجموعة -->
+                            <div class="col-md-6" id="group_assignment" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="assigned_group_id" class="form-label">المجموعة المخصصة</label>
+                                    <select class="form-select" id="assigned_group_id" name="assigned_group_id">
+                                        <option value="">اختر المجموعة</option>
+                                        {% for group in groups %}
+                                            <option value="{{ group.id }}">{{ group.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- تخصيص لمقاول -->
+                            <div class="col-md-6" id="contractor_assignment" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="contractor_id" class="form-label">المقاول المسؤول</label>
+                                    <select class="form-select" id="contractor_id" name="contractor_id">
+                                        <option value="">اختر المقاول</option>
+                                        {% for contractor in contractors %}
+                                            <option value="{{ contractor.id }}">{{ contractor.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">وصف المشكلة</label>
+                                    <textarea class="form-control" id="description" name="description" rows="4" required placeholder="اكتب وصفاً مفصلاً للمشكلة..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="image" class="form-label">صورة المشكلة (اختياري)</label>
+                                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                                    <small class="text-muted">يمكنك إرفاق صورة توضح المشكلة</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('issues') }}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>
+                                        العودة
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>
+                                        حفظ البلاغ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تفعيل البحث في اللوحات
+        $('#panel_search').on('input', function() {
+            var searchTerm = $(this).val().toLowerCase();
+            var panelSelect = $('#panel_id');
+            var options = panelSelect.find('option');
+
+            options.each(function() {
+                var option = $(this);
+                if (option.val() === '') return; // تجاهل الخيار الفارغ
+
+                var mdb = option.data('mdb') ? option.data('mdb').toString().toLowerCase() : '';
+                var maximo = option.data('maximo') ? option.data('maximo').toString().toLowerCase() : '';
+                var text = option.text().toLowerCase();
+
+                if (searchTerm === '' || mdb.includes(searchTerm) || maximo.includes(searchTerm) || text.includes(searchTerm)) {
+                    option.show();
+                } else {
+                    option.hide();
+                }
+            });
+        });
+
+        // إعادة تعيين البحث عند تغيير الاختيار
+        $('#panel_id').on('change', function() {
+            var selectedOption = $(this).find('option:selected');
+            var panelInfo = $('#panel_info');
+
+            if ($(this).val() && selectedOption.val() !== '') {
+                // عرض معلومات اللوحة المحددة
+                $('#selected_mdb').text(selectedOption.data('mdb') || '-');
+                $('#selected_maximo').text(selectedOption.data('maximo') || '-');
+                $('#selected_company').text(selectedOption.data('company') || 'غير محدد');
+                $('#selected_country').text(selectedOption.data('country') || 'غير محدد');
+                $('#selected_camp').text(selectedOption.data('camp') || 'غير محدد');
+                panelInfo.show();
+
+                // مسح البحث وإظهار جميع الخيارات
+                $('#panel_search').val('');
+                $('#panel_id option').show();
+            } else {
+                // إخفاء معلومات اللوحة
+                panelInfo.hide();
+            }
+        });
+    });
+
+    function toggleAssignmentOptions() {
+        const assignmentType = document.getElementById('assignment_type').value;
+        const assignmentOptions = document.getElementById('assignment_options');
+        const userAssignment = document.getElementById('user_assignment');
+        const groupAssignment = document.getElementById('group_assignment');
+        const contractorAssignment = document.getElementById('contractor_assignment');
+
+        // إخفاء جميع الخيارات أولاً
+        assignmentOptions.style.display = 'none';
+        userAssignment.style.display = 'none';
+        groupAssignment.style.display = 'none';
+        contractorAssignment.style.display = 'none';
+
+        // إظهار الخيار المحدد
+        if (assignmentType) {
+            assignmentOptions.style.display = 'block';
+
+            if (assignmentType === 'user') {
+                userAssignment.style.display = 'block';
+            } else if (assignmentType === 'group') {
+                groupAssignment.style.display = 'block';
+            } else if (assignmentType === 'contractor') {
+                contractorAssignment.style.display = 'block';
+            }
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,645 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم إدارة المستخدمين -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-users me-2 icon-primary"></i>
+        إدارة المستخدمين
+    </h2>
+
+    <div class="row">
+        <!-- إضافة مستخدم جديد -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-plus-circle me-2"></i>
+                        إضافة جديد
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary active" id="user-tab-btn">مستخدم</button>
+                        <button class="btn btn-sm btn-outline-primary" id="contractor-tab-btn">مقاول</button>
+                        <button class="btn btn-sm btn-outline-primary" id="team-tab-btn">فريق</button>
+                        <button class="btn btn-sm btn-outline-success" id="group-tab-btn">مجموعة</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- نموذج إضافة مستخدم -->
+                    <form action="{{ url_for('add_user') }}" method="post" id="user-form">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">اسم المستخدم</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">الاسم الكامل</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني (اختياري)</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">كلمة المرور</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">الدور</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="admin">مدير</option>
+                                <option value="user">مستخدم</option>
+                                <option value="contractor">مقاول</option>
+                                <option value="regular_contractor">مقاول عادي</option>
+                                <option value="readings_recorder">مسجل القراءات</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 user-areas-field">
+                            <label for="assigned_areas" class="form-label">المناطق المخصصة للمستخدم</label>
+                            <select class="form-select" id="assigned_areas" name="assigned_areas" multiple>
+                                {% for area in unique_areas %}
+                                    {% if area %}
+                                        <option value="{{ area }}">{{ area }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اترك فارغاً للسماح برؤية جميع المناطق (للمدير فقط). يمكنك اختيار أكثر من منطقة باستخدام مفتاح Ctrl</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-user-plus me-2"></i>
+                            إضافة المستخدم
+                        </button>
+                    </form>
+
+                    <!-- نموذج إضافة مقاول -->
+                    <form action="{{ url_for('add_contractor') }}" method="post" id="contractor-form" style="display: none;">
+                        <div class="mb-3">
+                            <label for="contractor_name" class="form-label">اسم المقاول</label>
+                            <input type="text" class="form-control" id="contractor_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="contact_person" class="form-label">الشخص المسؤول</label>
+                            <input type="text" class="form-control" id="contact_person" name="contact_person" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">رقم الهاتف</label>
+                            <input type="text" class="form-control" id="phone" name="phone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="contractor_email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="area_responsibility" class="form-label">منطقة المسؤولية</label>
+                            <select class="form-select" id="area_responsibility" name="area_responsibility" required>
+                                <option value="">اختر المنطقة</option>
+                                {% for area in unique_areas %}
+                                    {% if area %}
+                                        <option value="{{ area }}">{{ area }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="contractor_is_manager" name="is_manager">
+                            <label class="form-check-label" for="contractor_is_manager">مقاول مدير</label>
+                            <div class="form-text">المقاول المدير يمكنه رؤية جميع المناطق التابعة للمقاولين الذين تحته</div>
+                        </div>
+                        <div class="mb-3 parent-contractor-field">
+                            <label for="parent_contractor_id" class="form-label">المقاول الأب (اختياري)</label>
+                            <select class="form-select" id="parent_contractor_id" name="parent_contractor_id">
+                                <option value="">-- بدون مقاول أب --</option>
+                                {% for contractor in manager_contractors %}
+                                    <option value="{{ contractor.id }}">{{ contractor.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اختر المقاول المدير الذي يشرف على هذا المقاول</div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="create_contractor_user" name="create_user" checked>
+                            <label class="form-check-label" for="create_contractor_user">إنشاء حساب مستخدم</label>
+                            <div class="form-text">إنشاء حساب مستخدم للمقاول تلقائيًا</div>
+                        </div>
+                        <div class="mb-3 contractor-user-field">
+                            <label for="contractor_username" class="form-label">اسم المستخدم</label>
+                            <input type="text" class="form-control" id="contractor_username" name="username">
+                            <div class="form-text">إذا تركت هذا الحقل فارغًا، سيتم استخدام البريد الإلكتروني كاسم مستخدم</div>
+                        </div>
+                        <div class="mb-3 contractor-user-field">
+                            <label for="contractor_password" class="form-label">كلمة المرور</label>
+                            <input type="password" class="form-control" id="contractor_password" name="password">
+                            <div class="form-text">إذا تركت هذا الحقل فارغًا، سيتم استخدام اسم المستخدم ككلمة مرور</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة المقاول
+                        </button>
+                    </form>
+
+                    <!-- نموذج إضافة فريق -->
+                    <form action="{{ url_for('add_team_from_users') }}" method="post" id="team-form" style="display: none;">
+                        <div class="mb-3">
+                            <label for="team_contractor_id" class="form-label">المقاول</label>
+                            <select class="form-select" id="team_contractor_id" name="contractor_id" required>
+                                <option value="">اختر المقاول</option>
+                                {% for contractor in contractors %}
+                                    <option value="{{ contractor.id }}">{{ contractor.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_team_name" class="form-label">اسم الفريق</label>
+                            <input type="text" class="form-control" id="new_team_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_team_description" class="form-label">وصف الفريق</label>
+                            <textarea class="form-control" id="new_team_description" name="description" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="parent_team_id" class="form-label">الفريق الأب (اختياري)</label>
+                            <select class="form-select" id="parent_team_id" name="parent_team_id">
+                                <option value="">-- بدون فريق أب --</option>
+                                <!-- سيتم تحديث هذه القائمة عند اختيار المقاول -->
+                            </select>
+                            <div class="form-text">اختر الفريق الأب إذا كان هذا الفريق فرعي</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_team_area_responsibility" class="form-label">مناطق مسؤولية الفريق</label>
+                            <select class="form-select" id="new_team_area_responsibility" name="area_responsibility" multiple>
+                                {% for area in unique_areas %}
+                                    {% if area %}
+                                        <option value="{{ area }}">{{ area }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">يمكنك اختيار أكثر من منطقة باستخدام مفتاح Ctrl</div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="team_is_active" name="is_active" checked>
+                            <label class="form-check-label" for="team_is_active">فريق نشط</label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="team_members" class="form-label">أعضاء الفريق</label>
+                            <select class="form-select" id="team_members" name="team_members" multiple>
+                                <!-- سيتم تحديث هذه القائمة عند اختيار المقاول -->
+                            </select>
+                            <div class="form-text">يمكنك اختيار أكثر من عضو باستخدام مفتاح Ctrl</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة الفريق
+                        </button>
+                    </form>
+
+                    <!-- نموذج إنشاء مجموعة -->
+                    <form action="{{ url_for('create_user_group') }}" method="post" id="group-form" style="display: none;">
+                        <div class="mb-3">
+                            <label for="group_name" class="form-label">اسم المجموعة</label>
+                            <input type="text" class="form-control" id="group_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="group_description" class="form-label">وصف المجموعة</label>
+                            <textarea class="form-control" id="group_description" name="description" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="group_leader" class="form-label">قائد المجموعة</label>
+                            <select class="form-select" id="group_leader" name="leader_id">
+                                <option value="">اختر قائد المجموعة</option>
+                                {% for user in users %}
+                                    <option value="{{ user.id }}">{{ user.name }} ({{ user.role }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">المناطق المخصصة:</label>
+                            <div class="row">
+                                {% for area in unique_areas %}
+                                    {% if area %}
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="areas" value="{{ area }}" id="group_area_{{ loop.index }}">
+                                            <label class="form-check-label" for="group_area_{{ loop.index }}">
+                                                {{ area }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">أعضاء المجموعة:</label>
+                            <div class="row" style="max-height: 200px; overflow-y: auto;">
+                                {% for user in users %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="members" value="{{ user.id }}" id="group_member_{{ user.id }}">
+                                        <label class="form-check-label" for="group_member_{{ user.id }}">
+                                            {{ user.name }} ({{ user.role }})
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-users me-2"></i>
+                            إنشاء المجموعة
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة المستخدمين -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-users me-2"></i>
+                    قائمة المستخدمين
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>اسم المستخدم</th>
+                                    <th>الاسم الكامل</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>الدور</th>
+                                    <th>المقاول</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if users %}
+                                    {% for user in users %}
+                                        <tr>
+                                            <td>{{ user.username }}</td>
+                                            <td>{{ user.name }}</td>
+                                            <td>{{ user.email }}</td>
+                                            <td>
+                                                {% if user.role == 'admin' %}
+                                                    <span class="badge bg-danger">مدير</span>
+                                                {% elif user.role == 'user' %}
+                                                    <span class="badge bg-primary">مستخدم</span>
+                                                {% elif user.role == 'contractor' %}
+                                                    <span class="badge bg-warning text-dark">مقاول</span>
+                                                    {% if user.is_manager %}
+                                                        <span class="badge bg-info ms-1">مدير</span>
+                                                    {% endif %}
+                                                {% elif user.role == 'regular_contractor' %}
+                                                    <span class="badge bg-success">مقاول عادي</span>
+                                                {% elif user.role == 'readings_recorder' %}
+                                                    <span class="badge bg-secondary">مسجل القراءات</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ user.contractor.name if user.contractor else '-' }}</td>
+                                            <td>
+                                                <span class="badge {% if user.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ 'نشط' if user.is_active else 'غير نشط' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-info">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('reset_password', user_id=user.id) }}" class="btn btn-warning">
+                                                        <i class="fas fa-key"></i>
+                                                    </a>
+                                                    {% if user.is_active %}
+                                                        <a href="{{ url_for('toggle_user', user_id=user.id) }}" class="btn btn-danger">
+                                                            <i class="fas fa-user-slash"></i>
+                                                        </a>
+                                                    {% else %}
+                                                        <a href="{{ url_for('toggle_user', user_id=user.id) }}" class="btn btn-success">
+                                                            <i class="fas fa-user-check"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center">لا يوجد مستخدمين</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قسم المجموعات -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-users me-2"></i>
+                    المجموعات الموجودة
+                </div>
+                <div class="card-body">
+                    {% if user_groups %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>اسم المجموعة</th>
+                                        <th>الوصف</th>
+                                        <th>قائد المجموعة</th>
+                                        <th>عدد الأعضاء</th>
+                                        <th>المناطق المخصصة</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for group in user_groups %}
+                                    <tr>
+                                        <td><strong>{{ group.name }}</strong></td>
+                                        <td>{{ group.description or 'لا يوجد وصف' }}</td>
+                                        <td>{{ group.leader.name if group.leader else 'غير محدد' }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ group.memberships|length }}</span>
+                                        </td>
+                                        <td>
+                                            {% set assigned_areas = group.get_assigned_areas() %}
+                                            {% if assigned_areas %}
+                                                {% for area in assigned_areas %}
+                                                    <span class="badge bg-secondary me-1">{{ area }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                <span class="text-muted">لا توجد مناطق محددة</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if group.is_active %}
+                                                <span class="badge bg-success">نشط</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">غير نشط</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-info" onclick="viewGroupDetails({{ group.id }})">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-warning" onclick="editGroup({{ group.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                {% if not group.is_active %}
+                                                <button class="btn btn-sm btn-success" onclick="activateGroup({{ group.id }})">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                {% else %}
+                                                <button class="btn btn-sm btn-danger" onclick="deactivateGroup({{ group.id }})">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">لا توجد مجموعات مُنشأة بعد</p>
+                            <p class="text-muted">يمكنك إنشاء مجموعة جديدة من النموذج أعلاه</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // إظهار/إخفاء حقل المقاول عند تغيير الدور
+        const roleSelect = document.getElementById('role');
+        const contractorFields = document.querySelectorAll('.contractor-field');
+        const teamFields = document.querySelectorAll('.team-field');
+        const createTeamCheckbox = document.getElementById('create_team');
+        const contractorTypeSelect = document.getElementById('contractor_type');
+        const isManagerInput = document.getElementById('is_manager');
+
+        if (roleSelect && contractorFields.length > 0) {
+            roleSelect.addEventListener('change', function() {
+                if (this.value === 'contractor' || this.value === 'regular_contractor') {
+                    contractorFields.forEach(field => field.style.display = 'block');
+                } else {
+                    contractorFields.forEach(field => field.style.display = 'none');
+                    teamFields.forEach(field => field.style.display = 'none');
+                    if (createTeamCheckbox) createTeamCheckbox.checked = false;
+                }
+            });
+        }
+
+        // إظهار/إخفاء حقول الفريق عند تغيير حالة إنشاء فريق جديد
+        if (createTeamCheckbox && teamFields.length > 0) {
+            createTeamCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    teamFields.forEach(field => field.style.display = 'block');
+                } else {
+                    teamFields.forEach(field => field.style.display = 'none');
+                }
+            });
+        }
+
+        // تحديث حقل is_manager عند تغيير نوع المقاول
+        if (contractorTypeSelect && isManagerInput) {
+            contractorTypeSelect.addEventListener('change', function() {
+                if (this.value === 'manager') {
+                    isManagerInput.value = '1';
+                } else {
+                    isManagerInput.value = '0';
+                }
+            });
+        }
+
+        // التبديل بين نماذج المستخدم والمقاول والفريق والمجموعة
+        const userTabBtn = document.getElementById('user-tab-btn');
+        const contractorTabBtn = document.getElementById('contractor-tab-btn');
+        const teamTabBtn = document.getElementById('team-tab-btn');
+        const groupTabBtn = document.getElementById('group-tab-btn');
+        const userForm = document.getElementById('user-form');
+        const contractorForm = document.getElementById('contractor-form');
+        const teamForm = document.getElementById('team-form');
+        const groupForm = document.getElementById('group-form');
+
+        function hideAllForms() {
+            if (userForm) userForm.style.display = 'none';
+            if (contractorForm) contractorForm.style.display = 'none';
+            if (teamForm) teamForm.style.display = 'none';
+            if (groupForm) groupForm.style.display = 'none';
+        }
+
+        function removeAllActiveClasses() {
+            if (userTabBtn) userTabBtn.classList.remove('active');
+            if (contractorTabBtn) contractorTabBtn.classList.remove('active');
+            if (teamTabBtn) teamTabBtn.classList.remove('active');
+            if (groupTabBtn) groupTabBtn.classList.remove('active');
+        }
+
+        if (userTabBtn && userForm) {
+            userTabBtn.addEventListener('click', function() {
+                hideAllForms();
+                removeAllActiveClasses();
+                userForm.style.display = 'block';
+                userTabBtn.classList.add('active');
+            });
+        }
+
+        if (contractorTabBtn && contractorForm) {
+            contractorTabBtn.addEventListener('click', function() {
+                hideAllForms();
+                removeAllActiveClasses();
+                contractorForm.style.display = 'block';
+                contractorTabBtn.classList.add('active');
+            });
+        }
+
+        if (teamTabBtn && teamForm) {
+            teamTabBtn.addEventListener('click', function() {
+                hideAllForms();
+                removeAllActiveClasses();
+                teamForm.style.display = 'block';
+                teamTabBtn.classList.add('active');
+            });
+        }
+
+        if (groupTabBtn && groupForm) {
+            groupTabBtn.addEventListener('click', function() {
+                hideAllForms();
+                removeAllActiveClasses();
+                groupForm.style.display = 'block';
+                groupTabBtn.classList.add('active');
+            });
+        }
+
+        // إظهار/إخفاء حقل المقاول الأب عند تغيير حالة المقاول المدير
+        const isManagerCheckbox = document.getElementById('contractor_is_manager');
+        const parentContractorField = document.querySelector('.parent-contractor-field');
+
+        if (isManagerCheckbox && parentContractorField) {
+            isManagerCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    parentContractorField.style.display = 'none';
+                    document.getElementById('parent_contractor_id').value = '';
+                } else {
+                    parentContractorField.style.display = 'block';
+                }
+            });
+        }
+
+        // تحديث قائمة الفرق عند اختيار المقاول
+        const teamContractorSelect = document.getElementById('team_contractor_id');
+        const parentTeamSelect = document.getElementById('parent_team_id');
+        const teamMembersSelect = document.getElementById('team_members');
+
+        if (teamContractorSelect && parentTeamSelect && teamMembersSelect) {
+            teamContractorSelect.addEventListener('change', function() {
+                const contractorId = this.value;
+                if (contractorId) {
+                    // إرسال طلب AJAX للحصول على فرق المقاول
+                    fetch(`/api/contractors/${contractorId}/teams`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // تحديث قائمة الفرق الأب
+                            parentTeamSelect.innerHTML = '<option value="">-- بدون فريق أب --</option>';
+                            data.teams.forEach(team => {
+                                const option = document.createElement('option');
+                                option.value = team.id;
+                                option.textContent = team.name;
+                                parentTeamSelect.appendChild(option);
+                            });
+
+                            // تحديث قائمة أعضاء الفريق
+                            teamMembersSelect.innerHTML = '';
+                            data.users.forEach(user => {
+                                const option = document.createElement('option');
+                                option.value = user.id;
+                                option.textContent = user.name;
+                                teamMembersSelect.appendChild(option);
+                            });
+                        })
+                        .catch(error => console.error('Error:', error));
+                } else {
+                    // إفراغ القوائم إذا لم يتم اختيار مقاول
+                    parentTeamSelect.innerHTML = '<option value="">-- بدون فريق أب --</option>';
+                    teamMembersSelect.innerHTML = '';
+                }
+            });
+        }
+    });
+
+    // دوال إدارة المجموعات
+    function viewGroupDetails(groupId) {
+        // عرض تفاصيل المجموعة
+        window.location.href = '/groups/' + groupId;
+    }
+
+    function editGroup(groupId) {
+        // تحرير المجموعة
+        window.location.href = '/groups/' + groupId + '/edit';
+    }
+
+    function activateGroup(groupId) {
+        if (confirm('هل أنت متأكد من تفعيل هذه المجموعة؟')) {
+            fetch('/groups/' + groupId + '/activate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('حدث خطأ في تفعيل المجموعة');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ في تفعيل المجموعة');
+            });
+        }
+    }
+
+    function deactivateGroup(groupId) {
+        if (confirm('هل أنت متأكد من إلغاء تفعيل هذه المجموعة؟')) {
+            fetch('/groups/' + groupId + '/deactivate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('حدث خطأ في إلغاء تفعيل المجموعة');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ في إلغاء تفعيل المجموعة');
+            });
+        }
+    }
+</script>
+{% endblock %}

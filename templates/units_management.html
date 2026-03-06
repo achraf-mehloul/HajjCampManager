@@ -1,0 +1,701 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة وحدات القياس{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">إدارة وحدات القياس</h5>
+                    <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addUnitModal">
+                        <i class="fas fa-plus me-1"></i> إضافة وحدة جديدة
+                    </button>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="unitsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="current-tab" data-bs-toggle="tab" data-bs-target="#current" type="button" role="tab" aria-controls="current" aria-selected="true">التيار</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="voltage-tab" data-bs-toggle="tab" data-bs-target="#voltage" type="button" role="tab" aria-controls="voltage" aria-selected="false">الجهد</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="power-tab" data-bs-toggle="tab" data-bs-target="#power" type="button" role="tab" aria-controls="power" aria-selected="false">القدرة الفعالة (P)</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="apparent-power-tab" data-bs-toggle="tab" data-bs-target="#apparent-power" type="button" role="tab" aria-controls="apparent-power" aria-selected="false">القدرة الظاهرية (S)</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reactive-power-tab" data-bs-toggle="tab" data-bs-target="#reactive-power" type="button" role="tab" aria-controls="reactive-power" aria-selected="false">القدرة غير الفعالة (Q)</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="energy-tab" data-bs-toggle="tab" data-bs-target="#energy" type="button" role="tab" aria-controls="energy" aria-selected="false">الطاقة</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="other-tab" data-bs-toggle="tab" data-bs-target="#other" type="button" role="tab" aria-controls="other" aria-selected="false">وحدات أخرى</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="unitsTabContent">
+                        <!-- قسم وحدات التيار -->
+                        <div class="tab-pane fade show active" id="current" role="tabpanel" aria-labelledby="current-tab">
+                            <div class="table-responsive mt-3">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>الاسم</th>
+                                            <th>اسم العرض</th>
+                                            <th>معامل التحويل</th>
+                                            <th>الوحدة الافتراضية</th>
+                                            <th>الحالة</th>
+                                            <th>الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for unit in units %}
+                                            {% if unit.category == 'current' %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ unit.name }}</td>
+                                                <td>{{ unit.display_name }}</td>
+                                                <td>{{ unit.conversion_factor }}</td>
+                                                <td>
+                                                    {% if unit.is_default %}
+                                                        <span class="badge bg-success">نعم</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">لا</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if unit.is_active %}
+                                                        <span class="badge bg-success">نشط</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">غير نشط</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-primary edit-unit-btn" data-id="{{ unit.id }}" data-name="{{ unit.name }}" data-display-name="{{ unit.display_name }}" data-category="{{ unit.category }}" data-conversion-factor="{{ unit.conversion_factor }}" data-is-default="{{ unit.is_default }}" data-is-active="{{ unit.is_active }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-warning toggle-unit-btn" data-id="{{ unit.id }}" data-is-active="{{ unit.is_active }}">
+                                                            {% if unit.is_active %}
+                                                                <i class="fas fa-ban"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-check"></i>
+                                                            {% endif %}
+                                                        </button>
+                                                        {% if not unit.is_default %}
+                                                        <button type="button" class="btn btn-success set-default-unit-btn" data-id="{{ unit.id }}" data-category="{{ unit.category }}">
+                                                            <i class="fas fa-star"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- قسم وحدات الجهد -->
+                        <div class="tab-pane fade" id="voltage" role="tabpanel" aria-labelledby="voltage-tab">
+                            <!-- محتوى مشابه لقسم التيار ولكن للجهد -->
+                            <div class="table-responsive mt-3">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>الاسم</th>
+                                            <th>اسم العرض</th>
+                                            <th>معامل التحويل</th>
+                                            <th>الوحدة الافتراضية</th>
+                                            <th>الحالة</th>
+                                            <th>الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for unit in units %}
+                                            {% if unit.category == 'voltage' %}
+                                            <!-- نفس محتوى الصفوف كما في قسم التيار -->
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ unit.name }}</td>
+                                                <td>{{ unit.display_name }}</td>
+                                                <td>{{ unit.conversion_factor }}</td>
+                                                <td>
+                                                    {% if unit.is_default %}
+                                                        <span class="badge bg-success">نعم</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">لا</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if unit.is_active %}
+                                                        <span class="badge bg-success">نشط</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">غير نشط</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-primary edit-unit-btn" data-id="{{ unit.id }}" data-name="{{ unit.name }}" data-display-name="{{ unit.display_name }}" data-category="{{ unit.category }}" data-conversion-factor="{{ unit.conversion_factor }}" data-is-default="{{ unit.is_default }}" data-is-active="{{ unit.is_active }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-warning toggle-unit-btn" data-id="{{ unit.id }}" data-is-active="{{ unit.is_active }}">
+                                                            {% if unit.is_active %}
+                                                                <i class="fas fa-ban"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-check"></i>
+                                                            {% endif %}
+                                                        </button>
+                                                        {% if not unit.is_default %}
+                                                        <button type="button" class="btn btn-success set-default-unit-btn" data-id="{{ unit.id }}" data-category="{{ unit.category }}">
+                                                            <i class="fas fa-star"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- قسم وحدات القدرة الفعالة (P) -->
+                        <div class="tab-pane fade" id="power" role="tabpanel" aria-labelledby="power-tab">
+                            <div class="table-responsive mt-3">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>الاسم</th>
+                                            <th>اسم العرض</th>
+                                            <th>معامل التحويل</th>
+                                            <th>الوحدة الافتراضية</th>
+                                            <th>الحالة</th>
+                                            <th>الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for unit in units %}
+                                            {% if unit.category == 'power' %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ unit.name }}</td>
+                                                <td>{{ unit.display_name }}</td>
+                                                <td>{{ unit.conversion_factor }}</td>
+                                                <td>
+                                                    {% if unit.is_default %}
+                                                        <span class="badge bg-success">نعم</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">لا</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if unit.is_active %}
+                                                        <span class="badge bg-success">نشط</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">غير نشط</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-primary edit-unit-btn" data-id="{{ unit.id }}" data-name="{{ unit.name }}" data-display-name="{{ unit.display_name }}" data-category="{{ unit.category }}" data-conversion-factor="{{ unit.conversion_factor }}" data-is-default="{{ unit.is_default }}" data-is-active="{{ unit.is_active }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-warning toggle-unit-btn" data-id="{{ unit.id }}" data-is-active="{{ unit.is_active }}">
+                                                            {% if unit.is_active %}
+                                                                <i class="fas fa-ban"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-check"></i>
+                                                            {% endif %}
+                                                        </button>
+                                                        {% if not unit.is_default %}
+                                                        <button type="button" class="btn btn-success set-default-unit-btn" data-id="{{ unit.id }}" data-category="{{ unit.category }}">
+                                                            <i class="fas fa-star"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- قسم وحدات القدرة الظاهرية (S) -->
+                        <div class="tab-pane fade" id="apparent-power" role="tabpanel" aria-labelledby="apparent-power-tab">
+                            <div class="table-responsive mt-3">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>الاسم</th>
+                                            <th>اسم العرض</th>
+                                            <th>معامل التحويل</th>
+                                            <th>الوحدة الافتراضية</th>
+                                            <th>الحالة</th>
+                                            <th>الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for unit in units %}
+                                            {% if unit.category == 'apparent_power' %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ unit.name }}</td>
+                                                <td>{{ unit.display_name }}</td>
+                                                <td>{{ unit.conversion_factor }}</td>
+                                                <td>
+                                                    {% if unit.is_default %}
+                                                        <span class="badge bg-success">نعم</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">لا</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if unit.is_active %}
+                                                        <span class="badge bg-success">نشط</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">غير نشط</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-primary edit-unit-btn" data-id="{{ unit.id }}" data-name="{{ unit.name }}" data-display-name="{{ unit.display_name }}" data-category="{{ unit.category }}" data-conversion-factor="{{ unit.conversion_factor }}" data-is-default="{{ unit.is_default }}" data-is-active="{{ unit.is_active }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-warning toggle-unit-btn" data-id="{{ unit.id }}" data-is-active="{{ unit.is_active }}">
+                                                            {% if unit.is_active %}
+                                                                <i class="fas fa-ban"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-check"></i>
+                                                            {% endif %}
+                                                        </button>
+                                                        {% if not unit.is_default %}
+                                                        <button type="button" class="btn btn-success set-default-unit-btn" data-id="{{ unit.id }}" data-category="{{ unit.category }}">
+                                                            <i class="fas fa-star"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- قسم وحدات القدرة غير الفعالة (Q) -->
+                        <div class="tab-pane fade" id="reactive-power" role="tabpanel" aria-labelledby="reactive-power-tab">
+                            <div class="table-responsive mt-3">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>الاسم</th>
+                                            <th>اسم العرض</th>
+                                            <th>معامل التحويل</th>
+                                            <th>الوحدة الافتراضية</th>
+                                            <th>الحالة</th>
+                                            <th>الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for unit in units %}
+                                            {% if unit.category == 'reactive_power' %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ unit.name }}</td>
+                                                <td>{{ unit.display_name }}</td>
+                                                <td>{{ unit.conversion_factor }}</td>
+                                                <td>
+                                                    {% if unit.is_default %}
+                                                        <span class="badge bg-success">نعم</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">لا</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if unit.is_active %}
+                                                        <span class="badge bg-success">نشط</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">غير نشط</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-primary edit-unit-btn" data-id="{{ unit.id }}" data-name="{{ unit.name }}" data-display-name="{{ unit.display_name }}" data-category="{{ unit.category }}" data-conversion-factor="{{ unit.conversion_factor }}" data-is-default="{{ unit.is_default }}" data-is-active="{{ unit.is_active }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-warning toggle-unit-btn" data-id="{{ unit.id }}" data-is-active="{{ unit.is_active }}">
+                                                            {% if unit.is_active %}
+                                                                <i class="fas fa-ban"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-check"></i>
+                                                            {% endif %}
+                                                        </button>
+                                                        {% if not unit.is_default %}
+                                                        <button type="button" class="btn btn-success set-default-unit-btn" data-id="{{ unit.id }}" data-category="{{ unit.category }}">
+                                                            <i class="fas fa-star"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- قسم وحدات الطاقة -->
+                        <div class="tab-pane fade" id="energy" role="tabpanel" aria-labelledby="energy-tab">
+                            <div class="table-responsive mt-3">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>الاسم</th>
+                                            <th>اسم العرض</th>
+                                            <th>معامل التحويل</th>
+                                            <th>الوحدة الافتراضية</th>
+                                            <th>الحالة</th>
+                                            <th>الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for unit in units %}
+                                            {% if unit.category == 'energy' %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ unit.name }}</td>
+                                                <td>{{ unit.display_name }}</td>
+                                                <td>{{ unit.conversion_factor }}</td>
+                                                <td>
+                                                    {% if unit.is_default %}
+                                                        <span class="badge bg-success">نعم</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">لا</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if unit.is_active %}
+                                                        <span class="badge bg-success">نشط</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">غير نشط</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-primary edit-unit-btn" data-id="{{ unit.id }}" data-name="{{ unit.name }}" data-display-name="{{ unit.display_name }}" data-category="{{ unit.category }}" data-conversion-factor="{{ unit.conversion_factor }}" data-is-default="{{ unit.is_default }}" data-is-active="{{ unit.is_active }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-warning toggle-unit-btn" data-id="{{ unit.id }}" data-is-active="{{ unit.is_active }}">
+                                                            {% if unit.is_active %}
+                                                                <i class="fas fa-ban"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-check"></i>
+                                                            {% endif %}
+                                                        </button>
+                                                        {% if not unit.is_default %}
+                                                        <button type="button" class="btn btn-success set-default-unit-btn" data-id="{{ unit.id }}" data-category="{{ unit.category }}">
+                                                            <i class="fas fa-star"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- قسم الوحدات الأخرى -->
+                        <div class="tab-pane fade" id="other" role="tabpanel" aria-labelledby="other-tab">
+                            <div class="table-responsive mt-3">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>الاسم</th>
+                                            <th>اسم العرض</th>
+                                            <th>الفئة</th>
+                                            <th>معامل التحويل</th>
+                                            <th>الوحدة الافتراضية</th>
+                                            <th>الحالة</th>
+                                            <th>الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for unit in units %}
+                                            {% if unit.category not in ['current', 'voltage', 'power', 'energy', 'apparent_power', 'reactive_power'] %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>{{ unit.name }}</td>
+                                                <td>{{ unit.display_name }}</td>
+                                                <td>{{ unit.category }}</td>
+                                                <td>{{ unit.conversion_factor }}</td>
+                                                <td>
+                                                    {% if unit.is_default %}
+                                                        <span class="badge bg-success">نعم</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">لا</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if unit.is_active %}
+                                                        <span class="badge bg-success">نشط</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">غير نشط</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-primary edit-unit-btn" data-id="{{ unit.id }}" data-name="{{ unit.name }}" data-display-name="{{ unit.display_name }}" data-category="{{ unit.category }}" data-conversion-factor="{{ unit.conversion_factor }}" data-is-default="{{ unit.is_default }}" data-is-active="{{ unit.is_active }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-warning toggle-unit-btn" data-id="{{ unit.id }}" data-is-active="{{ unit.is_active }}">
+                                                            {% if unit.is_active %}
+                                                                <i class="fas fa-ban"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-check"></i>
+                                                            {% endif %}
+                                                        </button>
+                                                        {% if not unit.is_default %}
+                                                        <button type="button" class="btn btn-success set-default-unit-btn" data-id="{{ unit.id }}" data-category="{{ unit.category }}">
+                                                            <i class="fas fa-star"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إضافة وحدة جديدة -->
+<div class="modal fade" id="addUnitModal" tabindex="-1" aria-labelledby="addUnitModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addUnitForm" action="{{ url_for('units.add_unit') }}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUnitModalLabel">إضافة وحدة قياس جديدة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">اسم الوحدة</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">مثال: A, KA, mA, KVA, W, KW</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="display_name" class="form-label">اسم العرض</label>
+                        <input type="text" class="form-control" id="display_name" name="display_name" required>
+                        <div class="form-text">مثال: أمبير، كيلو أمبير، ملي أمبير</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">فئة الوحدة</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="current">التيار (I)</option>
+                            <option value="voltage">الجهد (V)</option>
+                            <option value="power">القدرة (P)</option>
+                            <option value="energy">الطاقة (E)</option>
+                            <option value="reactive_power">القدرة غير الفعالة (Q)</option>
+                            <option value="apparent_power">القدرة الظاهرية (S)</option>
+                            <option value="other">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="custom_category_div" style="display: none;">
+                        <label for="custom_category" class="form-label">اسم الفئة المخصصة</label>
+                        <input type="text" class="form-control" id="custom_category" name="custom_category">
+                        <div class="form-text">أدخل اسم الفئة المخصصة إذا اخترت "أخرى"</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="conversion_factor" class="form-label">معامل التحويل</label>
+                        <input type="number" class="form-control" id="conversion_factor" name="conversion_factor" step="0.001" value="1" required>
+                        <div class="form-text">معامل التحويل إلى الوحدة الأساسية (مثال: 1000 لتحويل KA إلى A)</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_default" name="is_default">
+                        <label class="form-check-label" for="is_default">وحدة افتراضية</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تعديل وحدة -->
+<div class="modal fade" id="editUnitModal" tabindex="-1" aria-labelledby="editUnitModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editUnitForm" action="{{ url_for('units.edit_unit', unit_id=0) }}" method="post">
+                <input type="hidden" id="edit_unit_id" name="unit_id">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUnitModalLabel">تعديل وحدة قياس</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">اسم الوحدة</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                        <div class="form-text">مثال: A, KA, mA, KVA, W, KW</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_display_name" class="form-label">اسم العرض</label>
+                        <input type="text" class="form-control" id="edit_display_name" name="display_name" required>
+                        <div class="form-text">مثال: أمبير، كيلو أمبير، ملي أمبير</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_category" class="form-label">فئة الوحدة</label>
+                        <select class="form-select" id="edit_category" name="category" required>
+                            <option value="current">التيار (I)</option>
+                            <option value="voltage">الجهد (V)</option>
+                            <option value="power">القدرة (P)</option>
+                            <option value="energy">الطاقة (E)</option>
+                            <option value="reactive_power">القدرة غير الفعالة (Q)</option>
+                            <option value="apparent_power">القدرة الظاهرية (S)</option>
+                            <option value="other">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="edit_custom_category_div" style="display: none;">
+                        <label for="edit_custom_category" class="form-label">اسم الفئة المخصصة</label>
+                        <input type="text" class="form-control" id="edit_custom_category" name="custom_category">
+                        <div class="form-text">أدخل اسم الفئة المخصصة إذا اخترت "أخرى"</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_conversion_factor" class="form-label">معامل التحويل</label>
+                        <input type="number" class="form-control" id="edit_conversion_factor" name="conversion_factor" step="0.001" value="1" required>
+                        <div class="form-text">معامل التحويل إلى الوحدة الأساسية (مثال: 1000 لتحويل KA إلى A)</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="edit_is_default" name="is_default">
+                        <label class="form-check-label" for="edit_is_default">وحدة افتراضية</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // إظهار/إخفاء حقل الفئة المخصصة عند تغيير الفئة
+        $('#category').change(function() {
+            if ($(this).val() === 'other') {
+                $('#custom_category_div').show();
+            } else {
+                $('#custom_category_div').hide();
+            }
+        });
+
+        $('#edit_category').change(function() {
+            if ($(this).val() === 'other') {
+                $('#edit_custom_category_div').show();
+            } else {
+                $('#edit_custom_category_div').hide();
+            }
+        });
+
+        // تفعيل زر تعديل الوحدة
+        $('.edit-unit-btn').click(function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var displayName = $(this).data('display-name');
+            var category = $(this).data('category');
+            var conversionFactor = $(this).data('conversion-factor');
+            var isDefault = $(this).data('is-default');
+            var isActive = $(this).data('is-active');
+
+            $('#edit_unit_id').val(id);
+            $('#edit_name').val(name);
+            $('#edit_display_name').val(displayName);
+            $('#edit_category').val(category);
+
+            // إذا كانت الفئة غير موجودة في القائمة، اختر "أخرى" وأظهر حقل الفئة المخصصة
+            if (!$('#edit_category option[value="' + category + '"]').length) {
+                $('#edit_category').val('other');
+                $('#edit_custom_category').val(category);
+                $('#edit_custom_category_div').show();
+            } else {
+                $('#edit_custom_category_div').hide();
+            }
+
+            $('#edit_conversion_factor').val(conversionFactor);
+            $('#edit_is_default').prop('checked', isDefault === 'True');
+
+            $('#editUnitModal').modal('show');
+        });
+
+        // تفعيل زر تبديل حالة الوحدة
+        $('.toggle-unit-btn').click(function() {
+            var id = $(this).data('id');
+            var isActive = $(this).data('is-active');
+
+            if (confirm('هل أنت متأكد من تغيير حالة هذه الوحدة؟')) {
+                window.location.href = "{{ url_for('units.toggle_unit', unit_id=0) }}".replace('0', id);
+            }
+        });
+
+        // تفعيل زر تعيين الوحدة كافتراضية
+        $('.set-default-unit-btn').click(function() {
+            var id = $(this).data('id');
+            var category = $(this).data('category');
+
+            if (confirm('هل أنت متأكد من تعيين هذه الوحدة كوحدة افتراضية؟')) {
+                // استخدام URL كامل بدلاً من استبدال النص
+                var url = '/units/' + id + '/set-default';
+                window.location.href = url;
+            }
+        });
+
+        // التحقق من صحة النموذج قبل الإرسال
+        $('#addUnitForm').submit(function(e) {
+            if ($('#category').val() === 'other' && !$('#custom_category').val().trim()) {
+                alert('يرجى إدخال اسم الفئة المخصصة');
+                e.preventDefault();
+            }
+        });
+
+        $('#editUnitForm').submit(function(e) {
+            if ($('#edit_category').val() === 'other' && !$('#edit_custom_category').val().trim()) {
+                alert('يرجى إدخال اسم الفئة المخصصة');
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,2198 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- نافذة اختيار اللون -->
+<div class="modal fade" id="colorPickerModal" tabindex="-1" aria-labelledby="colorPickerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="colorPickerModalLabel">اختيار اللون</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="color-picker-input" class="form-label">اختر اللون المناسب</label>
+                    <input type="color" class="form-control form-control-color w-100" id="color-picker-input" value="#B89966">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ألوان مقترحة</label>
+                    <div class="d-flex flex-wrap">
+                        <button class="btn btn-sm m-1 color-preset" style="background-color: #B89966; width: 30px; height: 30px;" data-color="#B89966"></button>
+                        <button class="btn btn-sm m-1 color-preset" style="background-color: #94BCCB; width: 30px; height: 30px;" data-color="#94BCCB"></button>
+                        <button class="btn btn-sm m-1 color-preset" style="background-color: #28a745; width: 30px; height: 30px;" data-color="#28a745"></button>
+                        <button class="btn btn-sm m-1 color-preset" style="background-color: #dc3545; width: 30px; height: 30px;" data-color="#dc3545"></button>
+                        <button class="btn btn-sm m-1 color-preset" style="background-color: #ffc107; width: 30px; height: 30px;" data-color="#ffc107"></button>
+                        <button class="btn btn-sm m-1 color-preset" style="background-color: #17a2b8; width: 30px; height: 30px;" data-color="#17a2b8"></button>
+                        <button class="btn btn-sm m-1 color-preset" style="background-color: #6c757d; width: 30px; height: 30px;" data-color="#6c757d"></button>
+                        <button class="btn btn-sm m-1 color-preset" style="background-color: #007bff; width: 30px; height: 30px;" data-color="#007bff"></button>
+                    </div>
+                </div>
+                <input type="hidden" id="current-card-type">
+                <input type="hidden" id="current-panel-type">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="apply-color">تطبيق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تصدير تقرير شامل -->
+<div class="modal fade" id="exportReportModal" tabindex="-1" aria-labelledby="exportReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportReportModalLabel">تصدير تقرير شامل للوحات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <form id="export-report-form" action="{{ url_for('export_panels_report') }}" method="post">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">نطاق التقرير</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="report_scope" id="scope-all" value="all" checked>
+                                    <label class="form-check-label" for="scope-all">
+                                        جميع اللوحات
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="report_scope" id="scope-filtered" value="filtered">
+                                    <label class="form-check-label" for="scope-filtered">
+                                        اللوحات المفلترة فقط
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">تنسيق التقرير</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="report_format" id="format-excel" value="excel" checked>
+                                    <label class="form-check-label" for="format-excel">
+                                        Excel
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="report_format" id="format-pdf" value="pdf">
+                                    <label class="form-check-label" for="format-pdf">
+                                        PDF
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">الحقول المطلوبة</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_basic_info" id="include-basic-info" checked>
+                                    <label class="form-check-label" for="include-basic-info">
+                                        معلومات اللوحة الأساسية
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_location" id="include-location" checked>
+                                    <label class="form-check-label" for="include-location">
+                                        معلومات الموقع
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_scada_status" id="include-scada-status" checked>
+                                    <label class="form-check-label" for="include-scada-status">
+                                        حالة الارتباط بنظام سكادا
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_readings" id="include-readings" checked>
+                                    <label class="form-check-label" for="include-readings">
+                                        القراءات الكهربائية
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="include_issues" id="include-issues" checked>
+                                    <label class="form-check-label" for="include-issues">
+                                        الأعطال والمشاكل
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="filtered_panels" id="filtered-panels-input">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="export-report-btn">تصدير</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة استيراد لوحات سكادا -->
+<div class="modal fade" id="importScadaModal" tabindex="-1" aria-labelledby="importScadaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importScadaModalLabel">استيراد لوحات مربوطة بنظام سكادا</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <form action="{{ url_for('import_scada_panels') }}" method="post" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="scada_file" class="form-label">ملف اللوحات المربوطة بنظام سكادا</label>
+                        <input type="file" class="form-control" id="scada_file" name="scada_file" accept=".xlsx,.xls,.csv" required>
+                        <div class="form-text">
+                            يجب أن يحتوي الملف على عمود واحد على الأقل يحتوي على أرقام اللوحات (MDB) المربوطة بنظام سكادا.
+                            يمكن أيضًا إضافة عمود "الحالة" لتحديث حالة اللوحة (عامل، معطل، تحت الصيانة).
+                            <a href="{{ url_for('download_scada_panels_template') }}" class="text-primary">
+                                <i class="fas fa-download me-1"></i>
+                                تحميل قالب الاستيراد
+                            </a>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="column_name" class="form-label">اسم العمود الذي يحتوي على أرقام اللوحات</label>
+                        <input type="text" class="form-control" id="column_name" name="column_name" value="MDB" required>
+                        <div class="form-text">
+                            اسم العمود الذي يحتوي على أرقام اللوحات في الملف المرفق.
+                        </div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="reset_scada" name="reset_scada">
+                        <label class="form-check-label" for="reset_scada">إعادة تعيين جميع اللوحات (إلغاء ارتباط جميع اللوحات بنظام سكادا قبل الاستيراد)</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">استيراد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- قسم الخارطة -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-map-marked-alt me-2 icon-primary"></i>
+        {{ translate('الخارطة', get_setting('language', 'ar')) }}
+    </h2>
+
+    <!-- داشبورد إحصائيات اللوحات -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-chart-pie me-2"></i>
+                {{ translate('إحصائيات اللوحات', get_setting('language', 'ar')) }}
+            </div>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-sm btn-outline-secondary me-2" id="toggle-all-stats-cards">
+                    <i class="fas fa-eye-slash"></i>
+                    <span>إخفاء/إظهار الكل</span>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary me-2" id="pin-stats-cards">
+                    <i class="fas fa-thumbtack"></i>
+                    <span>تثبيت</span>
+                </button>
+                <button class="btn btn-sm btn-outline-primary me-2" id="export-report">
+                    <i class="fas fa-file-export"></i>
+                    <span>تصدير تقرير</span>
+                </button>
+                <span class="badge bg-primary" id="total-panels-count">{{ panels|length }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row" id="panels-stats-cards">
+                <!-- كرت المجموع -->
+                <div class="col-md-3 col-sm-6 mb-3 stats-card" data-card-type="total">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-header p-2 d-flex justify-content-between align-items-center">
+                            <h6 class="card-title m-0">{{ translate('المجموع', get_setting('language', 'ar')) }}</h6>
+                            <div>
+                                <button class="btn btn-sm btn-light color-picker-btn me-1" data-card-type="total" data-bs-toggle="tooltip" title="تغيير اللون">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <button class="btn btn-sm btn-light toggle-card" data-card-type="total">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h1 class="display-4" id="total-count">{{ panels|length }}</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- كروت أنواع اللوحات -->
+                {% for panel_type in unique_panel_types %}
+                    {% if panel_type %}
+                        <div class="col-md-3 col-sm-6 mb-3 stats-card panel-type-card" data-card-type="panel-type" data-panel-type="{{ panel_type }}">
+                            <div class="card h-100">
+                                <div class="card-header p-2 d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title m-0">{{ panel_type }}</h6>
+                                    <div>
+                                        <button class="btn btn-sm btn-light color-picker-btn me-1" data-card-type="panel-type" data-panel-type="{{ panel_type }}" data-bs-toggle="tooltip" title="تغيير اللون">
+                                            <i class="fas fa-palette"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light toggle-card" data-card-type="panel-type" data-panel-type="{{ panel_type }}">
+                                            <i class="fas fa-eye-slash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body text-center">
+                                    <h1 class="display-4 panel-type-count">0</h1>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- كرت اللوحات بدون أعطال -->
+                <div class="col-md-3 col-sm-6 mb-3 stats-card" data-card-type="no-issues">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-header p-2 d-flex justify-content-between align-items-center">
+                            <h6 class="card-title m-0">{{ translate('بدون أعطال', get_setting('language', 'ar')) }}</h6>
+                            <div>
+                                <button class="btn btn-sm btn-light color-picker-btn me-1" data-card-type="no-issues" data-bs-toggle="tooltip" title="تغيير اللون">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <button class="btn btn-sm btn-light toggle-card" data-card-type="no-issues">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h1 class="display-4" id="no-issues-count">0</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- كرت اللوحات ذات الأعطال -->
+                <div class="col-md-3 col-sm-6 mb-3 stats-card" data-card-type="with-issues">
+                    <div class="card bg-danger text-white h-100">
+                        <div class="card-header p-2 d-flex justify-content-between align-items-center">
+                            <h6 class="card-title m-0">{{ translate('ذات أعطال', get_setting('language', 'ar')) }}</h6>
+                            <div>
+                                <button class="btn btn-sm btn-light color-picker-btn me-1" data-card-type="with-issues" data-bs-toggle="tooltip" title="تغيير اللون">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <button class="btn btn-sm btn-light toggle-card" data-card-type="with-issues">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h1 class="display-4" id="with-issues-count">0</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- كرت اللوحات المشغلة -->
+                <div class="col-md-3 col-sm-6 mb-3 stats-card" data-card-type="working">
+                    <div class="card bg-info text-white h-100">
+                        <div class="card-header p-2 d-flex justify-content-between align-items-center">
+                            <h6 class="card-title m-0">{{ translate('مشغلة', get_setting('language', 'ar')) }}</h6>
+                            <div>
+                                <button class="btn btn-sm btn-light color-picker-btn me-1" data-card-type="working" data-bs-toggle="tooltip" title="تغيير اللون">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <button class="btn btn-sm btn-light toggle-card" data-card-type="working">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h1 class="display-4" id="working-count">0</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- كرت اللوحات غير المشغلة -->
+                <div class="col-md-3 col-sm-6 mb-3 stats-card" data-card-type="not-working">
+                    <div class="card bg-secondary text-white h-100">
+                        <div class="card-header p-2 d-flex justify-content-between align-items-center">
+                            <h6 class="card-title m-0">{{ translate('غير مشغلة', get_setting('language', 'ar')) }}</h6>
+                            <div>
+                                <button class="btn btn-sm btn-light color-picker-btn me-1" data-card-type="not-working" data-bs-toggle="tooltip" title="تغيير اللون">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <button class="btn btn-sm btn-light toggle-card" data-card-type="not-working">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h1 class="display-4" id="not-working-count">0</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- كرت اللوحات المربوطة بنظام سكادا -->
+                <div class="col-md-3 col-sm-6 mb-3 stats-card" data-card-type="scada-connected">
+                    <div class="card bg-warning h-100">
+                        <div class="card-header p-2 d-flex justify-content-between align-items-center">
+                            <h6 class="card-title m-0">{{ translate('مربوطة بسكادا', get_setting('language', 'ar')) }}</h6>
+                            <div>
+                                <button class="btn btn-sm btn-light color-picker-btn me-1" data-card-type="scada-connected" data-bs-toggle="tooltip" title="تغيير اللون">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <button class="btn btn-sm btn-light toggle-card" data-card-type="scada-connected">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h1 class="display-4" id="scada-connected-count">0</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- كرت اللوحات غير المربوطة بنظام سكادا -->
+                <div class="col-md-3 col-sm-6 mb-3 stats-card" data-card-type="not-scada-connected">
+                    <div class="card bg-light h-100">
+                        <div class="card-header p-2 d-flex justify-content-between align-items-center">
+                            <h6 class="card-title m-0">{{ translate('غير مربوطة بسكادا', get_setting('language', 'ar')) }}</h6>
+                            <div>
+                                <button class="btn btn-sm btn-light color-picker-btn me-1" data-card-type="not-scada-connected" data-bs-toggle="tooltip" title="تغيير اللون">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <button class="btn btn-sm btn-light toggle-card" data-card-type="not-scada-connected">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h1 class="display-4" id="not-scada-connected-count">0</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-map me-2"></i>
+                {{ translate('عرض اللوحات على الخارطة', get_setting('language', 'ar')) }}
+            </div>
+            <div>
+                <button class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#importScadaModal">
+                    <i class="fas fa-file-import me-1"></i>
+                    {{ translate('استيراد لوحات سكادا', get_setting('language', 'ar')) }}
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="reset-map">
+                    <i class="fas fa-sync-alt me-1"></i>
+                    {{ translate('إعادة تعيين', get_setting('language', 'ar')) }}
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <i class="fas fa-filter me-2"></i>
+                            {{ translate('تصفية', get_setting('language', 'ar')) }}
+                        </div>
+                        <div class="card-body">
+                            <form id="map-filter-form">
+                                <!-- حقل البحث عن اللوحة -->
+                                <div class="mb-3">
+                                    <label for="map-search" class="form-label">{{ translate('البحث عن لوحة', get_setting('language', 'ar')) }}</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="map-search" name="search" placeholder="MDB / تاج ماكسيمو / رقم المخيم / المربع / الشركة / الدولة / المنطقة">
+                                        <button type="button" class="btn btn-outline-secondary" id="map-search-btn">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        يمكنك البحث برقم MDB، تاج ماكسيمو، رقم المخيم، رقم المربع، اسم الشركة، الدولة، أو المنطقة
+                                    </small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="map-area" class="form-label">{{ translate('المنطقة', get_setting('language', 'ar')) }}</label>
+                                    <select class="form-select" id="map-area" name="area">
+                                        <option value="all">{{ translate('جميع المناطق', get_setting('language', 'ar')) }}</option>
+                                        {% for area in unique_areas %}
+                                            {% if area %}
+                                                <option value="{{ area }}">{{ area }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="map-panel-type" class="form-label">{{ translate('نوع اللوحة', get_setting('language', 'ar')) }}</label>
+                                    <select class="form-select" id="map-panel-type" name="panel_type">
+                                        <option value="all">{{ translate('جميع الأنواع', get_setting('language', 'ar')) }}</option>
+                                        {% for panel_type in unique_panel_types %}
+                                            {% if panel_type %}
+                                                <option value="{{ panel_type }}">{{ panel_type }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="map-status" class="form-label">{{ translate('الحالة', get_setting('language', 'ar')) }}</label>
+                                    <select class="form-select" id="map-status" name="status">
+                                        <option value="all">{{ translate('جميع الحالات', get_setting('language', 'ar')) }}</option>
+                                        <option value="عامل">{{ translate('عامل', get_setting('language', 'ar')) }}</option>
+                                        <option value="معطل">{{ translate('معطل', get_setting('language', 'ar')) }}</option>
+                                        <option value="تحت الصيانة">{{ translate('تحت الصيانة', get_setting('language', 'ar')) }}</option>
+                                    </select>
+                                </div>
+
+                                <!-- إضافة تصفية حسب الحالة الكهربائية -->
+                                <div class="mb-3">
+                                    <label for="map-electrical-status" class="form-label">{{ translate('الحالة الكهربائية', get_setting('language', 'ar')) }}</label>
+                                    <select class="form-select" id="map-electrical-status" name="electrical_status">
+                                        <option value="all">{{ translate('جميع الحالات', get_setting('language', 'ar')) }}</option>
+                                        <option value="normal">{{ translate('طبيعي', get_setting('language', 'ar')) }}</option>
+                                        <option value="warning">{{ translate('تحذير', get_setting('language', 'ar')) }}</option>
+                                        <option value="danger">{{ translate('خطر', get_setting('language', 'ar')) }}</option>
+                                        <option value="trip">{{ translate('مفصول', get_setting('language', 'ar')) }}</option>
+                                    </select>
+                                </div>
+
+                                <!-- إضافة تصفية حسب الارتباط بنظام سكادا -->
+                                <div class="mb-3">
+                                    <label for="map-scada-status" class="form-label">{{ translate('الارتباط بنظام سكادا', get_setting('language', 'ar')) }}</label>
+                                    <select class="form-select" id="map-scada-status" name="scada_status">
+                                        <option value="all">{{ translate('الكل', get_setting('language', 'ar')) }}</option>
+                                        <option value="connected">{{ translate('مرتبطة بسكادا', get_setting('language', 'ar')) }}</option>
+                                        <option value="not-connected">{{ translate('غير مرتبطة بسكادا', get_setting('language', 'ar')) }}</option>
+                                    </select>
+                                </div>
+
+                                <!-- فلترة حسب الدولة -->
+                                <div class="mb-3">
+                                    <label for="map-country" class="form-label">
+                                        <i class="fas fa-flag me-1"></i>
+                                        {{ translate('الدولة', get_setting('language', 'ar')) }}
+                                    </label>
+                                    <select class="form-select" id="map-country" name="country" onchange="updateMapFilters()">
+                                        <option value="all">{{ translate('جميع الدول', get_setting('language', 'ar')) }}</option>
+                                        {% for country in countries %}
+                                            <option value="{{ country.id }}">{{ country.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- فلترة حسب الشركة -->
+                                <div class="mb-3">
+                                    <label for="map-company" class="form-label">
+                                        <i class="fas fa-building me-1"></i>
+                                        {{ translate('الشركة', get_setting('language', 'ar')) }}
+                                    </label>
+                                    <select class="form-select" id="map-company" name="company" onchange="updateMapFilters()">
+                                        <option value="all">{{ translate('جميع الشركات', get_setting('language', 'ar')) }}</option>
+                                        {% for company in companies %}
+                                            <option value="{{ company.id }}" data-country="{{ company.country_id }}">{{ company.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-filter me-2"></i>
+                                    {{ translate('تصفية', get_setting('language', 'ar')) }}
+                                </button>
+
+                                <!-- زر إعادة تعيين الفلاتر -->
+                                <button type="button" class="btn btn-outline-secondary w-100 mt-2" id="reset-filters">
+                                    <i class="fas fa-undo me-2"></i>
+                                    {{ translate('إعادة تعيين الفلاتر', get_setting('language', 'ar')) }}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card" id="panel-info-section">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span id="panel-title">{{ translate('معلومات اللوحة', get_setting('language', 'ar')) }}</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="close-panel-info">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="panel-info">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-map-pin fa-3x mb-3"></i>
+                                    <p>{{ translate('اضغط على أي لوحة في الخارطة لعرض معلوماتها', get_setting('language', 'ar')) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- إضافة عداد اللوحات المعروضة -->
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>{{ translate('عدد اللوحات المعروضة', get_setting('language', 'ar')) }}:</span>
+                                <span id="panels-count" class="badge bg-primary">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <script>
+                        // إضافة معالج حدث لزر إغلاق معلومات اللوحة
+                        document.getElementById('close-panel-info').addEventListener('click', function() {
+                            const panelInfoElement = document.getElementById('panel-info');
+                            if (panelInfoElement) {
+                                panelInfoElement.innerHTML = `
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-map-pin fa-3x mb-3"></i>
+                                        <p>اضغط على أي لوحة في الخارطة لعرض معلوماتها</p>
+                                    </div>
+                                `;
+                            }
+
+                            // تحديث عنوان قسم معلومات اللوحة
+                            const panelTitle = document.getElementById('panel-title');
+                            if (panelTitle) {
+                                panelTitle.textContent = 'معلومات اللوحة';
+                            }
+                        });
+                    </script>
+                </div>
+
+                <div class="col-md-9">
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="map-responsive">
+                                <div id="map-container" style="border-radius: 10px;">
+                                    <!-- سيتم تحميل الخارطة هنا -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <div class="small text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <strong>{{ translate('تلميح', get_setting('language', 'ar')) }}:</strong> {{ translate('اضغط على نقطة للتفاصيل، أو اضغط مع Ctrl للانتقال مباشرة إلى خرائط Google', get_setting('language', 'ar')) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<!-- يمكنك استخدام خرائط Leaflet المجانية بدلاً من Google Maps -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+    let map;
+    let markers = [];
+    let polygons = [];
+    let panelData = [];
+    let currentPanel = null; // متغير عام لتخزين بيانات اللوحة الحالية
+    let mapAreasData = [
+        {% for area in map_areas %}
+            {% if area.is_active %}
+                {
+                    id: {{ area.id }},
+                    name: "{{ area.name }}",
+                    description: "{{ area.description or '' }}",
+                    coordinates: {{ area.coordinates|safe }},
+                    color: "{{ area.color }}"
+                }{% if not loop.last %},{% endif %}
+            {% endif %}
+        {% endfor %}
+    ];
+
+    // تهيئة الخارطة عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+    });
+
+    // تهيئة الخارطة
+    function initMap() {
+        // إحداثيات منطقة عرفة في مكة المكرمة
+        const defaultLocation = [21.3583, 39.9719]; // عرفة، مكة المكرمة
+
+        // الحصول على إعدادات الخارطة من النظام إذا كانت متوفرة
+        let mapCenter = {{ map_center|default('[21.3583, 39.9719]')|safe }}; // تعيين مركز الخريطة على عرفة
+        let mapZoom = {{ map_zoom|default('14') }};
+
+        // إنشاء الخارطة
+        map = L.map('map-container').setView(mapCenter, mapZoom);
+
+        // إضافة طبقة الخارطة
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // إضافة مناطق الخارطة
+        addMapAreas();
+
+        // الحصول على بيانات اللوحات
+        fetchPanelData();
+
+        // تهيئة نموذج التصفية
+        document.getElementById('map-filter-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            filterMarkers();
+        });
+
+        // تهيئة زر إعادة ضبط الخارطة
+        document.getElementById('reset-map').addEventListener('click', function() {
+            map.setView(defaultLocation, mapZoom);
+
+            // إعادة تعيين قسم معلومات اللوحة
+            const panelInfoElement = document.getElementById('panel-info');
+            if (panelInfoElement) {
+                panelInfoElement.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-map-pin fa-3x mb-3"></i>
+                        <p>اضغط على أي لوحة في الخارطة لعرض معلوماتها</p>
+                    </div>
+                `;
+            }
+
+            // تحديث عنوان قسم معلومات اللوحة
+            const panelTitle = document.getElementById('panel-title');
+            if (panelTitle) {
+                panelTitle.textContent = 'معلومات اللوحة';
+            }
+        });
+
+        // إضافة معالج حدث لتغيير حجم الخارطة
+        window.addEventListener('resize', function() {
+            map.invalidateSize();
+        });
+
+        // تأكد من تحميل الخارطة بشكل صحيح
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 500);
+    }
+
+    // جلب بيانات اللوحات
+    function fetchPanelData() {
+        // استخدام البيانات المعدة مسبقًا من الخادم
+        panelData = {{ panels_data|safe }};
+
+        console.log('🔍 تم تحميل بيانات اللوحات:', panelData.length, 'لوحة');
+
+        // تشخيص البيانات
+        if (panelData.length > 0) {
+            console.log('📋 فحص أول لوحة:', panelData[0]);
+
+            // فحص اللوحات المرتبطة بمخيمات
+            const linkedPanels = panelData.filter(panel => panel.camp_number);
+            console.log(`📊 اللوحات المرتبطة بمخيمات: ${linkedPanels.length}/${panelData.length}`);
+
+            if (linkedPanels.length > 0) {
+                console.log('✅ مثال على لوحة مرتبطة:', {
+                    mdb: linkedPanels[0].mdb,
+                    camp_number: linkedPanels[0].camp_number,
+                    square_number: linkedPanels[0].square_number,
+                    company_name: linkedPanels[0].company_name,
+                    country_name: linkedPanels[0].country_name
+                });
+            } else {
+                console.warn('⚠️ لا توجد لوحات مرتبطة بمخيمات');
+            }
+        }
+
+        // إضافة العلامات على الخارطة
+        addMarkers(panelData);
+    }
+
+    // إضافة العلامات على الخارطة
+    function addMarkers(data) {
+        // إزالة العلامات الحالية
+        clearMarkers();
+
+        // التحقق من وجود بيانات
+        if (data.length === 0) {
+            return;
+        }
+
+        // تحسين الأداء: استخدام مجموعة العلامات مع clustering
+        const markerGroup = L.layerGroup();
+
+        // تحسين الأداء: تقسيم البيانات إلى مجموعات أصغر
+        const BATCH_SIZE = 50; // تقليل حجم الدفعة لتحسين الأداء
+        const batches = Math.ceil(data.length / BATCH_SIZE);
+
+        // إضافة مؤشر تقدم
+        const progressContainer = document.getElementById('panels-count').parentElement;
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress mt-2';
+        progressBar.innerHTML = '<div class="progress-bar" role="progressbar" style="width: 0%"></div>';
+        progressContainer.appendChild(progressBar);
+
+        // دالة لإضافة دفعة من العلامات مع تأخير
+        function addBatch(batchIndex) {
+            if (batchIndex >= batches) {
+                // انتهت جميع الدفعات، إضافة المجموعة إلى الخارطة
+                markerGroup.addTo(map);
+
+                // إزالة مؤشر التقدم
+                progressBar.remove();
+
+                // ضبط حدود الخارطة لتشمل جميع العلامات (فقط إذا كان العدد معقول)
+                if (markers.length > 0 && markers.length <= 1000) {
+                    const bounds = [];
+                    markers.forEach(m => bounds.push([m.panel.y_coordinate, m.panel.x_coordinate]));
+                    if (bounds.length > 0) {
+                        map.fitBounds(bounds, { padding: [10, 10] });
+                    }
+                }
+
+                // تحديث عداد اللوحات
+                document.getElementById('panels-count').textContent = markers.length;
+                return;
+            }
+
+            // تحديث مؤشر التقدم
+            const progress = ((batchIndex + 1) / batches) * 100;
+            progressBar.querySelector('.progress-bar').style.width = progress + '%';
+
+            // حساب نطاق الدفعة الحالية
+            const start = batchIndex * BATCH_SIZE;
+            const end = Math.min(start + BATCH_SIZE, data.length);
+
+            // إضافة العلامات في هذه الدفعة
+            for (let i = start; i < end; i++) {
+                const panel = data[i];
+
+                // التحقق من وجود إحداثيات صالحة
+                if (!panel.y_coordinate || !panel.x_coordinate) {
+                    continue; // تخطي هذه اللوحة
+                }
+
+            // تحديد لون العلامة حسب الحالة
+            let markerColor = '{{ normal_color|default("#28a745") }}'; // أخضر للوحات العاملة
+            let markerIcon = 'bolt'; // أيقونة افتراضية
+            let markerSize = 8; // حجم افتراضي
+
+            // التحقق من حالة اللوحة الكهربائية أولاً (أولوية أعلى)
+            if (panel.is_tripped) {
+                // اللوحة مفصولة (Trip)
+                markerColor = '{{ trip_color|default("#6c757d") }}';
+                markerIcon = 'power-off';
+                markerSize = 10; // زيادة الحجم للوحات المفصولة
+            } else if (panel.current_status === 'danger' || panel.voltage_status === 'danger') {
+                // حالة خطر (تيار أو جهد)
+                markerColor = '{{ danger_color|default("#dc3545") }}';
+                markerIcon = 'exclamation-triangle';
+                markerSize = 10; // زيادة الحجم للوحات في حالة خطر
+            } else if (panel.current_status === 'warning' || panel.voltage_status === 'warning') {
+                // حالة تحذير (تيار أو جهد)
+                markerColor = '{{ warning_color|default("#ffc107") }}';
+                markerIcon = 'exclamation';
+                markerSize = 9; // زيادة الحجم قليلاً للوحات في حالة تحذير
+            } else {
+                // التحقق من حالة اللوحة الفعلية (أولوية أقل)
+                if (panel.status === 'معطل') {
+                    markerColor = '{{ danger_color|default("#dc3545") }}'; // أحمر للوحات المعطلة
+                    markerIcon = 'times-circle';
+                } else if (panel.status === 'تحت الصيانة') {
+                    markerColor = '{{ warning_color|default("#ffc107") }}'; // أصفر للوحات تحت الصيانة
+                    markerIcon = 'tools';
+                }
+            }
+
+            // التحقق من حالة التحميل إذا كانت متوفرة (فقط إذا لم تكن اللوحة في حالة خطر أو تحذير بالفعل)
+            if (panel.load_percentage && panel.current_status === 'normal' && panel.voltage_status === 'normal' && !panel.is_tripped) {
+                const warningThreshold = {{ warning_threshold|default('70') }};
+                const dangerThreshold = {{ danger_threshold|default('80') }};
+
+                if (panel.load_percentage >= dangerThreshold) {
+                    markerColor = '{{ danger_color|default("#dc3545") }}';
+                    markerIcon = 'exclamation-triangle';
+                    markerSize = 10; // زيادة الحجم للوحات ذات الحمل العالي
+                } else if (panel.load_percentage >= warningThreshold) {
+                    markerColor = '{{ warning_color|default("#ffc107") }}';
+                    markerIcon = 'exclamation';
+                    markerSize = 9; // زيادة الحجم قليلاً للوحات ذات الحمل المتوسط
+                }
+            }
+
+            // إنشاء HTML للأيقونة المخصصة
+            const iconHtml = `
+                <div style="background-color: ${markerColor}; width: ${markerSize*2}px; height: ${markerSize*2}px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white;">
+                    <i class="fas fa-${markerIcon}" style="color: white; font-size: ${markerSize}px;"></i>
+                </div>
+            `;
+
+            // إنشاء العلامة باستخدام أيقونة مخصصة
+            const marker = L.marker([panel.y_coordinate, panel.x_coordinate], {
+                icon: L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-div-icon',
+                    iconSize: [markerSize*2, markerSize*2],
+                    iconAnchor: [markerSize, markerSize]
+                })
+            });
+
+            // إضافة العلامة إلى مجموعة العلامات بدلاً من إضافتها مباشرة إلى الخارطة
+            markerGroup.addLayer(marker);
+
+            // إضافة معلومات اللوحة عند النقر على العلامة
+            marker.on('click', function(e) {
+                // إذا كان المستخدم يضغط على مفتاح Ctrl أو Shift، افتح خرائط Google مباشرة
+                if (e.originalEvent.ctrlKey || e.originalEvent.shiftKey) {
+                    openGoogleMaps(panel);
+                } else {
+                    // عرض معلومات اللوحة
+                    showPanelInfo(panel);
+
+                    // تحديث العنوان في شريط العنوان
+                    const panelTitle = document.getElementById('panel-title');
+                    if (panelTitle) {
+                        panelTitle.textContent = panel.mdb;
+                    }
+
+                    // إظهار قسم معلومات اللوحة إذا كان مخفيًا
+                    const panelInfoSection = document.getElementById('panel-info-section');
+                    if (panelInfoSection) {
+                        panelInfoSection.style.display = 'block';
+                    }
+
+                    // التمرير إلى قسم معلومات اللوحة في الأجهزة المحمولة
+                    if (window.innerWidth < 768) {
+                        panelInfoSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            });
+
+            // تحسين الأداء: تأخير إضافة التلميحات حتى يحتاجها المستخدم
+            marker.on('mouseover', function() {
+                if (!marker.getTooltip()) {
+                    // إضافة معلومات عند تمرير المؤشر فوق العلامة
+                    let tooltipContent = `<strong>${panel.mdb}</strong><br>${panel.area_name}`;
+
+                    // إضافة معلومات المخيم إذا كانت متوفرة
+                    if (panel.camp_number) {
+                        tooltipContent += `<br><i class="fas fa-campground"></i> مخيم: ${panel.camp_number}`;
+                        if (panel.square_number) {
+                            tooltipContent += ` - مربع: ${panel.square_number}`;
+                        }
+                    } else {
+                        tooltipContent += `<br><i class="fas fa-exclamation-triangle text-warning"></i> غير مرتبط بمخيم`;
+                    }
+
+                    // إضافة معلومات الشركة والدولة إذا كانت متوفرة
+                    if (panel.company_name) {
+                        tooltipContent += `<br><i class="fas fa-building"></i> ${panel.company_name}`;
+                    }
+                    if (panel.country_name) {
+                        tooltipContent += `<br><i class="fas fa-flag"></i> ${panel.country_name}`;
+                    }
+
+                    // إضافة معلومات الحمل إذا كانت متوفرة
+                    if (panel.load_percentage) {
+                        tooltipContent += `<br>نسبة الحمل: ${panel.load_percentage.toFixed(1)}%`;
+                    }
+
+                    // إضافة معلومات الحالة
+                    if (panel.is_tripped) {
+                        tooltipContent += `<br><span style="color: ${markerColor};">فصل (Trip)</span>`;
+                    } else if (panel.current_status === 'danger' || panel.voltage_status === 'danger') {
+                        tooltipContent += `<br><span style="color: ${markerColor};">خطر</span>`;
+                    } else if (panel.current_status === 'warning' || panel.voltage_status === 'warning') {
+                        tooltipContent += `<br><span style="color: ${markerColor};">تحذير</span>`;
+                    }
+
+                    tooltipContent += `<br><small>اضغط للتفاصيل | Ctrl+ضغط للخارطة</small>`;
+
+                    marker.bindTooltip(tooltipContent, {
+                        direction: 'top',
+                        offset: [0, -markerSize]
+                    });
+                }
+            });
+
+                // إضافة العلامة إلى المصفوفة
+                markers.push({
+                    marker: marker,
+                    panel: panel
+                });
+            }
+
+            // جدولة الدفعة التالية بعد فترة أقصر لتحسين الأداء
+            setTimeout(() => addBatch(batchIndex + 1), 5);
+        }
+
+        // بدء إضافة الدفعات
+        addBatch(0);
+
+        // تحديث عداد اللوحات المعروضة
+        const panelsCount = document.getElementById('panels-count');
+        if (panelsCount) {
+            panelsCount.textContent = markers.length;
+        }
+
+        // تحديث إحصائيات اللوحات
+        updatePanelStats(data);
+
+        // إذا لم تكن هناك علامات، أظهر رسالة للمستخدم
+        if (data.length === 0) {
+            document.getElementById('panel-info').innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {{ translate('لا توجد نتائج', get_setting('language', 'ar')) }}
+                </div>
+            `;
+        }
+    }
+
+    // إضافة مناطق الخارطة
+    function addMapAreas() {
+        // إزالة المناطق الحالية
+        clearPolygons();
+
+        // إضافة المناطق الجديدة
+        mapAreasData.forEach(area => {
+            try {
+                // إنشاء المضلع
+                const polygon = L.polygon(area.coordinates, {
+                    color: area.color,
+                    fillColor: area.color,
+                    fillOpacity: 0.3
+                }).addTo(map);
+
+                // إضافة معلومات المنطقة عند النقر عليها
+                polygon.bindPopup(`<b>${area.name}</b><br>${area.description}`);
+
+                // إضافة المضلع إلى المصفوفة
+                polygons.push({
+                    polygon: polygon,
+                    area: area
+                });
+            } catch (e) {
+                console.error(`خطأ في إضافة منطقة ${area.name}:`, e);
+            }
+        });
+    }
+
+    // إزالة جميع المضلعات من الخارطة
+    function clearPolygons() {
+        polygons.forEach(p => map.removeLayer(p.polygon));
+        polygons = [];
+    }
+
+    // إزالة جميع العلامات من الخارطة مع تحسين الأداء
+    function clearMarkers() {
+        // إزالة العلامات في دفعات لتحسين الأداء
+        const CLEAR_BATCH_SIZE = 100;
+        let index = 0;
+
+        function clearBatch() {
+            const end = Math.min(index + CLEAR_BATCH_SIZE, markers.length);
+            for (let i = index; i < end; i++) {
+                map.removeLayer(markers[i].marker);
+            }
+            index = end;
+
+            if (index < markers.length) {
+                setTimeout(clearBatch, 1);
+            } else {
+                markers = [];
+            }
+        }
+
+        if (markers.length > 0) {
+            clearBatch();
+        }
+    }
+
+    // فتح خرائط Google للوحة
+    function openGoogleMaps(panel) {
+        console.log('فتح خرائط Google للوحة:', panel);
+
+        if (!panel) {
+            console.error('لم يتم تمرير بيانات اللوحة');
+            alert('خطأ: لم يتم تمرير بيانات اللوحة');
+            return;
+        }
+
+        if (panel.y_coordinate && panel.x_coordinate) {
+            const url = `https://www.google.com/maps?q=${panel.y_coordinate},${panel.x_coordinate}`;
+            console.log('فتح الرابط:', url);
+            window.open(url, '_blank');
+        } else {
+            console.warn('لا توجد إحداثيات متاحة للوحة:', panel.mdb);
+            alert('لا توجد إحداثيات متاحة لهذه اللوحة');
+        }
+    }
+
+    // عرض معلومات اللوحة
+    function showPanelInfo(panel) {
+        console.log("🔍 عرض معلومات اللوحة:", panel.mdb);
+
+        // تشخيص مفصل للبيانات
+        console.log("📋 تشخيص بيانات اللوحة:", {
+            mdb: panel.mdb,
+            camp_number: panel.camp_number,
+            square_number: panel.square_number,
+            company_name: panel.company_name,
+            country_name: panel.country_name,
+            contact_person: panel.contact_person,
+            company_phone: panel.company_phone,
+            company_id: panel.company_id,
+            country_id: panel.country_id
+        });
+
+        const panelInfoElement = document.getElementById('panel-info');
+
+        if (!panelInfoElement) {
+            console.error('عنصر panel-info غير موجود في الصفحة');
+            return;
+        }
+
+        // تخزين بيانات اللوحة الحالية في المتغير العام
+        currentPanel = panel;
+
+        // تحديد لون الحالة
+        let statusColor = '{{ normal_color|default("#28a745") }}';
+        let statusText = 'طبيعي';
+
+        if (panel.is_tripped) {
+            statusColor = '{{ trip_color|default("#6c757d") }}';
+            statusText = 'فصل (Trip)';
+        } else if (panel.current_status === 'danger' || panel.voltage_status === 'danger') {
+            statusColor = '{{ danger_color|default("#dc3545") }}';
+            statusText = 'خطر';
+        } else if (panel.current_status === 'warning' || panel.voltage_status === 'warning') {
+            statusColor = '{{ warning_color|default("#ffc107") }}';
+            statusText = 'تحذير';
+        }
+
+        // إنشاء محتوى معلومات اللوحة
+        let infoContent = `
+            <h5 class="text-primary">${panel.mdb}</h5>
+            <div class="mb-2">
+                <strong>رقم تاج ماكسيمو:</strong> ${panel.maximo_tag || 'غير متوفر'}
+            </div>
+            <div class="mb-2">
+                <strong>المنطقة:</strong> ${panel.area_name || 'غير متوفر'}
+            </div>
+            <div class="mb-2">
+                <strong>نوع اللوحة:</strong> ${panel.panel_type || 'غير متوفر'}
+            </div>`;
+
+        // إضافة معلومات المخيم والشركة والدولة
+        infoContent += `
+        <hr class="my-3">
+        <h6 class="text-info mb-2">
+            <i class="fas fa-campground me-1"></i>
+            معلومات المخيم والشركة
+        </h6>`;
+
+        // معلومات المخيم
+        if (panel.camp_number) {
+            infoContent += `
+            <div class="mb-2">
+                <strong>
+                    <i class="fas fa-campground me-1"></i>
+                    رقم المخيم:
+                </strong>
+                <span class="badge bg-success">${panel.camp_number}</span>`;
+
+            if (panel.square_number) {
+                infoContent += `
+                <span class="ms-2">
+                    <strong>المربع:</strong>
+                    <span class="badge bg-info">${panel.square_number}</span>
+                </span>`;
+            }
+
+            infoContent += `</div>`;
+        } else {
+            infoContent += `
+            <div class="mb-2">
+                <strong>
+                    <i class="fas fa-campground me-1"></i>
+                    رقم المخيم:
+                </strong>
+                <span class="text-muted">غير مرتبط بمخيم</span>
+            </div>`;
+        }
+
+        // معلومات الدولة
+        if (panel.country_name) {
+            infoContent += `
+            <div class="mb-2">
+                <strong>
+                    <i class="fas fa-flag me-1"></i>
+                    الدولة:
+                </strong>
+                <span class="badge bg-primary">${panel.country_name}</span>
+            </div>`;
+        } else {
+            infoContent += `
+            <div class="mb-2">
+                <strong>
+                    <i class="fas fa-flag me-1"></i>
+                    الدولة:
+                </strong>
+                <span class="text-muted">غير محدد</span>
+            </div>`;
+        }
+
+        // معلومات الشركة
+        if (panel.company_name) {
+            infoContent += `
+            <div class="mb-2">
+                <strong>
+                    <i class="fas fa-building me-1"></i>
+                    الشركة:
+                </strong>
+                ${panel.company_name}
+            </div>`;
+        } else {
+            infoContent += `
+            <div class="mb-2">
+                <strong>
+                    <i class="fas fa-building me-1"></i>
+                    الشركة:
+                </strong>
+                <span class="text-muted">غير محدد</span>
+            </div>`;
+        }
+
+        // إضافة معلومات الاتصال إذا كانت متوفرة
+        if (panel.contact_person || panel.company_phone) {
+            infoContent += `
+            <div class="mb-2">
+                <strong>
+                    <i class="fas fa-address-book me-1"></i>
+                    معلومات الاتصال:
+                </strong>
+            </div>`;
+
+            if (panel.contact_person) {
+                infoContent += `
+                <div class="ms-3 mb-1">
+                    <i class="fas fa-user me-1 text-muted"></i>
+                    <small><strong>الشخص المسؤول:</strong> ${panel.contact_person}</small>
+                </div>`;
+            }
+
+            if (panel.company_phone) {
+                infoContent += `
+                <div class="ms-3 mb-1">
+                    <i class="fas fa-phone me-1 text-muted"></i>
+                    <small><strong>رقم التواصل:</strong>
+                        <a href="tel:${panel.company_phone}" class="text-decoration-none">${panel.company_phone}</a>
+                    </small>
+                </div>`;
+            }
+        } else {
+            infoContent += `
+            <div class="mb-2">
+                <strong>
+                    <i class="fas fa-address-book me-1"></i>
+                    معلومات الاتصال:
+                </strong>
+                <span class="text-muted">غير متوفر</span>
+            </div>`;
+        }
+
+        // إضافة معلومات القراءات إذا كانت متوفرة
+        if (panel.current !== undefined) {
+            infoContent += `
+            <div class="mb-2">
+                <strong>آخر قراءة:</strong> ${panel.last_reading || 'غير متوفر'}
+                ${panel.reading_type ?
+                    `<span class="badge ${panel.reading_type === 'manual' ? 'bg-info' : 'bg-secondary'}" style="margin-right: 5px;">
+                        ${panel.reading_type === 'manual' ? 'يدوية' : 'تلقائية'}
+                    </span>`
+                    : ''}
+            </div>
+            <div class="mb-2">
+                <strong>التيار:</strong> ${panel.current !== null ? panel.current.toFixed(1) + ' أمبير' : 'غير متوفر'}
+            </div>
+            <div class="mb-2">
+                <strong>الجهد:</strong> ${panel.voltage !== null ? panel.voltage.toFixed(1) + ' فولت' : 'غير متوفر'}
+            </div>`;
+
+            // إضافة معلومات الحمل إذا كانت متوفرة
+            if (panel.load_percentage !== undefined && panel.load_percentage !== null) {
+                infoContent += `
+                <div class="mb-2">
+                    <strong>نسبة الحمل:</strong> ${panel.load_percentage.toFixed(1)}%
+                </div>`;
+            }
+
+            // إضافة حالة اللوحة الكهربائية
+            infoContent += `
+            <div class="mb-2">
+                <strong>الحالة الكهربائية:</strong>
+                <span class="badge" style="background-color: ${statusColor}; ${statusColor === '{{ warning_color|default("#ffc107") }}' ? 'color: #000;' : ''}">
+                    ${statusText}
+                </span>
+            </div>`;
+        }
+
+        // إضافة حالة اللوحة
+        infoContent += `
+            <div class="mb-2">
+                <strong>حالة اللوحة:</strong>
+                <span class="badge ${panel.status === 'عامل' ? 'bg-success' : (panel.status === 'معطل' ? 'bg-danger' : 'bg-warning')}">
+                    ${panel.status || 'غير معروف'}
+                </span>
+            </div>
+            <div class="mb-2">
+                <strong>مرتبطة بنظام سكادا:</strong>
+                <span class="badge ${panel.is_scada_connected ? 'bg-success' : 'bg-secondary'}">
+                    ${panel.is_scada_connected ? 'نعم' : 'لا'}
+                </span>
+            </div>
+            <div class="mb-2">
+                <strong>الملاحظات:</strong> ${panel.notes || 'لا توجد ملاحظات'}
+            </div>
+            <div class="mt-3">
+                <a href="javascript:void(0)" onclick="openGoogleMaps(currentPanel)" class="btn btn-sm btn-success">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    {{ translate('خرائط Google', get_setting('language', 'ar')) }}
+                </a>
+                <a href="javascript:void(0)" onclick="addManualReading(${panel.id})" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus-circle me-1"></i>
+                    {{ translate('إضافة قراءة يدوية للوحة', get_setting('language', 'ar')) }}
+                </a>
+                <a href="javascript:void(0)" onclick="viewPanelDetails(${panel.id})" class="btn btn-sm btn-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    {{ translate('التفاصيل', get_setting('language', 'ar')) }}
+                </a>
+                <a href="javascript:void(0)" onclick="reportPanelIssue(${panel.id})" class="btn btn-sm btn-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    {{ translate('إبلاغ', get_setting('language', 'ar')) }}
+                </a>
+                <a href="javascript:void(0)" onclick="requestInspection(${panel.id})" class="btn btn-sm btn-secondary mt-2">
+                    <i class="fas fa-clipboard-check me-1"></i>
+                    {{ translate('طلب فحص', get_setting('language', 'ar')) }}
+                </a>`;
+
+        // إضافة زر ربط بمخيم إذا لم تكن اللوحة مرتبطة بمخيم
+        if (!panel.camp_number) {
+            infoContent += `
+                <a href="/camps-dashboard" class="btn btn-sm btn-outline-primary mt-2" target="_blank">
+                    <i class="fas fa-link me-1"></i>
+                    ربط بمخيم
+                </a>`;
+        }
+
+        infoContent += `
+            </div>
+        `;
+
+        // تحديث محتوى العنصر
+        panelInfoElement.innerHTML = infoContent;
+
+        // التأكد من أن قسم معلومات اللوحة مرئي
+        const panelInfoSection = document.getElementById('panel-info-section');
+        if (panelInfoSection) {
+            panelInfoSection.style.display = 'block';
+        }
+    }
+
+    // تصفية العلامات
+    function filterMarkers() {
+        const search = document.getElementById('map-search').value.toLowerCase();
+        const area = document.getElementById('map-area').value;
+        const panelType = document.getElementById('map-panel-type').value;
+        const status = document.getElementById('map-status').value;
+        const electricalStatus = document.getElementById('map-electrical-status').value;
+        const scadaStatus = document.getElementById('map-scada-status').value;
+        const country = document.getElementById('map-country').value;
+        const company = document.getElementById('map-company').value;
+
+        console.log("تصفية اللوحات:", {
+            search: search,
+            area: area,
+            panelType: panelType,
+            status: status,
+            electricalStatus: electricalStatus,
+            scadaStatus: scadaStatus,
+            country: country,
+            company: company
+        });
+
+        // تصفية البيانات
+        const filteredData = panelData.filter(panel => {
+            // تصفية حسب البحث
+            const searchMatch = search === '' ||
+                (panel.mdb && panel.mdb.toString().toLowerCase().includes(search)) ||
+                (panel.maximo_tag && panel.maximo_tag.toString().toLowerCase().includes(search)) ||
+                (panel.area_name && panel.area_name.toString().toLowerCase().includes(search)) ||
+                (panel.camp_number && panel.camp_number.toString().toLowerCase().includes(search)) ||
+                (panel.square_number && panel.square_number.toString().toLowerCase().includes(search)) ||
+                (panel.company_name && panel.company_name.toString().toLowerCase().includes(search)) ||
+                (panel.country_name && panel.country_name.toString().toLowerCase().includes(search));
+
+            // تصفية حسب المنطقة ونوع اللوحة والحالة
+            const areaMatch = area === 'all' || panel.area_name === area;
+            const typeMatch = panelType === 'all' || panel.panel_type === panelType;
+            const statusMatch = status === 'all' || panel.status === status;
+
+            // تصفية حسب الحالة الكهربائية
+            let electricalStatusMatch = true;
+            if (electricalStatus !== 'all') {
+                if (electricalStatus === 'trip') {
+                    // اللوحة مفصولة
+                    electricalStatusMatch = panel.is_tripped === true;
+                } else if (electricalStatus === 'danger') {
+                    // حالة خطر (تيار أو جهد)
+                    electricalStatusMatch = panel.current_status === 'danger' || panel.voltage_status === 'danger';
+
+                    // أيضًا تحقق من نسبة الحمل إذا كانت متوفرة
+                    if (!electricalStatusMatch && panel.load_percentage) {
+                        const dangerThreshold = {{ danger_threshold|default('80') }};
+                        electricalStatusMatch = panel.load_percentage >= dangerThreshold;
+                    }
+                } else if (electricalStatus === 'warning') {
+                    // حالة تحذير (تيار أو جهد)
+                    electricalStatusMatch = panel.current_status === 'warning' || panel.voltage_status === 'warning';
+
+                    // أيضًا تحقق من نسبة الحمل إذا كانت متوفرة ولم تكن في حالة تحذير بالفعل
+                    if (!electricalStatusMatch && panel.load_percentage) {
+                        const warningThreshold = {{ warning_threshold|default('70') }};
+                        const dangerThreshold = {{ danger_threshold|default('80') }};
+                        electricalStatusMatch = panel.load_percentage >= warningThreshold && panel.load_percentage < dangerThreshold;
+                    }
+                } else if (electricalStatus === 'normal') {
+                    // حالة طبيعية (لا تحذير ولا خطر ولا فصل)
+                    electricalStatusMatch = (panel.current_status === 'normal' || !panel.current_status) &&
+                                           (panel.voltage_status === 'normal' || !panel.voltage_status) &&
+                                           !panel.is_tripped;
+
+                    // أيضًا تحقق من نسبة الحمل إذا كانت متوفرة
+                    if (electricalStatusMatch && panel.load_percentage) {
+                        const warningThreshold = {{ warning_threshold|default('70') }};
+                        electricalStatusMatch = panel.load_percentage < warningThreshold;
+                    }
+                }
+            }
+
+            // تصفية حسب الارتباط بنظام سكادا
+            let scadaStatusMatch = true;
+            if (scadaStatus !== 'all') {
+                if (scadaStatus === 'connected') {
+                    scadaStatusMatch = panel.is_scada_connected === true;
+                } else if (scadaStatus === 'not-connected') {
+                    scadaStatusMatch = panel.is_scada_connected === false;
+                }
+            }
+
+            // تصفية حسب الدولة
+            const countryMatch = country === 'all' || panel.country_id == country;
+
+            // تصفية حسب الشركة
+            const companyMatch = company === 'all' || panel.company_id == company;
+
+            const result = searchMatch && areaMatch && typeMatch && statusMatch && electricalStatusMatch && scadaStatusMatch && countryMatch && companyMatch;
+
+            // طباعة معلومات تصحيح للوحات التي تطابق الحالة الكهربائية المطلوبة
+            if (electricalStatus !== 'all' && electricalStatusMatch) {
+                console.log(`اللوحة ${panel.mdb} تطابق الحالة الكهربائية ${electricalStatus}:`, {
+                    current_status: panel.current_status,
+                    voltage_status: panel.voltage_status,
+                    is_tripped: panel.is_tripped,
+                    load_percentage: panel.load_percentage
+                });
+            }
+
+            return result;
+        });
+
+        console.log(`تم العثور على ${filteredData.length} لوحة تطابق معايير التصفية`);
+
+        // إضافة العلامات المفلترة
+        addMarkers(filteredData);
+
+        // تحديث إحصائيات اللوحات
+        updatePanelStats(filteredData);
+
+        // إزالة نتائج البحث السابقة إن وجدت
+        const oldResults = document.querySelector('.card .card-header i.fas.fa-search');
+        if (oldResults) {
+            const resultsCard = oldResults.closest('.card');
+            if (resultsCard) {
+                resultsCard.remove();
+            }
+        }
+
+        // عرض نتائج البحث في قائمة
+        showSearchResults(filteredData);
+
+        // إذا كان هناك نتيجة واحدة فقط، انتقل إليها وأظهر معلوماتها
+        if (filteredData.length === 1) {
+            map.setView([filteredData[0].y_coordinate, filteredData[0].x_coordinate], 18);
+            showPanelInfo(filteredData[0]);
+        } else if (filteredData.length > 0) {
+            // إذا كان هناك أكثر من نتيجة، اضبط حدود الخريطة لتشمل جميع النتائج
+            const bounds = [];
+            filteredData.forEach(panel => bounds.push([panel.y_coordinate, panel.x_coordinate]));
+            map.fitBounds(bounds);
+        }
+    }
+
+    // إضافة معالج حدث للبحث
+    document.getElementById('map-search-btn').addEventListener('click', function() {
+        filterMarkers();
+    });
+
+    // إضافة معالج حدث للبحث عند الضغط على Enter
+    document.getElementById('map-search').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            filterMarkers();
+        }
+    });
+
+    // تحديث الفلاتر المترابطة
+    function updateMapFilters() {
+        const countrySelect = document.getElementById('map-country');
+        const companySelect = document.getElementById('map-company');
+        const selectedCountry = countrySelect.value;
+
+        // الحصول على جميع خيارات الشركات
+        const allCompanyOptions = Array.from(companySelect.querySelectorAll('option[data-country]'));
+
+        // إخفاء جميع الشركات أولاً
+        allCompanyOptions.forEach(option => {
+            option.style.display = 'none';
+        });
+
+        // إظهار الشركات التابعة للدولة المختارة فقط
+        if (selectedCountry && selectedCountry !== 'all') {
+            allCompanyOptions.forEach(option => {
+                if (option.getAttribute('data-country') === selectedCountry) {
+                    option.style.display = 'block';
+                }
+            });
+
+            // إعادة تعيين اختيار الشركة إذا لم تعد متاحة
+            const currentCompany = companySelect.value;
+            const currentCompanyOption = companySelect.querySelector(`option[value="${currentCompany}"]`);
+            if (currentCompanyOption && currentCompanyOption.getAttribute('data-country') !== selectedCountry) {
+                companySelect.value = 'all';
+            }
+        } else {
+            // إظهار جميع الشركات إذا لم يتم اختيار دولة
+            allCompanyOptions.forEach(option => {
+                option.style.display = 'block';
+            });
+        }
+
+        // تطبيق التصفية تلقائياً
+        filterMarkers();
+    }
+
+    // إضافة معالج حدث لزر إعادة تعيين الفلاتر
+    document.getElementById('reset-filters').addEventListener('click', function() {
+        // إعادة تعيين جميع الفلاتر
+        document.getElementById('map-search').value = '';
+        document.getElementById('map-area').value = 'all';
+        document.getElementById('map-panel-type').value = 'all';
+        document.getElementById('map-status').value = 'all';
+        document.getElementById('map-electrical-status').value = 'all';
+        document.getElementById('map-scada-status').value = 'all';
+        document.getElementById('map-country').value = 'all';
+        document.getElementById('map-company').value = 'all';
+
+        // إظهار جميع الشركات
+        const allCompanyOptions = Array.from(document.getElementById('map-company').querySelectorAll('option[data-country]'));
+        allCompanyOptions.forEach(option => {
+            option.style.display = 'block';
+        });
+
+        // تطبيق التصفية (عرض جميع اللوحات)
+        filterMarkers();
+    });
+
+    // إضافة معالج حدث لإخفاء/إظهار جميع الكروت
+    document.getElementById('toggle-all-stats-cards').addEventListener('click', function() {
+        const statsCards = document.querySelectorAll('.stats-card');
+        const pinnedCards = JSON.parse(localStorage.getItem('pinnedCards') || '[]');
+
+        statsCards.forEach(card => {
+            const cardType = card.getAttribute('data-card-type');
+            // لا تخفي الكروت المثبتة
+            if (!pinnedCards.includes(cardType)) {
+                card.classList.toggle('d-none');
+
+                // تحديث أيقونة الزر
+                const toggleButton = card.querySelector('.toggle-card');
+                if (toggleButton) {
+                    const icon = toggleButton.querySelector('i');
+                    if (card.classList.contains('d-none')) {
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    } else {
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    }
+                }
+            }
+        });
+    });
+
+    // إضافة معالج حدث لإخفاء/إظهار كرت محدد
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.toggle-card')) {
+            const button = e.target.closest('.toggle-card');
+            const cardType = button.getAttribute('data-card-type');
+            const panelType = button.getAttribute('data-panel-type');
+
+            // تحديد الكرت المراد إخفاؤه/إظهاره
+            let card;
+            if (cardType === 'panel-type' && panelType) {
+                card = document.querySelector(`.stats-card[data-card-type="${cardType}"][data-panel-type="${panelType}"]`);
+            } else {
+                card = document.querySelector(`.stats-card[data-card-type="${cardType}"]`);
+            }
+
+            if (card) {
+                // التحقق مما إذا كان الكرت مثبتًا
+                const pinnedCards = JSON.parse(localStorage.getItem('pinnedCards') || '[]');
+                const isPinned = pinnedCards.includes(cardType);
+
+                if (!isPinned) {
+                    // تبديل حالة الإخفاء/الإظهار
+                    card.classList.toggle('d-none');
+
+                    // تحديث أيقونة الزر
+                    const icon = button.querySelector('i');
+                    if (card.classList.contains('d-none')) {
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    } else {
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    }
+                } else {
+                    // إظهار رسالة للمستخدم
+                    alert('هذا الكرت مثبت ولا يمكن إخفاؤه. قم بإلغاء تثبيته أولاً.');
+                }
+            }
+        }
+    });
+
+    // إضافة معالج حدث لتثبيت/إلغاء تثبيت الكروت
+    document.getElementById('pin-stats-cards').addEventListener('click', function() {
+        // فتح نافذة منبثقة لاختيار الكروت المراد تثبيتها
+        const statsCards = document.querySelectorAll('.stats-card');
+        const pinnedCards = JSON.parse(localStorage.getItem('pinnedCards') || '[]');
+
+        let modalHtml = `
+            <div class="modal fade" id="pinCardsModal" tabindex="-1" aria-labelledby="pinCardsModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="pinCardsModalLabel">تثبيت الكروت</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>اختر الكروت التي تريد تثبيتها (لن يتم إخفاؤها عند الضغط على زر الإخفاء)</p>
+                            <div class="list-group">
+        `;
+
+        statsCards.forEach(card => {
+            const cardType = card.getAttribute('data-card-type');
+            const cardTitle = card.querySelector('.card-title').textContent;
+            const isPinned = pinnedCards.includes(cardType);
+
+            modalHtml += `
+                <div class="list-group-item">
+                    <div class="form-check">
+                        <input class="form-check-input pin-card-checkbox" type="checkbox" value="${cardType}" id="pin-${cardType}" ${isPinned ? 'checked' : ''}>
+                        <label class="form-check-label" for="pin-${cardType}">
+                            ${cardTitle}
+                        </label>
+                    </div>
+                </div>
+            `;
+        });
+
+        modalHtml += `
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="button" class="btn btn-primary" id="save-pinned-cards">حفظ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // إضافة النافذة المنبثقة إلى الصفحة
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // عرض النافذة المنبثقة
+        const modal = new bootstrap.Modal(document.getElementById('pinCardsModal'));
+        modal.show();
+
+        // إضافة معالج حدث لزر الحفظ
+        document.getElementById('save-pinned-cards').addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.pin-card-checkbox:checked');
+            const newPinnedCards = Array.from(checkboxes).map(checkbox => checkbox.value);
+
+            // حفظ الكروت المثبتة في التخزين المحلي
+            localStorage.setItem('pinnedCards', JSON.stringify(newPinnedCards));
+
+            // إغلاق النافذة المنبثقة
+            modal.hide();
+
+            // إزالة النافذة المنبثقة من الصفحة
+            document.getElementById('pinCardsModal').remove();
+        });
+    });
+
+    // استعادة حالة الكروت المثبتة عند تحميل الصفحة
+    function restorePinnedCards() {
+        const pinnedCards = JSON.parse(localStorage.getItem('pinnedCards') || '[]');
+        console.log('Pinned cards:', pinnedCards);
+    }
+
+    // استدعاء الدالة عند تحميل الصفحة
+    restorePinnedCards();
+
+    // استعادة ألوان الكروت المخصصة
+    restoreCardColors();
+
+    // إضافة معالج حدث لزر تصدير التقرير
+    document.getElementById('export-report').addEventListener('click', function() {
+        // فتح النافذة المنبثقة
+        const modal = new bootstrap.Modal(document.getElementById('exportReportModal'));
+        modal.show();
+    });
+
+    // إضافة معالج حدث لأزرار اختيار اللون
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.color-picker-btn')) {
+            const button = e.target.closest('.color-picker-btn');
+            const cardType = button.getAttribute('data-card-type');
+            const panelType = button.getAttribute('data-panel-type');
+
+            // تحديد الكرت المراد تغيير لونه
+            let card;
+            if (cardType === 'panel-type' && panelType) {
+                card = document.querySelector(`.stats-card[data-card-type="${cardType}"][data-panel-type="${panelType}"]`);
+            } else {
+                card = document.querySelector(`.stats-card[data-card-type="${cardType}"]`);
+            }
+
+            if (card) {
+                // الحصول على اللون الحالي
+                const cardElement = card.querySelector('.card');
+                const currentColor = getComputedStyle(cardElement).backgroundColor;
+                const hexColor = rgbToHex(currentColor);
+
+                // تعيين اللون الحالي في منتقي الألوان
+                document.getElementById('color-picker-input').value = hexColor;
+
+                // تخزين معلومات الكرت الحالي
+                document.getElementById('current-card-type').value = cardType;
+                document.getElementById('current-panel-type').value = panelType || '';
+
+                // فتح النافذة المنبثقة
+                const modal = new bootstrap.Modal(document.getElementById('colorPickerModal'));
+                modal.show();
+            }
+        }
+    });
+
+    // إضافة معالج حدث للألوان المقترحة
+    document.querySelectorAll('.color-preset').forEach(button => {
+        button.addEventListener('click', function() {
+            const color = this.getAttribute('data-color');
+            document.getElementById('color-picker-input').value = color;
+        });
+    });
+
+    // إضافة معالج حدث لزر تطبيق اللون
+    document.getElementById('apply-color').addEventListener('click', function() {
+        const color = document.getElementById('color-picker-input').value;
+        const cardType = document.getElementById('current-card-type').value;
+        const panelType = document.getElementById('current-panel-type').value;
+
+        // تحديد الكرت المراد تغيير لونه
+        let card;
+        if (cardType === 'panel-type' && panelType) {
+            card = document.querySelector(`.stats-card[data-card-type="${cardType}"][data-panel-type="${panelType}"]`);
+        } else {
+            card = document.querySelector(`.stats-card[data-card-type="${cardType}"]`);
+        }
+
+        if (card) {
+            // تغيير لون الكرت
+            const cardElement = card.querySelector('.card');
+
+            // إزالة جميع الألوان السابقة
+            cardElement.classList.remove('bg-primary', 'bg-success', 'bg-warning', 'bg-danger', 'bg-info', 'bg-secondary', 'bg-light', 'text-white');
+
+            // تعيين اللون الجديد
+            cardElement.style.backgroundColor = color;
+
+            // تحديد لون النص بناءً على لون الخلفية
+            const brightness = getBrightness(color);
+            if (brightness < 128) {
+                cardElement.classList.add('text-white');
+            } else {
+                cardElement.classList.remove('text-white');
+            }
+
+            // حفظ اللون في التخزين المحلي
+            saveCardColor(cardType, panelType, color);
+        }
+
+        // إغلاق النافذة المنبثقة
+        const modal = bootstrap.Modal.getInstance(document.getElementById('colorPickerModal'));
+        modal.hide();
+    });
+
+    // دالة لتحويل RGB إلى HEX
+    function rgbToHex(rgb) {
+        // التحقق من أن القيمة هي RGB
+        if (rgb.startsWith('rgb')) {
+            // استخراج القيم RGB
+            const rgbValues = rgb.match(/\d+/g);
+            if (rgbValues && rgbValues.length >= 3) {
+                const r = parseInt(rgbValues[0]);
+                const g = parseInt(rgbValues[1]);
+                const b = parseInt(rgbValues[2]);
+
+                // تحويل إلى HEX
+                return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            }
+        }
+
+        // إذا لم تكن RGB، إرجاع القيمة كما هي
+        return rgb;
+    }
+
+    // دالة لحساب سطوع اللون
+    function getBrightness(color) {
+        // تحويل اللون إلى RGB
+        let r, g, b;
+
+        // إذا كان اللون بتنسيق HEX
+        if (color.startsWith('#')) {
+            const hex = color.substring(1);
+            r = parseInt(hex.substr(0, 2), 16);
+            g = parseInt(hex.substr(2, 2), 16);
+            b = parseInt(hex.substr(4, 2), 16);
+        }
+        // إذا كان اللون بتنسيق RGB
+        else if (color.startsWith('rgb')) {
+            const rgbValues = color.match(/\d+/g);
+            if (rgbValues && rgbValues.length >= 3) {
+                r = parseInt(rgbValues[0]);
+                g = parseInt(rgbValues[1]);
+                b = parseInt(rgbValues[2]);
+            } else {
+                return 255; // قيمة افتراضية
+            }
+        }
+        // إذا كان اللون غير معروف
+        else {
+            return 255; // قيمة افتراضية
+        }
+
+        // حساب السطوع (0-255)
+        return (r * 299 + g * 587 + b * 114) / 1000;
+    }
+
+    // دالة لحفظ لون الكرت في التخزين المحلي
+    function saveCardColor(cardType, panelType, color) {
+        // الحصول على الألوان المخزنة
+        const cardColors = JSON.parse(localStorage.getItem('cardColors') || '{}');
+
+        // تحديد مفتاح الكرت
+        const key = cardType === 'panel-type' && panelType ? `${cardType}-${panelType}` : cardType;
+
+        // حفظ اللون
+        cardColors[key] = color;
+
+        // حفظ الألوان في التخزين المحلي
+        localStorage.setItem('cardColors', JSON.stringify(cardColors));
+    }
+
+    // دالة لاستعادة ألوان الكروت من التخزين المحلي
+    function restoreCardColors() {
+        // الحصول على الألوان المخزنة
+        const cardColors = JSON.parse(localStorage.getItem('cardColors') || '{}');
+
+        // استعادة ألوان الكروت
+        for (const key in cardColors) {
+            const color = cardColors[key];
+
+            // تحديد نوع الكرت ونوع اللوحة
+            let cardType, panelType;
+            if (key.startsWith('panel-type-')) {
+                cardType = 'panel-type';
+                panelType = key.substring('panel-type-'.length);
+            } else {
+                cardType = key;
+                panelType = null;
+            }
+
+            // تحديد الكرت
+            let card;
+            if (cardType === 'panel-type' && panelType) {
+                card = document.querySelector(`.stats-card[data-card-type="${cardType}"][data-panel-type="${panelType}"]`);
+            } else {
+                card = document.querySelector(`.stats-card[data-card-type="${cardType}"]`);
+            }
+
+            if (card) {
+                // تغيير لون الكرت
+                const cardElement = card.querySelector('.card');
+
+                // إزالة جميع الألوان السابقة
+                cardElement.classList.remove('bg-primary', 'bg-success', 'bg-warning', 'bg-danger', 'bg-info', 'bg-secondary', 'bg-light', 'text-white');
+
+                // تعيين اللون الجديد
+                cardElement.style.backgroundColor = color;
+
+                // تحديد لون النص بناءً على لون الخلفية
+                const brightness = getBrightness(color);
+                if (brightness < 128) {
+                    cardElement.classList.add('text-white');
+                } else {
+                    cardElement.classList.remove('text-white');
+                }
+            }
+        }
+    }
+
+    // إضافة معالج حدث لزر تصدير التقرير في النافذة المنبثقة
+    document.getElementById('export-report-btn').addEventListener('click', function() {
+        // تحديث قيمة حقل اللوحات المفلترة
+        const filteredPanelsInput = document.getElementById('filtered-panels-input');
+        const filteredPanelIds = markers.map(m => m.panel.id);
+        filteredPanelsInput.value = JSON.stringify(filteredPanelIds);
+
+        // إرسال النموذج
+        document.getElementById('export-report-form').submit();
+    });
+
+    // وظائف مساعدة للأزرار
+    function viewPanelReadings(panelId) {
+        console.log('عرض قراءات اللوحة:', panelId);
+        window.location.href = "{{ url_for('panel_readings', panel_id=0) }}".replace('0', panelId);
+    }
+
+    function viewPanelDetails(panelId) {
+        console.log('عرض تفاصيل اللوحة:', panelId);
+        window.location.href = "{{ url_for('panel_details', panel_id=0) }}".replace('0', panelId);
+    }
+
+    function reportPanelIssue(panelId) {
+        console.log('إبلاغ عن مشكلة في اللوحة:', panelId);
+
+        // فحص الصلاحيات
+        {% if current_user.is_authenticated %}
+            // توجيه جميع المستخدمين إلى صفحة البلاغات الجديدة مع تحديد اللوحة
+            window.location.href = "{{ url_for('issues') }}?panel_id=" + panelId + "&action=new";
+        {% else %}
+            alert('يجب تسجيل الدخول أولاً');
+            window.location.href = "{{ url_for('login') }}";
+        {% endif %}
+    }
+
+    function addManualReading(panelId) {
+        console.log('إضافة قراءة يدوية للوحة:', panelId);
+        window.location.href = "{{ url_for('readings.add_manual_reading_view', panel_id=0) }}".replace('0', panelId);
+    }
+
+    function requestInspection(panelId) {
+        console.log('طلب فحص للوحة:', panelId);
+        // توجيه إلى صفحة طلبات الفحص الجديدة مع تحديد اللوحة
+        window.location.href = "{{ url_for('inspection_requests') }}?panel_id=" + panelId + "&action=new";
+    }
+
+    // إضافة وظيفة لعرض نتائج البحث في قائمة
+    function showSearchResults(results) {
+        if (results.length === 0) {
+            return;
+        }
+
+        // إنشاء قائمة بنتائج البحث
+        let resultsHtml = `
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="fas fa-search me-2"></i>
+                    {{ translate('نتائج البحث', get_setting('language', 'ar')) }} (${results.length})
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+        `;
+
+        // إضافة كل لوحة إلى القائمة
+        results.forEach(panel => {
+            let statusClass = 'bg-success';
+            if (panel.is_tripped) {
+                statusClass = 'bg-secondary';
+            } else if (panel.current_status === 'danger' || panel.voltage_status === 'danger') {
+                statusClass = 'bg-danger';
+            } else if (panel.current_status === 'warning' || panel.voltage_status === 'warning') {
+                statusClass = 'bg-warning';
+            }
+
+            resultsHtml += `
+                <a href="javascript:void(0)" onclick="showPanelOnMap(${panel.id})" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${panel.mdb}</strong>
+                            <div class="small text-muted">${panel.area_name}</div>
+                        </div>
+                        <span class="badge ${statusClass}">${panel.status}</span>
+                    </div>
+                </a>
+            `;
+        });
+
+        resultsHtml += `
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // إضافة القائمة بعد عداد اللوحات
+        const panelsCountCard = document.querySelector('#panels-count').closest('.card');
+        if (panelsCountCard) {
+            panelsCountCard.insertAdjacentHTML('afterend', resultsHtml);
+        }
+    }
+
+    // تحديث إحصائيات اللوحات
+    function updatePanelStats(data) {
+        // تحديث العدد الإجمالي
+        const totalCount = document.getElementById('total-count');
+        const totalPanelsCount = document.getElementById('total-panels-count');
+        if (totalCount) totalCount.textContent = data.length;
+        if (totalPanelsCount) totalPanelsCount.textContent = data.length;
+
+        // حساب عدد اللوحات لكل نوع
+        const panelTypeCounts = {};
+        data.forEach(panel => {
+            if (panel.panel_type) {
+                if (!panelTypeCounts[panel.panel_type]) {
+                    panelTypeCounts[panel.panel_type] = 0;
+                }
+                panelTypeCounts[panel.panel_type]++;
+            }
+        });
+
+        // تحديث كروت أنواع اللوحات
+        const panelTypeCards = document.querySelectorAll('.panel-type-card');
+        panelTypeCards.forEach(card => {
+            const panelType = card.getAttribute('data-panel-type');
+            const countElement = card.querySelector('.panel-type-count');
+            if (countElement) {
+                countElement.textContent = panelTypeCounts[panelType] || 0;
+            }
+
+            // تغيير لون الكرت بناءً على عدد اللوحات
+            const cardElement = card.querySelector('.card');
+            if (cardElement) {
+                // إزالة جميع الألوان السابقة
+                cardElement.classList.remove('bg-primary', 'bg-success', 'bg-warning', 'bg-danger', 'bg-info', 'bg-secondary', 'text-white');
+
+                // إضافة اللون المناسب بناءً على عدد اللوحات
+                const count = panelTypeCounts[panelType] || 0;
+                if (count > 0) {
+                    if (count >= 100) {
+                        cardElement.classList.add('bg-danger', 'text-white');
+                    } else if (count >= 50) {
+                        cardElement.classList.add('bg-warning');
+                    } else if (count >= 20) {
+                        cardElement.classList.add('bg-info', 'text-white');
+                    } else if (count >= 10) {
+                        cardElement.classList.add('bg-success', 'text-white');
+                    } else {
+                        cardElement.classList.add('bg-secondary', 'text-white');
+                    }
+                }
+            }
+        });
+
+        // حساب إحصائيات إضافية
+        let workingCount = 0;
+        let notWorkingCount = 0;
+        let withIssuesCount = 0;
+        let noIssuesCount = 0;
+        let scadaConnectedCount = 0;
+        let notScadaConnectedCount = 0;
+
+        data.forEach(panel => {
+            // حالة التشغيل
+            if (panel.status === 'عامل') {
+                workingCount++;
+            } else {
+                notWorkingCount++;
+            }
+
+            // حالة الأعطال
+            if (panel.issues_count && panel.issues_count > 0) {
+                withIssuesCount++;
+            } else {
+                noIssuesCount++;
+            }
+
+            // حالة الارتباط بنظام سكادا
+            if (panel.is_scada_connected) {
+                scadaConnectedCount++;
+            } else {
+                notScadaConnectedCount++;
+            }
+        });
+
+        // تحديث الكروت الإضافية
+        updateCardCount('working-count', workingCount);
+        updateCardCount('not-working-count', notWorkingCount);
+        updateCardCount('with-issues-count', withIssuesCount);
+        updateCardCount('no-issues-count', noIssuesCount);
+        updateCardCount('scada-connected-count', scadaConnectedCount);
+        updateCardCount('not-scada-connected-count', notScadaConnectedCount);
+    }
+
+    // تحديث عدد الكرت
+    function updateCardCount(elementId, count) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = count;
+        }
+    }
+
+    // إضافة وظيفة للانتقال إلى اللوحة على الخريطة
+    function showPanelOnMap(panelId) {
+        // البحث عن اللوحة في البيانات
+        const panel = panelData.find(p => p.id === panelId);
+        if (!panel) return;
+
+        // الانتقال إلى اللوحة
+        map.setView([panel.y_coordinate, panel.x_coordinate], 18);
+
+        // عرض معلومات اللوحة
+        showPanelInfo(panel);
+
+        // إبراز اللوحة على الخريطة
+        highlightPanelMarker(panelId);
+    }
+
+    // إضافة وظيفة لإبراز علامة اللوحة على الخريطة
+    function highlightPanelMarker(panelId) {
+        // إزالة التأثير من جميع العلامات
+        markers.forEach(marker => {
+            // إعادة تعيين حجم وشكل العلامة الافتراضي
+            const icon = marker.getIcon();
+            if (icon) {
+                icon.options.radius = 8;
+                icon.options.weight = 1;
+                marker.setIcon(icon);
+            }
+        });
+
+        // البحث عن العلامة المطلوبة
+        const marker = markers.find(m => m.panel && m.panel.id === panelId);
+        if (marker) {
+            // تكبير العلامة وإضافة تأثير وميض
+            const icon = marker.getIcon();
+            if (icon) {
+                icon.options.radius = 15;
+                icon.options.weight = 3;
+                marker.setIcon(icon);
+
+                // إضافة تأثير وميض
+                let pulseCount = 0;
+                const pulseInterval = setInterval(() => {
+                    if (pulseCount >= 6) {
+                        clearInterval(pulseInterval);
+                        icon.options.fillOpacity = 0.6;
+                        marker.setIcon(icon);
+                        return;
+                    }
+
+                    icon.options.fillOpacity = pulseCount % 2 === 0 ? 1 : 0.3;
+                    marker.setIcon(icon);
+                    pulseCount++;
+                }, 300);
+
+                // إضافة حلقة دائرية متحركة حول العلامة
+                const circleOptions = {
+                    color: '#B89966',
+                    fillColor: '#B89966',
+                    fillOpacity: 0.2,
+                    radius: 20,
+                    weight: 2
+                };
+
+                const pulseCircle = L.circle([marker.getLatLng().lat, marker.getLatLng().lng], circleOptions).addTo(map);
+
+                // تأثير توسيع الدائرة
+                let circleRadius = 20;
+                const circleInterval = setInterval(() => {
+                    circleRadius += 5;
+                    if (circleRadius > 50) {
+                        clearInterval(circleInterval);
+                        map.removeLayer(pulseCircle);
+                        return;
+                    }
+
+                    pulseCircle.setRadius(circleRadius);
+                    pulseCircle.setStyle({
+                        fillOpacity: 0.6 - (circleRadius - 20) / 50
+                    });
+                }, 100);
+            }
+        }
+    }
+
+    // تحديث الفلاتر المترابطة عند تحميل الصفحة
+    updateMapFilters();
+
+    // ==================== عرض البانوراما على الخريطة ====================
+    
+    // جلب البانوراما من السيرفر
+    fetch('/api/panoramas')
+        .then(response => response.json())
+        .then(panoramas => {
+            panoramas.forEach(function(panorama) {
+                if (panorama.latitude && panorama.longitude) {
+                    // إنشاء Marker للبانوراما
+                    var panoramaMarker = L.marker([panorama.latitude, panorama.longitude], {
+                        icon: L.divIcon({
+                            className: 'panorama-marker',
+                            html: '<div style="background: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3);"><i class="fas fa-street-view" style="color: #764ba2; font-size: 18px;"></i></div>',
+                            iconSize: [30, 30]
+                        })
+                    }).addTo(map);
+                    
+                    // إضافة Popup
+                    panoramaMarker.bindPopup(`
+                        <div class="panorama-popup" style="min-width: 200px;">
+                            <h6 style="color: #764ba2; margin-bottom: 10px;">${panorama.title}</h6>
+                            <p style="margin-bottom: 10px;">${panorama.location_name || ''}</p>
+                            <a href="/panorama360/view/${panorama.id}" target="_blank" 
+                               class="btn btn-sm btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                                <i class="fas fa-street-view me-1"></i>
+                                عرض البانوراما 360°
+                            </a>
+                        </div>
+                    `);
+                }
+            });
+        })
+        .catch(error => console.error('Error loading panoramas:', error));
+
+</script>
+{% endblock %}

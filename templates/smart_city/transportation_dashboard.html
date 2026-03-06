@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-car me-2"></i>
+                لوحة معلومات النقل والمواقف
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item active">النقل والمواقف</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ total_parking_capacity }}</h4>
+                            <p class="card-text">إجمالي المواقف</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-parking fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ total_occupied }}</h4>
+                            <p class="card-text">المواقف المشغولة</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-car fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ occupancy_rate }}%</h4>
+                            <p class="card-text">معدل الإشغال</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-pie fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ active_congestion }}</h4>
+                            <p class="card-text">مناطق الازدحام</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('smart_city.add_parking_area') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>إضافة موقف
+                </a>
+                <a href="{{ url_for('smart_city.add_traffic_zone') }}" class="btn btn-warning">
+                    <i class="fas fa-plus me-2"></i>إضافة منطقة مرورية
+                </a>
+                <button type="button" class="btn btn-info" onclick="refreshMap()">
+                    <i class="fas fa-sync me-2"></i>تحديث الخريطة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map and Data -->
+    <div class="row">
+        <!-- Map -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map me-2"></i>خريطة النقل والمواقف
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="transportation-map" style="height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Tables -->
+        <div class="col-lg-4">
+            <!-- Parking Areas -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">المواقف</h6>
+                </div>
+                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                    {% for area in parking_areas %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                        <div>
+                            <strong>{{ area.name }}</strong><br>
+                            <small class="text-muted">{{ area.area_type }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-{% if area.current_occupancy / area.capacity > 0.8 %}danger{% elif area.current_occupancy / area.capacity > 0.6 %}warning{% else %}success{% endif %}">
+                                {{ area.current_occupancy }}/{{ area.capacity }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Traffic Zones -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">المناطق المرورية</h6>
+                </div>
+                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                    {% for zone in traffic_zones %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                        <div>
+                            <strong>{{ zone.name }}</strong><br>
+                            <small class="text-muted">{{ zone.zone_type }}</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-{% if zone.severity_level == 'critical' %}danger{% elif zone.severity_level == 'high' %}warning{% else %}info{% endif %}">
+                                {{ zone.severity_level }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transport Routes Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-route me-2"></i>خطوط النقل
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>اسم الخط</th>
+                                    <th>نوع النقل</th>
+                                    <th>المشغل</th>
+                                    <th>التعرفة</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for route in transport_routes %}
+                                <tr>
+                                    <td>{{ route.name }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ route.route_type }}</span>
+                                    </td>
+                                    <td>{{ route.operator or 'غير محدد' }}</td>
+                                    <td>{{ route.fare }} ريال</td>
+                                    <td>
+                                        <span class="badge bg-{% if route.is_active %}success{% else %}danger{% endif %}">
+                                            {% if route.is_active %}نشط{% else %}متوقف{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="showRouteDetails({{ route.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" onclick="editRoute({{ route.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<script>
+// Initialize map
+let map = L.map('transportation-map').setView([21.4225, 39.8262], 12); // Mecca coordinates
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Load parking areas
+function loadParkingAreas() {
+    fetch('{{ url_for("smart_city.api_parking_occupancy") }}')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(area => {
+                if (area.center_lat && area.center_lng) {
+                    let color = area.occupancy_rate > 80 ? 'red' : area.occupancy_rate > 60 ? 'orange' : 'green';
+                    
+                    let marker = L.circleMarker([area.center_lat, area.center_lng], {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.7,
+                        radius: 8
+                    }).addTo(map);
+                    
+                    marker.bindPopup(`
+                        <strong>${area.name}</strong><br>
+                        النوع: ${area.type}<br>
+                        الإشغال: ${area.occupied}/${area.capacity} (${area.occupancy_rate}%)
+                    `);
+                }
+            });
+        });
+}
+
+// Load traffic zones
+function loadTrafficZones() {
+    fetch('{{ url_for("smart_city.api_traffic_zones") }}')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(zone => {
+                if (zone.coordinates && zone.is_active) {
+                    let color = zone.severity === 'critical' ? 'red' : zone.severity === 'high' ? 'orange' : 'yellow';
+                    
+                    let polygon = L.polygon(zone.coordinates, {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.3
+                    }).addTo(map);
+                    
+                    polygon.bindPopup(`
+                        <strong>${zone.name}</strong><br>
+                        النوع: ${zone.type}<br>
+                        الشدة: ${zone.severity}<br>
+                        ${zone.description}
+                    `);
+                }
+            });
+        });
+}
+
+// Refresh map
+function refreshMap() {
+    map.eachLayer(layer => {
+        if (layer instanceof L.CircleMarker || layer instanceof L.Polygon) {
+            map.removeLayer(layer);
+        }
+    });
+    loadParkingAreas();
+    loadTrafficZones();
+}
+
+// Initialize map data
+loadParkingAreas();
+loadTrafficZones();
+
+// Route functions
+function showRouteDetails(routeId) {
+    // Implementation for showing route details
+    alert('عرض تفاصيل الخط: ' + routeId);
+}
+
+function editRoute(routeId) {
+    // Implementation for editing route
+    alert('تعديل الخط: ' + routeId);
+}
+</script>
+{% endblock %}

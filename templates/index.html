@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم لوحة المعلومات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-chart-line me-2 icon-primary"></i>
+        لوحة المعلومات
+    </h2>
+
+    <div class="row">
+        <!-- إجمالي اللوحات -->
+        <div class="col-md-3 col-sm-6">
+            <div class="dashboard-card primary">
+                <div class="title">إجمالي اللوحات</div>
+                <div class="number" id="total-panels">{{ total_panels }}</div>
+                <div><i class="fas fa-server fa-2x"></i></div>
+            </div>
+        </div>
+
+        <!-- الرسوم البيانية -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    الإحصائيات
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="chart-container">
+                                <canvas id="panel-type-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="chart-container">
+                                <canvas id="panel-status-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="chart-container">
+                                <canvas id="area-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم استيراد البيانات -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-file-import me-2 icon-secondary"></i>
+        استيراد البيانات
+    </h2>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-upload me-2"></i>
+            استيراد من ملف Excel
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('import_data') }}" method="post" enctype="multipart/form-data" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-6">
+                    <label for="file" class="form-label">اختر ملف Excel</label>
+                    <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
+                    <div class="form-text">يجب أن يحتوي الملف على الأعمدة المطلوبة: MDB، رقم تاج ماكسيمو، X، Y، الملاحظات، المرحلة، سنة التنفيذ، كود المنطقة - تشغيل، نوع لوحة التوزيع، اسم المنطقة بالتنفيذ</div>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>
+                        استيراد البيانات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- قسم البحث والتصفية -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-filter me-2 icon-primary"></i>
+        البحث والتصفية
+    </h2>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-search me-2"></i>
+            تصفية البيانات
+        </div>
+        <div class="card-body">
+            <form id="filter-form" class="row g-3">
+                <div class="col-md-3">
+                    <label for="area" class="form-label">المنطقة</label>
+                    <select class="form-select" id="area" name="area">
+                        <option value="all">جميع المناطق</option>
+                        {% for area in unique_areas %}
+                            {% if area %}
+                                <option value="{{ area }}">{{ area }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="panel_type" class="form-label">نوع اللوحة</label>
+                    <select class="form-select" id="panel_type" name="panel_type">
+                        <option value="all">جميع الأنواع</option>
+                        {% for panel_type in unique_panel_types %}
+                            {% if panel_type %}
+                                <option value="{{ panel_type }}">{{ panel_type }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="year" class="form-label">سنة التنفيذ</label>
+                    <select class="form-select" id="year" name="year">
+                        <option value="all">جميع السنوات</option>
+                        {% for year in unique_years %}
+                            {% if year %}
+                                <option value="{{ year }}">{{ year }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="fas fa-filter me-2"></i>
+                        تصفية
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-3 row">
+                <div class="col-md-8">
+                    <div class="search-box">
+                        <input type="text" class="form-control" id="search-input" placeholder="ابحث في الجدول...">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-end">
+                        <form action="{{ url_for('export_excel') }}" method="post" class="me-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" id="export-excel-area" name="area" value="all">
+                            <input type="hidden" id="export-excel-panel-type" name="panel_type" value="all">
+                            <input type="hidden" id="export-excel-year" name="year" value="all">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-file-excel me-1"></i>
+                                تصدير Excel
+                            </button>
+                        </form>
+                        <form action="{{ url_for('export_pdf') }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" id="export-pdf-area" name="area" value="all">
+                            <input type="hidden" id="export-pdf-panel-type" name="panel_type" value="all">
+                            <input type="hidden" id="export-pdf-year" name="year" value="all">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-file-pdf me-1"></i>
+                                تصدير PDF
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم عرض البيانات -->
+<section>
+    <h2 class="section-title">
+        <i class="fas fa-table me-2 icon-secondary"></i>
+        بيانات اللوحات
+    </h2>
+
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-list me-2"></i>
+            قائمة اللوحات
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="data-table">
+                    <thead>
+                        <tr>
+                            <th>MDB</th>
+                            <th>رقم تاج ماكسيمو</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>الملاحظات</th>
+                            <th>المرحلة</th>
+                            <th>سنة التنفيذ</th>
+                            <th>كود المنطقة</th>
+                            <th>نوع اللوحة</th>
+                            <th>اسم المنطقة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if panels %}
+                            {% for panel in panels %}
+                                <tr>
+                                    <td>{{ panel.mdb }}</td>
+                                    <td>{{ panel.maximo_tag }}</td>
+                                    <td>{{ panel.x_coordinate }}</td>
+                                    <td>{{ panel.y_coordinate }}</td>
+                                    <td>{{ panel.notes }}</td>
+                                    <td>{{ panel.phase }}</td>
+                                    <td>{{ panel.implementation_year }}</td>
+                                    <td>{{ panel.area_code }}</td>
+                                    <td>{{ panel.panel_type }}</td>
+                                    <td>{{ panel.area_name }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center">لا توجد بيانات متاحة. يرجى استيراد البيانات أولاً.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // بيانات الرسوم البيانية
+    const panelTypeLabels = [
+        {% for panel_type in panel_types %}
+            "{{ panel_type[0] }}",
+        {% endfor %}
+    ];
+
+    const panelTypeData = [
+        {% for panel_type in panel_types %}
+            {{ panel_type[1] }},
+        {% endfor %}
+    ];
+
+    const statusLabels = [
+        {% for status in status_counts %}
+            "{{ status[0] }}",
+        {% endfor %}
+    ];
+
+    const statusData = [
+        {% for status in status_counts %}
+            {{ status[1] }},
+        {% endfor %}
+    ];
+
+    const areaLabels = [
+        {% for area in areas %}
+            "{{ area[0] }}",
+        {% endfor %}
+    ];
+
+    const areaData = [
+        {% for area in areas %}
+            {{ area[1] }},
+        {% endfor %}
+    ];
+
+    // تحديث قيم الفلترة في نماذج التصدير
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterForm = document.getElementById('filter-form');
+        const areaSelect = document.getElementById('area');
+        const panelTypeSelect = document.getElementById('panel_type');
+        const yearSelect = document.getElementById('year');
+
+        // تحديث قيم الفلترة عند تغيير الاختيارات
+        areaSelect.addEventListener('change', updateExportForms);
+        panelTypeSelect.addEventListener('change', updateExportForms);
+        yearSelect.addEventListener('change', updateExportForms);
+
+        // تحديث قيم الفلترة عند تقديم نموذج الفلترة
+        filterForm.addEventListener('submit', function(e) {
+            updateExportForms();
+        });
+
+        // دالة لتحديث قيم الفلترة في نماذج التصدير
+        function updateExportForms() {
+            // تحديث قيم Excel
+            document.getElementById('export-excel-area').value = areaSelect.value;
+            document.getElementById('export-excel-panel-type').value = panelTypeSelect.value;
+            document.getElementById('export-excel-year').value = yearSelect.value;
+
+            // تحديث قيم PDF
+            document.getElementById('export-pdf-area').value = areaSelect.value;
+            document.getElementById('export-pdf-panel-type').value = panelTypeSelect.value;
+            document.getElementById('export-pdf-year').value = yearSelect.value;
+        }
+    });
+</script>
+{% endblock %}

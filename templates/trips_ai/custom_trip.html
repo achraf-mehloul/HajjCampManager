@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-cog me-2"></i>
+                طلب رحلة مخصصة
+            </h1>
+            <p class="lead">صمم رحلتك المثالية حسب احتياجاتك وتفضيلاتك الخاصة</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('trips_ai.index') }}">الرحلات والذكاء الاصطناعي</a></li>
+                    <li class="breadcrumb-item active">طلب رحلة مخصصة</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-form me-2"></i>تفاصيل الرحلة المطلوبة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="custom-trip-form">
+                        <!-- Customer Information -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-user me-2"></i>معلومات العميل
+                                </h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="customer_name" class="form-label">الاسم الكامل *</label>
+                                <input type="text" class="form-control" id="customer_name" name="customer_name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="customer_email" class="form-label">البريد الإلكتروني *</label>
+                                <input type="email" class="form-control" id="customer_email" name="customer_email" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="customer_phone" class="form-label">رقم الهاتف *</label>
+                                <input type="tel" class="form-control" id="customer_phone" name="customer_phone" required>
+                            </div>
+                        </div>
+
+                        <!-- Trip Details -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-plane me-2"></i>تفاصيل الرحلة
+                                </h6>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="trip_type" class="form-label">نوع الرحلة *</label>
+                                <select class="form-select" id="trip_type" name="trip_type" required>
+                                    <option value="">اختر نوع الرحلة</option>
+                                    <option value="hajj">حج</option>
+                                    <option value="umrah">عمرة</option>
+                                    <option value="tourism">سياحة دينية</option>
+                                    <option value="mixed">مختلط (حج/عمرة + سياحة)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="number_of_travelers" class="form-label">عدد المسافرين *</label>
+                                <input type="number" class="form-control" id="number_of_travelers" name="number_of_travelers" min="1" max="50" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="duration_days" class="form-label">المدة المفضلة (أيام)</label>
+                                <input type="number" class="form-control" id="duration_days" name="duration_days" min="1" max="30">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="budget_range" class="form-label">نطاق الميزانية (ريال للشخص)</label>
+                                <select class="form-select" id="budget_range" name="budget_range">
+                                    <option value="">لا يهم</option>
+                                    <option value="budget">اقتصادي (أقل من 5000)</option>
+                                    <option value="mid">متوسط (5000 - 10000)</option>
+                                    <option value="premium">مميز (10000 - 20000)</option>
+                                    <option value="luxury">فاخر (أكثر من 20000)</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="preferred_dates" class="form-label">التواريخ المفضلة</label>
+                                <textarea class="form-control" id="preferred_dates" name="preferred_dates" rows="2" 
+                                    placeholder="مثال: شهر رمضان 2024، أو من 15 إلى 25 يونيو، أو أي وقت مناسب"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Preferences -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-heart me-2"></i>التفضيلات
+                                </h6>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="preferred_locations" class="form-label">المواقع المفضلة للزيارة</label>
+                                <textarea class="form-control" id="preferred_locations" name="preferred_locations" rows="2" 
+                                    placeholder="مثال: المسجد الحرام، المسجد النبوي، جبل النور، غار حراء، المدينة القديمة"></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="accommodation_preferences" class="form-label">تفضيلات الإقامة</label>
+                                <textarea class="form-control" id="accommodation_preferences" name="accommodation_preferences" rows="3" 
+                                    placeholder="مثال: فندق 5 نجوم قريب من الحرم، غرف عائلية، إطلالة على الكعبة"></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="transport_preferences" class="form-label">تفضيلات النقل</label>
+                                <textarea class="form-control" id="transport_preferences" name="transport_preferences" rows="3" 
+                                    placeholder="مثال: طيران مباشر، حافلة مكيفة، سيارة خاصة مع سائق"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Special Requirements -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-exclamation-circle me-2"></i>متطلبات خاصة
+                                </h6>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label for="special_requirements" class="form-label">متطلبات أو طلبات خاصة</label>
+                                <textarea class="form-control" id="special_requirements" name="special_requirements" rows="4" 
+                                    placeholder="مثال: وجبات حلال، مرافق لذوي الاحتياجات الخاصة، مرشد يتحدث الإنجليزية، برنامج للأطفال"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>إرسال طلب الرحلة المخصصة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Process Steps -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-list-ol me-2"></i>خطوات العملية
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item active">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6>1. إرسال الطلب</h6>
+                                <p class="text-muted small">املأ النموذج وأرسل طلبك</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-secondary"></div>
+                            <div class="timeline-content">
+                                <h6>2. المراجعة والتحليل</h6>
+                                <p class="text-muted small">سنراجع طلبك ونحلل احتياجاتك</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-secondary"></div>
+                            <div class="timeline-content">
+                                <h6>3. إعداد العرض</h6>
+                                <p class="text-muted small">سنعد عرضاً مخصصاً لك</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-secondary"></div>
+                            <div class="timeline-content">
+                                <h6>4. التواصل والتأكيد</h6>
+                                <p class="text-muted small">سنتواصل معك لتأكيد التفاصيل</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Benefits -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-star me-2"></i>مميزات الرحلة المخصصة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            تصميم مخصص حسب احتياجاتك
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            مرونة في التواريخ والمدة
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            اختيار مستوى الخدمة المناسب
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            مرشد سياحي متخصص
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            دعم على مدار الساعة
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            ضمان أفضل الأسعار
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-phone me-2"></i>تحتاج مساعدة؟
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <i class="fas fa-phone text-primary me-2"></i>
+                        <strong>الهاتف:</strong> 920000000
+                    </p>
+                    <p class="mb-2">
+                        <i class="fas fa-envelope text-primary me-2"></i>
+                        <strong>البريد:</strong> info@example.com
+                    </p>
+                    <p class="mb-3">
+                        <i class="fas fa-clock text-primary me-2"></i>
+                        <strong>ساعات العمل:</strong> 24/7
+                    </p>
+                    <div class="d-grid">
+                        <a href="{{ url_for('trips_ai.chatbot_page') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-comments me-2"></i>تحدث مع المساعد الذكي
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-item.active .timeline-marker {
+    box-shadow: 0 0 0 2px #007bff;
+}
+
+.timeline-content h6 {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.timeline-content p {
+    margin-bottom: 0;
+    font-size: 0.8rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('custom-trip-form');
+    
+    form.addEventListener('submit', function(e) {
+        // Basic validation
+        const requiredFields = form.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('يرجى ملء جميع الحقول المطلوبة');
+            return;
+        }
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الإرسال...';
+        submitBtn.disabled = true;
+    });
+    
+    // Auto-resize textareas
+    const textareas = form.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    });
+});
+</script>
+{% endblock %}

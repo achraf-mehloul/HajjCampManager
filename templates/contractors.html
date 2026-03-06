@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم إدارة المقاولين -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-hard-hat me-2 icon-primary"></i>
+        إدارة المقاولين
+    </h2>
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-end">
+                <a href="{{ url_for('import_contractors') }}" class="btn btn-success">
+                    <i class="fas fa-file-import me-2"></i>
+                    استيراد بيانات المقاولين
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- إضافة مقاول جديد -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    إضافة مقاول جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_contractor') }}" method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">اسم المقاول</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="contact_person" class="form-label">الشخص المسؤول</label>
+                            <input type="text" class="form-control" id="contact_person" name="contact_person" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">رقم الهاتف</label>
+                            <input type="text" class="form-control" id="phone" name="phone" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="area_responsibility" class="form-label">منطقة المسؤولية</label>
+                            <select class="form-select" id="area_responsibility" name="area_responsibility" required>
+                                <option value="">اختر المنطقة</option>
+                                {% for area in unique_areas %}
+                                    {% if area %}
+                                        <option value="{{ area }}">{{ area }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_manager" name="is_manager">
+                            <label class="form-check-label" for="is_manager">مقاول مدير</label>
+                            <div class="form-text">المقاول المدير يمكنه رؤية جميع المناطق التابعة للمقاولين الذين تحته</div>
+                        </div>
+                        <div class="mb-3 parent-contractor-field" style="display: none;">
+                            <label for="parent_contractor_id" class="form-label">المقاول الأب (اختياري)</label>
+                            <select class="form-select" id="parent_contractor_id" name="parent_contractor_id">
+                                <option value="">-- بدون مقاول أب --</option>
+                                {% for contractor in manager_contractors %}
+                                    <option value="{{ contractor.id }}">{{ contractor.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">اختر المقاول المدير الذي يشرف على هذا المقاول</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            إضافة المقاول
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة المقاولين -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-list me-2"></i>
+                    قائمة المقاولين
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>اسم المقاول</th>
+                                    <th>الشخص المسؤول</th>
+                                    <th>رقم الهاتف</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>منطقة المسؤولية</th>
+                                    <th>عدد البلاغات</th>
+                                    <th>النوع</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if contractors %}
+                                    {% for contractor in contractors %}
+                                        <tr>
+                                            <td>{{ contractor.name }}</td>
+                                            <td>{{ contractor.contact_person }}</td>
+                                            <td>{{ contractor.phone }}</td>
+                                            <td>{{ contractor.email }}</td>
+                                            <td>{{ contractor.area_responsibility }}</td>
+                                            <td>{{ contractor.issues_count }}</td>
+                                            <td>
+                                                {% if contractor.is_manager %}
+                                                    <span class="badge bg-primary">مقاول مدير</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">مقاول عادي</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('edit_contractor', contractor_id=contractor.id) }}" class="btn btn-info" title="تعديل المقاول">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('contractor_teams', contractor_id=contractor.id) }}" class="btn btn-primary" title="إدارة الفرق">
+                                                        <i class="fas fa-users-cog"></i>
+                                                    </a>
+                                                    <a href="{{ url_for('contractor_issues', contractor_id=contractor.id) }}" class="btn btn-warning" title="عرض البلاغات">
+                                                        <i class="fas fa-clipboard-list"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">لا يوجد مقاولين</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- قسم إحصائيات المقاولين -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-chart-pie me-2 icon-secondary"></i>
+        إحصائيات المقاولين
+    </h2>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    البلاغات حسب المقاول
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="contractors-issues-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-tasks me-2"></i>
+                    حالة البلاغات حسب المقاول
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="contractors-status-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // إظهار/إخفاء حقل المقاول الأب عند تغيير حالة المقاول المدير
+    document.addEventListener('DOMContentLoaded', function() {
+        const isManagerCheckbox = document.getElementById('is_manager');
+        const parentContractorField = document.querySelector('.parent-contractor-field');
+
+        if (isManagerCheckbox && parentContractorField) {
+            isManagerCheckbox.addEventListener('change', function() {
+                if (!this.checked) {
+                    parentContractorField.style.display = 'block';
+                } else {
+                    parentContractorField.style.display = 'none';
+                    document.getElementById('parent_contractor_id').value = '';
+                }
+            });
+        }
+    });
+
+    // بيانات الرسوم البيانية
+    const contractorsLabels = [
+        {% for contractor in contractors %}
+            "{{ contractor.name }}",
+        {% endfor %}
+    ];
+
+    const contractorsIssuesData = [
+        {% for contractor in contractors %}
+            {{ contractor.issues_count }},
+        {% endfor %}
+    ];
+
+    // تهيئة الرسوم البيانية عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        // رسم بياني للبلاغات حسب المقاول
+        const contractorsIssuesCtx = document.getElementById('contractors-issues-chart');
+        if (contractorsIssuesCtx) {
+            new Chart(contractorsIssuesCtx, {
+                type: 'bar',
+                data: {
+                    labels: contractorsLabels,
+                    datasets: [{
+                        label: 'عدد البلاغات',
+                        data: contractorsIssuesData,
+                        backgroundColor: 'rgba(184, 153, 102, 0.7)',
+                        borderColor: 'rgba(184, 153, 102, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    family: 'Cairo'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'عدد البلاغات لكل مقاول',
+                            font: {
+                                family: 'Cairo',
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

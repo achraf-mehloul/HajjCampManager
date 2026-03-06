@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-home me-2"></i>
+                لوحة معلومات إدارة الإسكان
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">الرئيسية</a></li>
+                    <li class="breadcrumb-item active">إدارة الإسكان</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ total_units }}</h4>
+                            <p class="card-text">إجمالي الوحدات</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-building fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ occupied_units }}</h4>
+                            <p class="card-text">الوحدات المشغولة</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ vacant_units }}</h4>
+                            <p class="card-text">الوحدات الشاغرة</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-door-open fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ damaged_units }}</h4>
+                            <p class="card-text">الوحدات المتضررة</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Occupancy Rate -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">معدل الإشغال</h6>
+                </div>
+                <div class="card-body">
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ occupancy_rate }}%">
+                            {{ occupancy_rate }}%
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">معدل إشغال الوحدات السكنية</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">التفتيشات الحديثة</h6>
+                </div>
+                <div class="card-body">
+                    <p class="h4 mb-0">{{ recent_inspections|length }}</p>
+                    <small class="text-muted">تفتيش خلال الأسبوع الماضي</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('smart_city.add_housing_unit') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>إضافة وحدة سكنية
+                </a>
+                <button type="button" class="btn btn-success" onclick="scheduleInspection()">
+                    <i class="fas fa-calendar-check me-2"></i>جدولة تفتيش
+                </button>
+                <button type="button" class="btn btn-info" onclick="generateReport()">
+                    <i class="fas fa-file-alt me-2"></i>تقرير شامل
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map and Data -->
+    <div class="row">
+        <!-- Map -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map me-2"></i>خريطة الوحدات السكنية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="housing-map" style="height: 500px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Inspections -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">التفتيشات الحديثة</h6>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    {% for inspection in recent_inspections %}
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+                        <div>
+                            <strong>وحدة {{ inspection.housing_unit.unit_number }}</strong><br>
+                            <small class="text-muted">{{ inspection.inspection_date.strftime('%Y-%m-%d') }}</small><br>
+                            <span class="badge bg-{% if inspection.overall_condition == 'excellent' %}success{% elif inspection.overall_condition == 'good' %}primary{% elif inspection.overall_condition == 'fair' %}warning{% else %}danger{% endif %}">
+                                {{ inspection.overall_condition }}
+                            </span>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewInspection({{ inspection.id }})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Housing Units Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table me-2"></i>قائمة الوحدات السكنية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>رقم الوحدة</th>
+                                    <th>رقم المبنى</th>
+                                    <th>النوع</th>
+                                    <th>الفئة</th>
+                                    <th>الحالة</th>
+                                    <th>الإشغال</th>
+                                    <th>عدد الغرف</th>
+                                    <th>المساحة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for unit in housing_units %}
+                                <tr>
+                                    <td>{{ unit.unit_number }}</td>
+                                    <td>{{ unit.building_number or 'غير محدد' }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ unit.unit_type }}</span>
+                                    </td>
+                                    <td>{{ unit.housing_category or 'غير محدد' }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if unit.condition_status == 'good' %}success{% elif unit.condition_status == 'fair' %}warning{% else %}danger{% endif %}">
+                                            {{ unit.condition_status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if unit.occupancy_status == 'occupied' %}success{% elif unit.occupancy_status == 'vacant' %}warning{% else %}info{% endif %}">
+                                            {{ unit.occupancy_status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ unit.number_of_rooms or 'غير محدد' }}</td>
+                                    <td>{{ unit.floor_area or 'غير محدد' }} م²</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewUnit({{ unit.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" onclick="editUnit({{ unit.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success" onclick="inspectUnit({{ unit.id }})">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<script>
+// Initialize map
+let map = L.map('housing-map').setView([21.4225, 39.8262], 13); // Mecca coordinates
+
+// Add tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Add housing units to map
+{% for unit in housing_units %}
+{% if unit.center_lat and unit.center_lng %}
+let conditionColor = '{% if unit.condition_status == "good" %}green{% elif unit.condition_status == "fair" %}orange{% else %}red{% endif %}';
+let occupancyIcon = '{% if unit.occupancy_status == "occupied" %}users{% elif unit.occupancy_status == "vacant" %}door-open{% else %}question{% endif %}';
+
+let marker = L.marker([{{ unit.center_lat }}, {{ unit.center_lng }}]).addTo(map);
+
+marker.bindPopup(`
+    <strong>وحدة {{ unit.unit_number }}</strong><br>
+    المبنى: {{ unit.building_number or 'غير محدد' }}<br>
+    النوع: {{ unit.unit_type }}<br>
+    الحالة: {{ unit.condition_status }}<br>
+    الإشغال: {{ unit.occupancy_status }}<br>
+    الغرف: {{ unit.number_of_rooms or 'غير محدد' }}<br>
+    المساحة: {{ unit.floor_area or 'غير محدد' }} م²
+`);
+{% endif %}
+{% endfor %}
+
+// Functions
+function viewUnit(unitId) {
+    alert('عرض تفاصيل الوحدة: ' + unitId);
+}
+
+function editUnit(unitId) {
+    alert('تعديل الوحدة: ' + unitId);
+}
+
+function inspectUnit(unitId) {
+    alert('تفتيش الوحدة: ' + unitId);
+}
+
+function viewInspection(inspectionId) {
+    alert('عرض تفاصيل التفتيش: ' + inspectionId);
+}
+
+function scheduleInspection() {
+    alert('جدولة تفتيش جديد');
+}
+
+function generateReport() {
+    alert('إنشاء تقرير شامل');
+}
+</script>
+{% endblock %}

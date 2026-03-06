@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- قسم تفاصيل البلاغ -->
+<section class="mb-4">
+    <h2 class="section-title">
+        <i class="fas fa-exclamation-triangle me-2 icon-primary"></i>
+        تفاصيل البلاغ #{{ issue.id }}
+    </h2>
+
+    <div class="row">
+        <!-- معلومات البلاغ -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-info-circle me-2"></i>
+                        معلومات البلاغ
+                    </div>
+                    <div>
+                        <span class="badge {% if issue.status == 'مفتوح' %}bg-primary{% elif issue.status == 'قيد المعالجة' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                            {{ issue.status }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>رقم البلاغ:</strong> {{ issue.id }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>تاريخ الإنشاء:</strong> {{ issue.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>نوع المشكلة:</strong> {{ issue.issue_type }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>الأولوية:</strong>
+                            <span class="badge {% if issue.priority == 'عالي' %}bg-danger{% elif issue.priority == 'متوسط' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                                {{ issue.priority }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <strong>المقاول المسؤول:</strong> {{ issue.contractor.name if issue.contractor else 'غير محدد' }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>آخر تحديث:</strong> {{ issue.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <strong>وصف المشكلة:</strong>
+                            <div class="mt-2 p-3 bg-light rounded">
+                                <table class="table table-sm table-borderless mb-0">
+                                    {% set lines = issue.description.split('\n') %}
+                                    {% for line in lines %}
+                                        {% if line.strip() %}
+                                            {% if ':' in line and not line.startswith('=') %}
+                                                {% set parts = line.split(':', 1) %}
+                                                <tr>
+                                                    <td class="fw-bold" style="width: 200px;">{{ parts[0] }}</td>
+                                                    <td>{{ parts[1].strip() }}</td>
+                                                </tr>
+                                            {% elif not line.startswith('=') %}
+                                                <tr>
+                                                    <td colspan="2">{{ line }}</td>
+                                                </tr>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- عرض الصورة/الفيديو المرفق -->
+                    {% if issue.image_path %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <strong>المرفقات:</strong>
+                            <div class="mt-2">
+                                {% if issue.image_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')) %}
+                                    <img src="{{ url_for('static', filename=issue.image_path) }}" 
+                                         class="img-fluid rounded shadow" 
+                                         alt="صورة البلاغ"
+                                         style="max-height: 400px; cursor: pointer;"
+                                         onclick="window.open(this.src, '_blank')">
+                                    <div class="text-muted mt-2">
+                                        <small><i class="fas fa-info-circle"></i> اضغط على الصورة لعرضها بالحجم الكامل</small>
+                                    </div>
+                                {% elif issue.image_path.lower().endswith(('.mp4', '.webm', '.ogg')) %}
+                                    <video controls class="w-100 rounded shadow" style="max-height: 400px;">
+                                        <source src="{{ url_for('static', filename=issue.image_path) }}" type="video/{{ issue.image_path.split('.')[-1] }}">
+                                        المتصفح لا يدعم عرض الفيديو.
+                                    </video>
+                                {% else %}
+                                    <a href="{{ url_for('static', filename=issue.image_path) }}" target="_blank" class="btn btn-outline-primary">
+                                        <i class="fas fa-download me-2"></i>
+                                        تحميل المرفق
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- أزرار تحديث الحالة -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('issues') }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    العودة للقائمة
+                                </a>
+                                <div>
+                                    {% if issue.status != 'مغلق' %}
+                                        <a href="{{ url_for('update_issue_status', issue_id=issue.id, status='قيد المعالجة') }}" class="btn btn-warning me-2 {% if issue.status == 'قيد المعالجة' %}disabled{% endif %}">
+                                            <i class="fas fa-tools me-2"></i>
+                                            قيد المعالجة
+                                        </a>
+                                        <a href="{{ url_for('update_issue_status', issue_id=issue.id, status='مغلق') }}" class="btn btn-success">
+                                            <i class="fas fa-check me-2"></i>
+                                            إغلاق البلاغ
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('update_issue_status', issue_id=issue.id, status='مفتوح') }}" class="btn btn-primary">
+                                            <i class="fas fa-folder-open me-2"></i>
+                                            إعادة فتح البلاغ
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- نموذج تحديث الحالة باستخدام POST -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <form action="{{ url_for('update_issue_status_post', issue_id=issue.id) }}" method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="form-group">
+                                    <label for="status">تحديث الحالة:</label>
+                                    <select name="status" id="status" class="form-control">
+                                        <option value="مفتوح" {% if issue.status == 'مفتوح' %}selected{% endif %}>مفتوح</option>
+                                        <option value="قيد المعالجة" {% if issue.status == 'قيد المعالجة' %}selected{% endif %}>قيد المعالجة</option>
+                                        <option value="مغلق" {% if issue.status == 'مغلق' %}selected{% endif %}>مغلق</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary mt-2">تحديث الحالة</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- معلومات اللوحة -->
+        <div class="col-md-4">
+            {% if issue.panel %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-server me-2"></i>
+                    معلومات اللوحة
+                </div>
+                <div class="card-body">
+                    <h5 class="text-primary">{{ issue.panel.mdb }}</h5>
+                    <div class="mb-2">
+                        <strong>رقم تاج ماكسيمو:</strong> {{ issue.panel.maximo_tag }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>المنطقة:</strong> {{ issue.panel.area_name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>نوع اللوحة:</strong> {{ issue.panel.panel_type }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>سنة التنفيذ:</strong> {{ issue.panel.implementation_year }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>الحالة:</strong>
+                        <span class="badge {% if issue.panel.status == 'عامل' %}bg-success{% elif issue.panel.status == 'معطل' %}bg-danger{% else %}bg-warning{% endif %}">
+                            {{ issue.panel.status }}
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <a href="/panel/{{ issue.panel.id }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-info-circle me-1"></i>
+                            تفاصيل اللوحة
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الموقع على الخريطة -->
+            {% if issue.panel.x_coordinate and issue.panel.y_coordinate %}
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    موقع اللوحة
+                </div>
+                <div class="card-body">
+                    <div id="issue-map" style="height: 200px; border-radius: 5px;"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <!-- بلاغ من البانوراما بدون لوحة -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-panorama me-2"></i>
+                    بلاغ من البانوراما 360
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        هذا البلاغ تم إنشاؤه من البانوراما 360 ولا يرتبط بلوحة محددة.
+                        <br><br>
+                        جميع التفاصيل موجودة في قسم "وصف المشكلة" أعلاه.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if issue.panel and issue.panel.x_coordinate and issue.panel.y_coordinate %}
+<!-- استخدام خرائط Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // إحداثيات اللوحة
+        const panelLocation = [{{ issue.panel.y_coordinate }}, {{ issue.panel.x_coordinate }}];
+
+        // إنشاء الخريطة
+        const map = L.map('issue-map').setView(panelLocation, 15);
+
+        // إضافة طبقة الخريطة
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // تحديد لون العلامة حسب الحالة
+        let markerColor = '#4CAF50'; // أخضر للوحات العاملة
+        if ('{{ issue.panel.status }}' === 'معطل') {
+            markerColor = '#F44336'; // أحمر للوحات المعطلة
+        } else if ('{{ issue.panel.status }}' === 'تحت الصيانة') {
+            markerColor = '#FFC107'; // أصفر للوحات تحت الصيانة
+        }
+
+        // إنشاء العلامة
+        const marker = L.circleMarker(panelLocation, {
+            radius: 8,
+            fillColor: markerColor,
+            color: '#FFFFFF',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        }).addTo(map);
+
+        // إضافة نافذة منبثقة
+        marker.bindPopup('<b>{{ issue.panel.mdb }}</b><br>{{ issue.panel.area_name }}').openPopup();
+    });
+</script>
+{% endif %}
+{% endblock %}

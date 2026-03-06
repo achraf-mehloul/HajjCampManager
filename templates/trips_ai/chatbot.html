@@ -1,0 +1,747 @@
+{% extends 'base.html' %}
+{% block title %}المساعد الذكي{% endblock %}
+
+{% block head %}
+<style>
+    body {
+        font-family: 'Tahoma', 'Arial', sans-serif;
+    }
+
+    /* ===== حاوية الشات ===== */
+    .chatbot-wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 120px);
+    }
+
+    /* ===== ترويسة ===== */
+    .chat-header {
+        background: linear-gradient(135deg, #0984e3, #6c5ce7);
+        border-radius: 16px 16px 0 0;
+        padding: 16px 20px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .chat-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+    }
+
+    .chat-header .title {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .chat-header .sub {
+        font-size: .85rem;
+        opacity: .8;
+    }
+
+    .btn-clear {
+        margin-right: auto;
+        background: rgba(255, 255, 255, .2);
+        border: none;
+        color: #fff;
+        border-radius: 8px;
+        padding: 6px 14px;
+        cursor: pointer;
+        font-size: .9rem;
+    }
+
+    .btn-clear:hover {
+        background: rgba(255, 255, 255, .35);
+    }
+
+    /* ===== منطقة الرسائل ===== */
+    #chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 16px;
+        background: #f0f2f5;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .msg {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        animation: fadeUp .3s ease;
+    }
+
+    .msg.user {
+        flex-direction: row-reverse;
+    }
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(16px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0)
+        }
+    }
+
+    .msg-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .bot .msg-avatar {
+        background: #0984e3;
+        color: #fff;
+    }
+
+    .user .msg-avatar {
+        background: #00b894;
+        color: #fff;
+    }
+
+    .bubble {
+        max-width: 72%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+    }
+
+    .bot .bubble {
+        background: #fff;
+        border-bottom-right-radius: 4px;
+        color: #2d3436;
+    }
+
+    .user .bubble {
+        background: #0984e3;
+        color: #fff;
+        border-bottom-left-radius: 4px;
+        text-align: right;
+    }
+
+    .msg-time {
+        font-size: .75rem;
+        color: #b2bec3;
+        margin-top: 4px;
+    }
+
+    .bot .msg-time {
+        margin-right: 50px;
+    }
+
+    .user .msg-time {
+        margin-left: 50px;
+        text-align: right;
+    }
+
+    /* مؤشر الكتابة */
+    .typing-dot {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #636e72;
+        margin: 0 3px;
+        animation: dot-bounce 1.3s infinite;
+    }
+
+    .typing-dot:nth-child(2) {
+        animation-delay: .2s;
+    }
+
+    .typing-dot:nth-child(3) {
+        animation-delay: .4s;
+    }
+
+    @keyframes dot-bounce {
+
+        0%,
+        80%,
+        100% {
+            transform: scale(.7);
+            opacity: .5
+        }
+
+        40% {
+            transform: scale(1);
+            opacity: 1
+        }
+    }
+
+    /* ===== منطقة الإدخال ===== */
+    .chat-input-area {
+        background: #fff;
+        border-radius: 0 0 16px 16px;
+        padding: 14px 16px;
+        border-top: 1px solid #dfe6e9;
+    }
+
+    /* أزرار سريعة */
+    .quick-btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .quick-btn {
+        background: #f1f3f5;
+        border: 1px solid #dee2e6;
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: .9rem;
+        cursor: pointer;
+        transition: .2s;
+        color: #2d3436;
+    }
+
+    .quick-btn:hover {
+        background: #e3f2fd;
+        border-color: #0984e3;
+        color: #0984e3;
+    }
+
+    /* حقل الإدخال + الأزرار */
+    .input-row {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    #chat-input {
+        flex: 1;
+        border: 2px solid #dee2e6;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 1rem;
+        outline: none;
+        font-family: 'Tahoma', sans-serif;
+        resize: none;
+        max-height: 80px;
+        direction: rtl;
+    }
+
+    #chat-input:focus {
+        border-color: #0984e3;
+    }
+
+    .send-btn,
+    .mic-btn {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        border: none;
+        font-size: 1.3rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: .2s;
+    }
+
+    .send-btn {
+        background: #0984e3;
+        color: #fff;
+    }
+
+    .send-btn:hover {
+        background: #0770c4;
+        transform: scale(1.05);
+    }
+
+    .mic-btn {
+        background: #00b894;
+        color: #fff;
+    }
+
+    .mic-btn.recording {
+        background: #d63031;
+        animation: mic-pulse 1s infinite;
+    }
+
+    @keyframes mic-pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(214, 48, 49, .6)
+        }
+
+        50% {
+            box-shadow: 0 0 0 14px rgba(214, 48, 49, 0)
+        }
+    }
+
+    /* زر الإرشاد المكاني */
+    .guide-btn {
+        width: 100%;
+        background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 10px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    .guide-btn:hover {
+        opacity: .9;
+    }
+
+    /* وضع كبار السن - خط كبير */
+    .senior-mode #chat-messages {
+        font-size: 1.25rem;
+    }
+
+    .senior-mode .bubble {
+        font-size: 1.25rem;
+        padding: 16px 20px;
+    }
+
+    .senior-mode .send-btn,
+    .senior-mode .mic-btn {
+        width: 64px;
+        height: 64px;
+        font-size: 1.6rem;
+    }
+
+    .senior-mode #chat-input {
+        font-size: 1.2rem;
+        padding: 14px 18px;
+    }
+
+    /* فقاعة الإرشاد المكاني (خريطة + روابط) */
+    .spatial-bubble {
+        max-width: 100%;
+    }
+
+    .spatial-bubble iframe {
+        display: block;
+    }
+
+    .spatial-bubble .btn {
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="chatbot-wrap" id="chatbot-wrap">
+
+        <!-- ترويسة -->
+        <div class="chat-header">
+            <div class="chat-avatar">🤖</div>
+            <div>
+                <div class="title">المساعد الذكي</div>
+                <div class="sub">يدعم الصوت والنص والإرشاد المكاني</div>
+            </div>
+            <div style="margin-right:auto;display:flex;gap:8px">
+                <button class="btn-clear" onclick="toggleVoiceMode()" id="voice-mode-btn"
+                    title="تفعيل الرد الصوتي الآلي">
+                    <i class="fas fa-volume-up me-1"></i>وضع الصوت: <span id="voice-status-text">معطل</span>
+                </button>
+                <button class="btn-clear" onclick="toggleSeniorMode()" id="senior-btn" title="وضع كبار السن">
+                    <i class="fas fa-font me-1"></i>كبار السن
+                </button>
+                <button class="btn-clear" onclick="clearChat()">
+                    <i class="fas fa-trash me-1"></i>مسح
+                </button>
+            </div>
+        </div>
+
+        <!-- رسائل -->
+        <div id="chat-messages">
+            <div class="msg bot">
+                <div class="msg-avatar"><i class="fas fa-robot"></i></div>
+                <div>
+                    <div class="bubble">
+                        مرحباً بك! 👋<br>
+                        أنا مساعدك الذكي. يمكنني الإجابة على أسئلتك <strong>نصاً أو صوتاً</strong>.<br>
+                        اضغط على 🎤 للتحدث مباشرة، أو اكتب سؤالك أدناه.
+                    </div>
+                    <div class="msg-time">الآن</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- منطقة الإدخال -->
+        <div class="chat-input-area">
+            <!-- أزرار سريعة -->
+            <div class="quick-btns">
+                <button class="quick-btn" onclick="sendQuick('أريد معلومات عن مناسك الحج')">🕋 الحج</button>
+                <button class="quick-btn" onclick="sendQuick('ما هي تكاليف رحلة العمرة؟')">🕌 العمرة</button>
+                <button class="quick-btn" onclick="sendQuick('كيف أصل إلى المسجد الحرام؟')">📍 الوصول</button>
+                <button class="quick-btn" onclick="sendQuick('ما هي خدمات الصحة المتاحة؟')">🏥 الصحة</button>
+                <button class="quick-btn" onclick="sendQuick('أين أقرب مطعم حلال؟')">🍽️ مطاعم</button>
+            </div>
+
+            <!-- حقل الإدخال -->
+            <div class="input-row">
+                <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="تحدث بالعربي">
+                    <i class="fas fa-microphone" id="mic-icon"></i>
+                </button>
+                <textarea id="chat-input" rows="1" placeholder="اكتب رسالتك أو اضغط المايكروفون للتحدث..."></textarea>
+                <button class="send-btn" onclick="sendMessage()" title="إرسال">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+
+            <!-- الإرشاد المكاني -->
+            <button class="guide-btn" onclick="startSpatialGuide()">
+                <i class="fas fa-route me-2"></i> إرشاد مكاني ذكي - قل للمساعد وين تريد تروح
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ===============================================================
+       VOICE CHATBOT - Arabic Speech Recognition + TTS + AI Chat
+    ================================================================ */
+
+    let sessionId = null;
+    let isTyping = false;
+    let recognition = null;
+    let isRecording = false;
+    let seniorMode = false;
+    let spatialGuideMode = false;
+    let voiceMode = false;
+
+    /* ---------- التعرف على الصوت (Web Speech API) ---------- */
+    function initRecognition() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return null;
+
+        const rec = new SR();
+        rec.lang = 'ar-SA';
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        rec.continuous = false;
+
+        rec.onstart = () => {
+            isRecording = true;
+            updateMicUI(true);
+            showToast('🎤 جاري الاستماع...', false);
+        };
+        rec.onend = () => {
+            isRecording = false;
+            updateMicUI(false);
+            hideToast();
+        };
+        rec.onerror = (e) => {
+            console.warn('Speech error', e);
+            isRecording = false;
+            updateMicUI(false);
+            if (e.error === 'not-allowed') {
+                showToast('⚠️ يرجى السماح بالوصول للميكروفون');
+            } else {
+                showToast('⚠️ لم أتمكن من سماعك بوضوح');
+            }
+            setTimeout(hideToast, 3000);
+        };
+
+        rec.onresult = (e) => {
+            const transcript = e.results[0][0].transcript;
+            document.getElementById('chat-input').value = transcript;
+            sendMessage();
+        };
+        return rec;
+    }
+
+    function toggleMic() {
+        if (!recognition) recognition = initRecognition();
+
+        if (!recognition) {
+            speakText('عذراً، المتصفح لا يدعم التعرف على الصوت. استخدم Chrome أو Edge.');
+            return;
+        }
+
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            recognition.start();
+            speakText('تفضل، أنا أستمع إليك');
+        }
+    }
+
+    function updateMicUI(recording) {
+        const btn = document.getElementById('mic-btn');
+        const icon = document.getElementById('mic-icon');
+        if (recording) {
+            btn.classList.add('recording');
+            icon.className = 'fas fa-stop';
+        } else {
+            btn.classList.remove('recording');
+            icon.className = 'fas fa-microphone';
+        }
+    }
+
+    /* ---------- نص إلى صوت (TTS) ---------- */
+    function speakText(text) {
+        if (!('speechSynthesis' in window) || !text) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ar-SA';
+        u.rate = 1.0;
+        u.pitch = 1;
+
+        const voices = window.speechSynthesis.getVoices();
+        let arabic = voices.find(v => v.lang.includes('ar-SA')) || voices.find(v => v.lang.includes('ar'));
+        if (arabic) u.voice = arabic;
+
+        window.speechSynthesis.speak(u);
+    }
+
+    function toggleVoiceMode() {
+        voiceMode = !voiceMode;
+        const btn = document.getElementById('voice-mode-btn');
+        const text = document.getElementById('voice-status-text');
+        if (voiceMode) {
+            btn.style.background = '#e74c3c';
+            text.textContent = 'مفعل';
+            speakText('تم تفعيل وضع الرد الصوتي الآلي');
+        } else {
+            btn.style.background = '';
+            text.textContent = 'معطل';
+            window.speechSynthesis.cancel();
+        }
+    }
+
+    /* ---------- إرشاد مكاني (خرائط + مسارات) ---------- */
+    function startSpatialGuide() {
+        spatialGuideMode = true;
+        addMessage('bot', '🗺️ <strong>الإرشاد المكاني:</strong> قل أو اكتب المكان الذي تريد الوصول إليه (مثال: المسجد الحرام، جمرة العقبة، منى)');
+        speakText('قل لي المكان الذي تريد الوصول إليه');
+        document.getElementById('chat-input').focus();
+    }
+
+    function isDestinationLikeMessage(text) {
+        const t = text.trim();
+        return spatialGuideMode ||
+            /أريد الذهاب|كيف أصل|أين (هو|تقع|يقع)|وصل (إلى|لـ)|الاتجاهات? (إلى|لـ)|خريطة|موقع|مكان/i.test(t) ||
+            (t.length < 80 && /مكة|المدينة|منى|عرفات|جمرة|العقبة|المسجد|الحرام|النبوي/i.test(t));
+    }
+
+    async function trySpatialGuide(text) {
+        const payload = { destination: text };
+        const origin = window._userLocation;
+        if (origin && origin.lat != null && origin.lng != null) {
+            payload.origin_lat = origin.lat;
+            payload.origin_lng = origin.lng;
+        }
+        const res = await fetch('/trips-ai/api/spatial-guide', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!data.success) return null;
+        return data;
+    }
+
+    function addSpatialGuideBubble(data) {
+        const wrap = document.getElementById('chat-messages');
+        const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+        const lat = data.lat, lng = data.lng;
+        const bbox = [lng - 0.01, lat - 0.01, lng + 0.01, lat + 0.01].join(',');
+        const osmEmbed = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
+        const html = `
+    <div class="msg bot">
+    <div class="msg-avatar"><i class="fas fa-robot"></i></div>
+    <div>
+      <div class="bubble spatial-bubble" dir="rtl">
+        <strong>📍 ${escapeHtml(data.destination)}</strong><br>
+        <small class="text-muted">${escapeHtml(data.display_name)}</small>
+        <div class="mt-2 mb-2" style="border-radius:8px;overflow:hidden;height:180px;max-width:100%;">
+          <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="${osmEmbed}" style="border:0;"></iframe>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="${data.directions_url}" target="_blank" rel="noopener" class="btn btn-sm btn-primary">
+            <i class="fas fa-route me-1"></i>فتح الاتجاهات في الخريطة
+          </a>
+          <a href="${data.map_url}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-map-marker-alt me-1"></i>عرض الموقع فقط
+          </a>
+        </div>
+      </div>
+      <div class="msg-time">${time}</div>
+    </div>
+    </div>`;
+        wrap.insertAdjacentHTML('beforeend', html);
+        wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    /* ---------- إرسال الرسالة ---------- */
+    function sendQuick(msg) {
+        document.getElementById('chat-input').value = msg;
+        sendMessage();
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (!text || isTyping) return;
+
+        addMessage('user', text);
+        input.value = '';
+        input.style.height = 'auto';
+
+        // إرشاد مكاني: محاولة جيو-كود + خرائط واتجاهات
+        if (isDestinationLikeMessage(text)) {
+            if (!window._userLocationAsked) {
+                window._userLocationAsked = true;
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        function (pos) { window._userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+                        function () { window._userLocation = null; },
+                        { timeout: 5000 }
+                    );
+                }
+            }
+            showTyping();
+            isTyping = true;
+            const spatial = await trySpatialGuide(text);
+            hideTyping();
+            isTyping = false;
+            spatialGuideMode = false;
+            if (spatial) {
+                addSpatialGuideBubble(spatial);
+                speakText('تم العثور على الموقع. يمكنك فتح الاتجاهات في الخريطة.');
+                return;
+            }
+            // إن فشل الإرشاد المكاني نكمل بالرد العادي
+        }
+
+        showTyping();
+        isTyping = true;
+        try {
+            const res = await fetch('/trips-ai/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, session_id: sessionId, context_type: 'general' })
+            });
+            const data = await res.json();
+            hideTyping();
+            isTyping = false;
+
+            if (data.success) {
+                sessionId = data.session_id || sessionId;
+                addMessage('bot', data.response);
+                if (voiceMode) {
+                    const plain = data.response.replace(/<[^>]+>/g, '').replace(/[🕋🕌🤖👋📍💰✅🎯👶]/gu, '');
+                    speakText(plain);
+                }
+            } else {
+                // إظهار رسالة الخطأ الحقيقية من النموذج
+                const errMsg = data.response || data.error || 'عذراً، حدث خطأ. حاول مرة أخرى.';
+                addMessage('bot', errMsg);
+                if (voiceMode) speakText(errMsg);
+            }
+        } catch (e) {
+            hideTyping();
+            isTyping = false;
+            addMessage('bot', 'تعذّر الاتصال. تحقق من الإنترنت.');
+        }
+    }
+
+    /* ---------- Toast Helpers ---------- */
+    function showToast(msg, spin) {
+        let t = document.getElementById('chat-toast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'chat-toast';
+            t.style = "position:fixed; top:80px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.8); color:#fff; padding:10px 20px; border-radius:30px; z-index:9999; font-size:.9rem; pointer-events:none;";
+            document.body.appendChild(t);
+        }
+        t.innerHTML = (spin ? '<i class="fas fa-circle-notch fa-spin me-2"></i>' : '') + msg;
+        t.style.display = 'block';
+    }
+    function hideToast() {
+        const t = document.getElementById('chat-toast');
+        if (t) t.style.display = 'none';
+    }
+
+    /* ---------- إضافة رسالة للشاشة ---------- */
+    function addMessage(side, html) {
+        const wrap = document.getElementById('chat-messages');
+        const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+        const icon = side === 'bot' ? 'fa-robot' : 'fa-user';
+        const div = document.createElement('div');
+        div.className = 'msg ' + side;
+        div.innerHTML = `
+    <div class="msg-avatar"><i class="fas ${icon}"></i></div>
+    <div>
+      <div class="bubble" dir="rtl">${html.replace(/\n/g, '<br>')}</div>
+      <div class="msg-time">${time}</div>
+    </div>`;
+        wrap.appendChild(div);
+        wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    function showTyping() {
+        if (document.getElementById('typing-msg')) return;
+        const wrap = document.getElementById('chat-messages');
+        const div = document.createElement('div');
+        div.id = 'typing-msg'; div.className = 'msg bot';
+        div.innerHTML = `
+    <div class="msg-avatar"><i class="fas fa-robot"></i></div>
+    <div><div class="bubble">
+      <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+    </div></div>`;
+        wrap.appendChild(div);
+        wrap.scrollTop = wrap.scrollHeight;
+    }
+    function hideTyping() { const el = document.getElementById('typing-msg'); if (el) el.remove(); }
+
+    function clearChat() {
+        if (!confirm('هل تريد مسح المحادثة؟')) return;
+        document.getElementById('chat-messages').innerHTML = '';
+        sessionId = null;
+        addMessage('bot', 'تم المسح. كيف يمكنني مساعدتك؟');
+    }
+
+    function toggleSeniorMode() {
+        seniorMode = !seniorMode;
+        document.getElementById('chatbot-wrap').classList.toggle('senior-mode', seniorMode);
+        document.getElementById('senior-btn').style.background = seniorMode ? '#00b894' : '';
+        speakText(seniorMode ? 'تم تفعيل وضع كبار السن، الخط الآن أكبر' : 'تم إلغاء وضع كبار السن');
+    }
+
+    /* Enter للإرسال (Shift+Enter = سطر جديد) */
+    document.getElementById('chat-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+    /* تمديد التيكست أريا تلقائياً */
+    document.getElementById('chat-input').addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+    });
+</script>
+{% endblock %}

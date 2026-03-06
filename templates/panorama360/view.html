@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}{{ panorama.title }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/plugins/markers.css"/>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/plugins/markers.js"></script>
+<style>
+#panorama { width: 100%; height: calc(100vh - 170px); min-height: 520px; background: #1a1a2e; }
+.pano-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: linear-gradient(135deg, #1e272e, #2c3e50); border-radius: 12px 12px 0 0; color: #fff; }
+.hotspot-marker { width: 40px; height: 40px; background: radial-gradient(circle at 30% 30%, #ff4757, #c0392b); border: 3px solid white; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5); animation: pulse 2s infinite; margin: -20px 0 0 -20px; }
+.hotspot-marker:hover { transform: scale(1.2); background: radial-gradient(circle at 30% 30%, #ff6b81, #e74c3c); }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,71,87,.7); } 50% { box-shadow: 0 0 0 20px rgba(255,71,87,0); } }
+.hs-overlay { position: fixed; inset:0; background: rgba(0,0,0,.75); z-index:10000; display:flex; align-items:center; justify-content:center; backdrop-filter: blur(5px); }
+.hs-modal { background: #fff; border-radius: 24px; padding: 30px 28px 25px; max-width: 450px; width:90%; box-shadow: 0 25px 50px rgba(0,0,0,.5); animation: modalIn .3s; direction: rtl; }
+@keyframes modalIn { from { opacity:0; transform: translateY(50px) scale(0.9); } to { opacity:1; transform: translateY(0) scale(1); } }
+.btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.btn-row button { flex:1; min-width:90px; padding:12px; border:none; border-radius:30px; font-size:1rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:.2s; }
+.btn-ok { background:#00b894; color:#fff; } .btn-rep { background:#d63031; color:#fff; } .btn-fav { background:#fdcb6e; color:#2d3436; } .btn-cls { background:#b2bec3; color:#2d3436; } .btn-speak { background:#0984e3; color:#fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="pano-toolbar">
+    <div class="title-area"><i class="fas fa-globe me-2"></i><span>{{ panorama.title }}</span></div>
+    <div class="tools">
+      <button onclick="toggleVR()"><i class="fas fa-vr-cardboard"></i> VR</button>
+      <button onclick="speakLocation()"><i class="fas fa-volume-up"></i> صوت</button>
+      <button onclick="increaseFontSize()"><i class="fas fa-search-plus"></i> تكبير</button>
+      <a href="{{ url_for('panorama360.gallery') }}" class="tool-link"><i class="fas fa-arrow-right"></i> رجوع</a>
+    </div>
+  </div>
+  <div id="panorama"></div>
+  <div class="d-flex justify-content-between align-items-center bg-dark text-white px-3 py-2"><small><i class="fas fa-info-circle me-1"></i>اضغط على النقاط الحمراء</small><span class="badge bg-danger"><i class="fas fa-map-marker-alt me-1"></i>{{ hotspots|length }} نقطة</span></div>
+</div>
+
+<div id="hs-overlay" class="hs-overlay" style="display:none" onclick="if(event.target===this)closeModal()"><div class="hs-modal" id="hs-modal-box"><div id="hs-modal-content"></div></div></div>
+
+<script>
+window.HS_DATA = {{ hotspots | tojson | safe }};
+window.PANORAMA_ID = {{ panorama.id | tojson }};
+window.CSRF_TOKEN = {{ csrf_token() | tojson }};
+window.PANO_IMG = "{{ url_for('static', filename=panorama.image_path) }}";
+window.PANO_TITLE = "{{ (panorama.title or '') | safe }}";
+window.PANO_LOC = "{{ (panorama.location_name or panorama.area or '') | safe }}";
+
+let viewer, markersPlugin;
+
+document.addEventListener('DOMContentLoaded', function() {
+  const markers = window.HS_DATA.map(hs => ({
+    id: 'hs-' + hs.id,
+    position: { pitch: Number(hs.pitch) * Math.PI / 180, yaw: Number(hs.yaw) * Math.PI / 180 },
+    html: '<div class="hotspot-marker" data-id="' + hs.id + '"></div>',
+    tooltip: hs.label || ('أصل ' + hs.asset_id),
+    data: hs
+  }));
+
+  viewer = new PhotoSphereViewer.Viewer({ container: 'panorama', panorama: window.PANO_IMG, navbar: ['zoom', 'move', 'download', 'fullscreen'], lang: { zoom:'تكبير', move:'تحريك', download:'تحميل', fullscreen:'شاشة كاملة' } });
+  markersPlugin = new PhotoSphereViewer.MarkersPlugin(); viewer.registerPlugin(markersPlugin);
+  markers.forEach(m => markersPlugin.addMarker(m));
+  markersPlugin.on('select-marker', (e, m) => { showModal(m.data); });
+  setTimeout(() => speakText(window.PANO_TITLE + ' - ' + window.PANO_LOC), 1000);
+});
+
+function showModal(hs) {
+  const label = hs.label || ('أصل ' + hs.asset_id); speakText(label); window._currentHs = hs;
+  const c = document.getElementById('hs-modal-content'); const color = hs.color_hex || '#ff4757';
+  const icon = hs.icon_key ? '<i class="'+hs.icon_key+'" style="color:#fff;font-size:28px"></i>' : '<i class="fas fa-map-marker-alt" style="color:#fff;font-size:28px"></i>';
+  c.innerHTML = '<div style="text-align:center"><div style="width:70px;height:70px;border-radius:50%;background:'+color+';margin:0 auto 15px;display:flex;align-items:center;justify-content:center">'+icon+'</div><h2 class="hs-modal-label" style="margin:0 0 5px"></h2><p style="color:#636e72">رقم الأصل: <strong>'+hs.asset_id+'</strong></p></div><div class="btn-row"><button class="btn-speak" onclick="speakHotspot()"><i class="fas fa-volume-up"></i> قراءة</button><button class="btn-ok" onclick="markOk()"><i class="fas fa-check-circle"></i> سليم</button><button class="btn-fav" onclick="saveHsFav()"><i class="fas fa-heart"></i> مفضلة</button><button class="btn-rep" onclick="showReportForm()"><i class="fas fa-exclamation-triangle"></i> بلاغ</button><button class="btn-cls" onclick="closeModal()"><i class="fas fa-times"></i> إغلاق</button></div>';
+  c.querySelector('.hs-modal-label').textContent = label; document.getElementById('hs-overlay').style.display = 'flex';
+}
+function closeModal() { document.getElementById('hs-overlay').style.display = 'none'; }
+function speakHotspot() { if(window._currentHs) speakText(window._currentHs.label || ('أصل ' + window._currentHs.asset_id)); }
+function markOk() { speakText('تم التسجيل'); document.getElementById('hs-modal-content').innerHTML = '<div style="text-align:center;padding:30px"><i class="fas fa-check-circle text-success" style="font-size:70px"></i><h3 style="color:#00b894">تم التسجيل</h3><button class="btn-cls" onclick="closeModal()">إغلاق</button></div>'; }
+function saveHsFav() { const lbl = window._currentHs?.label || window._currentHs?.asset_id || ''; speakText('تم حفظ في المفضلة'); closeModal(); alert('تم حفظ "'+lbl+'" في المفضلة'); }
+function showReportForm() { const hs = window._currentHs || {}; const label = hs.label || ('أصل ' + hs.asset_id); const c = document.getElementById('hs-modal-content'); c.innerHTML = '<h3><i class="fas fa-exclamation-triangle text-danger me-2"></i> إبلاغ</h3><p style="color:#636e72;font-size:1.1rem" class="rpt-lbl"></p><form id="rform" class="report-form"><label>نوع المشكلة *</label><select name="issue_type" required><option value="">اختر</option><option value="damage">تلف</option><option value="malfunction">عطل</option><option value="missing">مفقود</option><option value="dirty">غير نظيف</option><option value="other">أخرى</option></select><label>ملاحظات *</label><textarea name="notes" rows="4" required></textarea><label><i class="fas fa-camera me-1"></i> صورة</label><input type="file" name="attachment" accept="image/*,video/*" capture="environment"><div class="btn-row"><button type="button" class="btn-rep" onclick="submitReport()"><i class="fas fa-paper-plane"></i> إرسال</button><button type="button" class="btn-cls" onclick="closeModal()"><i class="fas fa-times"></i> إلغاء</button></div></form>'; c.querySelector('.rpt-lbl').textContent = label; }
+function submitReport() { const hs = window._currentHs || {}; const form = document.getElementById('rform'); const fd = new FormData(form); fd.append('asset_id', hs.asset_id); fd.append('panorama_id', window.PANORAMA_ID); fd.append('csrf_token', window.CSRF_TOKEN); const btn = form.querySelector('.btn-rep'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...'; fetch('/panorama360/submit-report', { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'} }).then(r=>r.json()).then(d=>{ const c=document.getElementById('hs-modal-content'); if(d.success){ c.innerHTML='<div style="text-align:center;padding:30px"><i class="fas fa-check-circle text-success" style="font-size:70px"></i><h3 style="color:#00b894">تم الإرسال!</h3><p>'+d.message+'</p><button class="btn-cls" onclick="closeModal()">إغلاق</button></div>'; speakText('تم إرسال البلاغ'); } else { btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> إرسال'; alert('خطأ: '+d.message); } }).catch(()=>{ btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> إرسال'; alert('خطأ في الاتصال'); }); }
+function toggleVR() { if (!viewer) return; const btn = event.currentTarget; viewer.setOption('fisheye', !viewer.getOption('fisheye')); btn.innerHTML = viewer.getOption('fisheye') ? '<i class="fas fa-vr-cardboard"></i> عادي' : '<i class="fas fa-vr-cardboard"></i> VR'; }
+function increaseFontSize() { document.body.style.fontSize = (parseInt(getComputedStyle(document.body).fontSize)+2)+'px'; speakText('تم تكبير الخط'); }
+function speakText(text) { if (!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang='ar-SA'; u.rate=0.9; const ar = window.speechSynthesis.getVoices().find(v=>v.lang.startsWith('ar')); if(ar) u.voice = ar; window.speechSynthesis.speak(u); }
+function speakLocation() { speakText(window.PANO_TITLE + ' — ' + window.PANO_LOC); }
+</script>
+{% endblock %}

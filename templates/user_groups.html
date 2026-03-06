@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        إدارة المجموعات والفرق
+                    </h5>
+                    <button class="btn btn-light btn-sm" onclick="showCreateGroupModal()">
+                        <i class="fas fa-plus me-1"></i>
+                        إنشاء مجموعة جديدة
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>اسم المجموعة</th>
+                                    <th>قائد المجموعة</th>
+                                    <th>عدد الأعضاء</th>
+                                    <th>المناطق المخصصة</th>
+                                    <th>المجموعات الفرعية</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in groups %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ group.name }}</strong><br>
+                                        <small class="text-muted">{{ group.description or 'لا يوجد وصف' }}</small>
+                                    </td>
+                                    <td>
+                                        {% if group.leader %}
+                                            <span class="badge bg-info">{{ group.leader.name }}</span>
+                                        {% else %}
+                                            <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ group.memberships|length }}</span>
+                                    </td>
+                                    <td>
+                                        {% set assigned_areas = group.get_assigned_areas() %}
+                                        {% if assigned_areas %}
+                                            {% for area in assigned_areas %}
+                                                <span class="badge bg-success me-1">{{ area }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted">جميع المناطق</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">{{ group.sub_groups|length }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-info" onclick="viewGroupDetails({{ group.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-primary" onclick="editGroup({{ group.id }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-success" onclick="manageMembers({{ group.id }})">
+                                                <i class="fas fa-users"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning" onclick="manageSubGroups({{ group.id }})">
+                                                <i class="fas fa-layer-group"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إنشاء مجموعة جديدة -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createGroupModalLabel">إنشاء مجموعة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createGroupForm" method="post" action="{{ url_for('create_user_group') }}">
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="group_name" class="form-label">اسم المجموعة</label>
+                            <input type="text" class="form-control" id="group_name" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="group_leader" class="form-label">قائد المجموعة</label>
+                            <select class="form-select" id="group_leader" name="leader_id">
+                                <option value="">اختر قائد المجموعة</option>
+                                {% for user in users %}
+                                    <option value="{{ user.id }}">{{ user.name }} ({{ user.role }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="group_description" class="form-label">وصف المجموعة</label>
+                        <textarea class="form-control" id="group_description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">المناطق المخصصة:</label>
+                        <div class="row">
+                            {% for area in areas %}
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="areas" value="{{ area }}" id="create_area_{{ loop.index }}">
+                                    <label class="form-check-label" for="create_area_{{ loop.index }}">
+                                        {{ area }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">أعضاء المجموعة:</label>
+                        <div class="row">
+                            {% for user in users %}
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="members" value="{{ user.id }}" id="create_member_{{ user.id }}">
+                                    <label class="form-check-label" for="create_member_{{ user.id }}">
+                                        {{ user.name }} ({{ user.role }})
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إنشاء المجموعة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إدارة الأعضاء -->
+<div class="modal fade" id="manageMembersModal" tabindex="-1" aria-labelledby="manageMembersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageMembersModalLabel">إدارة أعضاء المجموعة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="membersContent">
+                    <!-- سيتم تحميل المحتوى عبر AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة إدارة المجموعات الفرعية -->
+<div class="modal fade" id="manageSubGroupsModal" tabindex="-1" aria-labelledby="manageSubGroupsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageSubGroupsModalLabel">إدارة المجموعات الفرعية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="subGroupsContent">
+                    <!-- سيتم تحميل المحتوى عبر AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showCreateGroupModal() {
+        const modal = new bootstrap.Modal(document.getElementById('createGroupModal'));
+        modal.show();
+    }
+    
+    function viewGroupDetails(groupId) {
+        // عرض تفاصيل المجموعة
+        window.location.href = `/user-groups/${groupId}`;
+    }
+    
+    function editGroup(groupId) {
+        // تعديل المجموعة
+        window.location.href = `/user-groups/${groupId}/edit`;
+    }
+    
+    function manageMembers(groupId) {
+        // تحميل محتوى إدارة الأعضاء عبر AJAX
+        fetch(`/user-groups/${groupId}/members`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('membersContent').innerHTML = html;
+                const modal = new bootstrap.Modal(document.getElementById('manageMembersModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('خطأ في تحميل الأعضاء:', error);
+                alert('حدث خطأ في تحميل الأعضاء');
+            });
+    }
+    
+    function manageSubGroups(groupId) {
+        // تحميل محتوى إدارة المجموعات الفرعية عبر AJAX
+        fetch(`/user-groups/${groupId}/sub-groups`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('subGroupsContent').innerHTML = html;
+                const modal = new bootstrap.Modal(document.getElementById('manageSubGroupsModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('خطأ في تحميل المجموعات الفرعية:', error);
+                alert('حدث خطأ في تحميل المجموعات الفرعية');
+            });
+    }
+</script>
+{% endblock %}
